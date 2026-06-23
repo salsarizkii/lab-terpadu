@@ -1,0 +1,128 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import AppLayout from '../components/common/AppLayout.vue'
+import Card from '../components/common/Card.vue'
+import Badge from '../components/common/Badge.vue'
+import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import Button from '../components/common/Button.vue'
+import Modal from '../components/common/Modal.vue'
+import Alert from '../components/common/Alert.vue'
+import PaymentConfirmation from '../components/admin/PaymentConfirmation.vue'
+import { adminApi } from '../api/admin'
+import type { Payment } from '../types'
+
+const payments = ref<Payment[]>([])
+const loading = ref(true)
+const error = ref('')
+const filterStatus = ref('')
+const selectedPayment = ref<Payment | null>(null)
+const showConfirmModal = ref(false)
+
+const statusTypeMap: Record<string, string> = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+}
+
+const filtered = computed(() => {
+  if (!filterStatus.value) return payments.value
+  return payments.value.filter(p => p.status === filterStatus.value)
+})
+
+onMounted(async () => {
+  try {
+    payments.value = await adminApi.getPayments()
+  } catch {
+    error.value = 'Gagal memuat data'
+  } finally {
+    loading.value = false
+  }
+})
+
+function openConfirm(payment: Payment) {
+  selectedPayment.value = payment
+  showConfirmModal.value = true
+}
+
+async function handleConfirm(data: { status: string; discount_approved?: number }) {
+  if (!selectedPayment.value) return
+  try {
+    const updated = await adminApi.confirmPayment(selectedPayment.value.id, data)
+    const idx = payments.value.findIndex(p => p.id === selectedPayment.value!.id)
+    if (idx !== -1) payments.value[idx] = updated
+    showConfirmModal.value = false
+  } catch (e: any) {
+    error.value = e.response?.data?.message || 'Gagal'
+  }
+}
+</script>
+
+<template>
+  <AppLayout>
+    <div>
+      <div class="page-header">
+        <h1>Konfirmasi Pembayaran</h1>
+      </div>
+
+      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
+
+      <Card>
+        <div class="filter-bar">
+          <select v-model="filterStatus" class="form-select">
+            <option value="">Semua Status</option>
+            <option value="pending">Menunggu</option>
+            <option value="approved">Disetujui</option>
+            <option value="rejected">Ditolak</option>
+          </select>
+        </div>
+
+        <LoadingSpinner v-if="loading" size="lg" />
+
+        <div v-else class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Jumlah</th>
+                <th>Diskon Diminta</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in filtered" :key="p.id">
+                <td>#{{ p.id }}</td>
+                <td>Rp {{ Number(p.amount).toLocaleString('id-ID') }}</td>
+                <td>{{ p.discount_request ? 'Rp ' + Number(p.discount_request).toLocaleString('id-ID') : '-' }}</td>
+                <td><Badge :type="statusTypeMap[p.status]" :text="p.status" /></td>
+                <td>
+                  <Button size="sm" @click="openConfirm(p)">Proses</Button>
+                </td>
+              </tr>
+              <tr v-if="filtered.length === 0">
+                <td colspan="5" class="empty-cell">Tidak ada data</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Modal :show="showConfirmModal" title="Konfirmasi Pembayaran" @close="showConfirmModal = false">
+        <PaymentConfirmation v-if="selectedPayment" :payment="selectedPayment" @confirm="handleConfirm" />
+      </Modal>
+    </div>
+  </AppLayout>
+</template>
+
+<style scoped>
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
+.filter-bar { margin-bottom: 16px; }
+.form-select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; min-width: 200px; }
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+.table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+.empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
+
+</style>

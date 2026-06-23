@@ -22,28 +22,33 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'phone',
+        'api_token',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
+        'api_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'string',
         ];
+    }
+
+    public function beritaAcaras()
+    {
+        return $this->hasMany(BeritaAcara::class);
+    }
+
+    public function assignedBeritaAcaras()
+    {
+        return $this->hasMany(BeritaAcara::class, 'analyst_id');
     }
 }

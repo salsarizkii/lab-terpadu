@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\BeritaAcara;
+use App\Models\Payment;
+use Illuminate\Http\Request;
+
+class PaymentController extends Controller
+{
+    public function index()
+    {
+        $payments = Payment::whereHas('beritaAcara', function ($q) {
+            $q->where('user_id', auth()->id());
+        })->with('beritaAcara')->get();
+
+        return response()->json($payments);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'berita_acara_id' => 'required|exists:berita_acaras,id',
+            'amount' => 'required|numeric|min:0',
+            'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $beritaAcara = BeritaAcara::where('user_id', auth()->id())
+            ->findOrFail($request->berita_acara_id);
+
+        if ($beritaAcara->payment) {
+            return response()->json(['message' => 'Payment already exists for this berita acara'], 422);
+        }
+
+        $data = [
+            'berita_acara_id' => $request->berita_acara_id,
+            'amount' => $request->amount,
+        ];
+
+        if ($request->hasFile('payment_proof')) {
+            $data['payment_proof'] = $request->file('payment_proof')->store('payments', 'public');
+        }
+
+        $payment = Payment::create($data);
+
+        return response()->json([
+            'message' => 'Payment created successfully',
+            'data' => $payment,
+        ], 201);
+    }
+
+    public function show($id)
+    {
+        $payment = Payment::whereHas('beritaAcara', function ($q) {
+            $q->where('user_id', auth()->id());
+        })->with('beritaAcara')->findOrFail($id);
+
+        return response()->json($payment);
+    }
+
+    public function requestDiscount(Request $request, $id)
+    {
+        $request->validate([
+            'discount_request' => 'required|numeric|min:0',
+        ]);
+
+        $payment = Payment::whereHas('beritaAcara', function ($q) {
+            $q->where('user_id', auth()->id());
+        })->findOrFail($id);
+
+        $payment->update([
+            'discount_request' => $request->discount_request,
+        ]);
+
+        return response()->json([
+            'message' => 'Discount request submitted',
+            'data' => $payment,
+        ]);
+    }
+}
