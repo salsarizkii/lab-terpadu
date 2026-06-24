@@ -33,11 +33,20 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:approved,revision,rejected',
             'note' => 'required_if:status,revision|string',
+            'biaya' => 'required_if:status,approved|numeric|min:0',
+            'diskon_diizinkan' => 'sometimes|boolean',
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
-        $beritaAcara->update(['status' => $request->status]);
+        $data = ['status' => $request->status];
+
+        if ($request->status === 'approved') {
+            $data['biaya'] = $request->biaya;
+            $data['diskon_diizinkan'] = $request->boolean('diskon_diizinkan');
+        }
+
+        $beritaAcara->update($data);
 
         if ($request->status === 'revision') {
             BeritaAcaraRevision::create([
@@ -66,6 +75,11 @@ class AdminController extends Controller
         }
 
         $beritaAcara = BeritaAcara::findOrFail($id);
+
+        if (!$beritaAcara->payment || $beritaAcara->payment->status !== 'approved') {
+            return response()->json(['message' => 'Payment must be confirmed before assigning analyst'], 422);
+        }
+
         $beritaAcara->update(['analyst_id' => $request->analyst_id]);
 
         return response()->json([

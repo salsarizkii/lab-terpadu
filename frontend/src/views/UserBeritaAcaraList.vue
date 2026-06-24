@@ -7,6 +7,8 @@ import Badge from '../components/common/Badge.vue'
 import DataTable from '../components/common/DataTable.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
+import Modal from '../components/common/Modal.vue'
+import FlowSteps from '../components/user/FlowSteps.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import type { BeritaAcara } from '../types'
 
@@ -14,11 +16,19 @@ const router = useRouter()
 const items = ref<BeritaAcara[]>([])
 const loading = ref(true)
 const filterStatus = ref('')
+const showFlowModal = ref(false)
+const flowBa = ref<BeritaAcara | null>(null)
+
+function openFlow(ba: BeritaAcara) {
+  flowBa.value = ba
+  showFlowModal.value = true
+}
 
 const columns = [
   { key: 'judul_penelitian', label: 'Judul Penelitian' },
   { key: 'status', label: 'Status' },
   { key: 'created_at', label: 'Tanggal' },
+  { key: 'action', label: 'Aksi' },
 ]
 
 const filtered = computed(() => {
@@ -83,14 +93,21 @@ onMounted(async () => {
           <template #cell-created_at="{ row }">
             {{ new Date(row.created_at).toLocaleDateString('id-ID') }}
           </template>
-          <template #after>
-            <tr v-for="item in filtered" :key="item.id" class="clickable" @click="router.push(`/user/berita-acara/${item.id}`)">
-              <td>{{ item.judul_penelitian || '-' }}</td>
-              <td><Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" /></td>
-              <td>{{ new Date(item.created_at).toLocaleDateString('id-ID') }}</td>
-            </tr>
+          <template #cell-action="{ row }">
+            <div class="action-cell">
+              <Button size="sm" variant="outline" @click.stop="router.push(`/user/berita-acara/${row.id}`)">
+                Detail
+              </Button>
+              <Button size="sm" variant="ghost" @click.stop="openFlow(row)">
+                Alur
+              </Button>
+            </div>
           </template>
         </DataTable>
+
+        <Modal :show="showFlowModal" title="Alur Pemesanan" size="lg" @close="showFlowModal = false">
+          <FlowSteps v-if="flowBa" :berita-acara="flowBa" />
+        </Modal>
       </Card>
     </div>
   </AppLayout>
@@ -119,11 +136,8 @@ onMounted(async () => {
   font-size: 14px;
   min-width: 200px;
 }
-.clickable {
-  cursor: pointer;
+.action-cell {
+  display: flex;
+  gap: 6px;
 }
-.clickable:hover td {
-  background: #f8fafc;
-}
-
 </style>

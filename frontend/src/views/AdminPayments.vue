@@ -83,8 +83,10 @@ async function handleConfirm(data: { status: string; discount_approved?: number 
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Pemohon</th>
                 <th>Jumlah</th>
                 <th>Diskon Diminta</th>
+                <th>Alasan</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
@@ -92,15 +94,17 @@ async function handleConfirm(data: { status: string; discount_approved?: number 
             <tbody>
               <tr v-for="p in filtered" :key="p.id">
                 <td>#{{ p.id }}</td>
+                <td>{{ (p as any).berita_acara?.user?.name || '-' }}</td>
                 <td>Rp {{ Number(p.amount).toLocaleString('id-ID') }}</td>
                 <td>{{ p.discount_request ? 'Rp ' + Number(p.discount_request).toLocaleString('id-ID') : '-' }}</td>
-                <td><Badge :type="statusTypeMap[p.status]" :text="p.status" /></td>
+                <td class="cell-reason">{{ p.discount_reason || '-' }}</td>
+                <td><Badge :type="statusTypeMap[p.status]" :text="p.status === 'approved' ? 'Lunas' : p.status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td>
                 <td>
                   <Button size="sm" @click="openConfirm(p)">Proses</Button>
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td colspan="5" class="empty-cell">Tidak ada data</td>
+                <td colspan="7" class="empty-cell">Tidak ada data</td>
               </tr>
             </tbody>
           </table>
@@ -124,5 +128,6 @@ async function handleConfirm(data: { status: string; discount_approved?: number 
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
+.cell-reason { max-width: 200px; white-space: normal; word-break: break-word; font-size: 13px; }
 
 </style>

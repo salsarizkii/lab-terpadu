@@ -41,8 +41,9 @@ onMounted(async () => {
             <div>
               <div class="payment-amount">Rp {{ Number(p.amount).toLocaleString('id-ID') }}</div>
               <div class="payment-meta">
-                <span v-if="p.discount_request">Diskon diminta: Rp {{ Number(p.discount_request).toLocaleString('id-ID') }}</span>
-                <span v-if="p.discount_approved">Diskon disetujui: Rp {{ Number(p.discount_approved).toLocaleString('id-ID') }}</span>
+                  <span v-if="p.discount_request">Diskon diminta: Rp {{ Number(p.discount_request).toLocaleString('id-ID') }}</span>
+                  <span v-if="p.discount_reason">Alasan: {{ p.discount_reason }}</span>
+                  <span v-if="p.discount_approved">Diskon disetujui: Rp {{ Number(p.discount_approved).toLocaleString('id-ID') }}</span>
               </div>
             </div>
             <Badge :type="statusTypeMap[p.status]" :text="p.status" />

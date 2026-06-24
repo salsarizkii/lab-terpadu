@@ -65,12 +65,12 @@ function openAssign(item: BeritaAcara) {
   showAssignModal.value = true
 }
 
-async function handleVerify(data: { status: string; note?: string }) {
+async function handleVerify(data: any) {
   if (!selectedBa.value) return
   try {
-    await adminApi.updateStatus(selectedBa.value.id, data)
+    const updated = await adminApi.updateStatus(selectedBa.value.id, data)
     const idx = items.value.findIndex(i => i.id === selectedBa.value!.id)
-    if (idx !== -1) items.value[idx].status = data.status as any
+    if (idx !== -1) items.value[idx] = updated
     showVerifyModal.value = false
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Gagal'
@@ -130,7 +130,9 @@ async function handleAssign(analystId: number) {
                 <td class="actions">
                   <Button size="sm" variant="ghost" @click="openDetail(item)">Detail</Button>
                   <Button size="sm" @click="openVerify(item)">Verifikasi</Button>
-                  <Button size="sm" variant="outline" @click="openAssign(item)">Assign</Button>
+                  <Button size="sm" variant="outline" @click="openAssign(item)" :disabled="item.status !== 'approved' || item.payment?.status !== 'approved'">
+                    Assign
+                  </Button>
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">

@@ -19,6 +19,7 @@ Route::middleware('api.token')->group(function () {
         Route::apiResource('/berita-acara', BeritaAcaraController::class);
         Route::post('/payments', [PaymentController::class, 'store']);
         Route::post('/payments/{id}/discount', [PaymentController::class, 'requestDiscount']);
+        Route::post('/payments/{id}/upload-proof', [PaymentController::class, 'uploadProof']);
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::get('/payments/{id}', [PaymentController::class, 'show']);
         Route::get('/certificates/{id}/download', [CertificateController::class, 'download']);

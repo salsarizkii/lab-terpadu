@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
-import Button from '../components/common/Button.vue'
 import { adminApi } from '../api/admin'
 import type { BeritaAcara } from '../types'
 
@@ -21,9 +20,7 @@ onMounted(async () => {
   }
 })
 
-const pendingCount = ref(0)
-const approvedCount = ref(0)
-const revisionCount = ref(0)
+
 </script>
 
 <template>
@@ -55,16 +52,6 @@ const revisionCount = ref(0)
           </Card>
         </div>
 
-        <div class="quick-actions">
-          <Card title="Aksi Cepat">
-            <div class="action-buttons">
-              <Button @click="router.push('/admin/berita-acara')">Verifikasi Berita Acara</Button>
-              <Button variant="outline" @click="router.push('/admin/payments')">Konfirmasi Pembayaran</Button>
-              <Button variant="outline" @click="router.push('/admin/samples')">Status Sampel</Button>
-            </div>
-          </Card>
-        </div>
-
         <Card title="Berita Acara Menunggu">
           <div v-if="items.filter(i => i.status === 'pending').length === 0" class="empty">Tidak ada yang menunggu</div>
           <div v-else class="ba-mini-list">
@@ -86,8 +73,6 @@ const revisionCount = ref(0)
 .stat-card { text-align: center; }
 .stat-value { font-size: 32px; font-weight: 700; color: #1e3a5f; }
 .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
-.quick-actions { margin-bottom: 24px; }
-.action-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
 .empty { text-align: center; padding: 40px; color: #94a3b8; }
 .ba-mini-list { display: flex; flex-direction: column; gap: 8px; }
 .ba-mini-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }

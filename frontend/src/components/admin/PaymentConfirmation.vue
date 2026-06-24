@@ -33,16 +33,17 @@ function handleSubmit() {
 <template>
   <div class="confirmation">
     <div class="confirmation__info">
-      <p><strong>Amount:</strong> Rp {{ payment.amount }}</p>
-      <p v-if="payment.discount_request"><strong>Discount Requested:</strong> Rp {{ payment.discount_request }}</p>
-      <p><strong>Status:</strong> <Badge :type="payment.status === 'approved' ? 'success' : payment.status === 'rejected' ? 'danger' : 'warning'" :text="payment.status" /></p>
+      <p><strong>Jumlah:</strong> Rp {{ Number(payment.amount).toLocaleString('id-ID') }}</p>
+      <p v-if="payment.discount_request"><strong>Diskon Diminta:</strong> Rp {{ Number(payment.discount_request).toLocaleString('id-ID') }}</p>
+      <p v-if="payment.discount_reason"><strong>Alasan Diskon:</strong> {{ payment.discount_reason }}</p>
+      <p><strong>Status:</strong> <Badge :type="payment.status === 'approved' ? 'success' : payment.status === 'rejected' ? 'danger' : 'warning'" :text="payment.status === 'approved' ? 'Lunas' : payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></p>
     </div>
     <form @submit.prevent="handleSubmit">
-      <FormInput v-model="discountApproved" label="Discount Approved (optional)" type="number" />
-      <FormSelect v-model="status" label="Confirm Status" :options="statusOptions" required />
+      <FormInput v-model="discountApproved" label="Diskon Disetujui (opsional)" type="number" />
+      <FormSelect v-model="status" label="Konfirmasi Status" :options="statusOptions" required />
       <div class="confirmation__actions">
         <Button type="submit" :disabled="loading || !status">
-          {{ loading ? 'Confirming...' : 'Confirm Payment' }}
+          {{ loading ? 'Menyimpan...' : 'Konfirmasi Pembayaran' }}
         </Button>
       </div>
     </form>

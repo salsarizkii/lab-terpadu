@@ -10,6 +10,7 @@ class Payment extends Model
         'berita_acara_id',
         'amount',
         'discount_request',
+        'discount_reason',
         'discount_approved',
         'status',
         'payment_proof',

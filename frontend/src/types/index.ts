@@ -34,6 +34,8 @@ export interface BeritaAcara {
   masa_berlaku_akses?: string
   status_pelanggan?: string
   status_berkas?: string
+  biaya?: string
+  diskon_diizinkan?: boolean
   user?: User
   analyst?: User
   revisions?: BeritaAcaraRevision[]
@@ -58,6 +60,7 @@ export interface Payment {
   berita_acara_id: number
   amount: string
   discount_request?: string
+  discount_reason?: string
   discount_approved?: string
   status: 'pending' | 'approved' | 'rejected'
   payment_proof?: string

@@ -8,6 +8,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import Alert from '../components/common/Alert.vue'
+import FileUpload from '../components/common/FileUpload.vue'
 import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
@@ -22,6 +23,8 @@ const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
 const error = ref('')
 const showPaymentModal = ref(false)
+const uploadProofFile = ref<File | null>(null)
+const showUploadProofModal = ref(false)
 const showDiscountModal = ref(false)
 
 const statusMap: Record<string, string> = {
@@ -42,6 +45,8 @@ const statusTypeMap: Record<string, string> = {
 
 const canEdit = computed(() => item.value && ['draft', 'pending', 'revision'].includes(item.value.status))
 const canPay = computed(() => item.value?.status === 'approved' && (!item.value.payment || item.value.payment.status === 'rejected'))
+const canUploadProof = computed(() => item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
+const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && item.value.payment.status === 'pending' && !item.value.payment.discount_request)
 const canDownloadCert = computed(() => item.value?.certificate)
 
 onMounted(async () => {
@@ -62,10 +67,23 @@ onMounted(async () => {
 
 async function handlePayment(fd: FormData) {
   try {
-    fd.append('berita_acara_id', String(item.value!.id))
     const payment = await paymentApi.create(fd)
     if (item.value) item.value.payment = payment
     showPaymentModal.value = false
+  } catch (e: any) {
+    error.value = e.response?.data?.message || 'Gagal'
+  }
+}
+
+async function handleUploadSubmit() {
+  if (!uploadProofFile.value || !item.value?.payment) return
+  try {
+    const fd = new FormData()
+    fd.append('payment_proof', uploadProofFile.value)
+    const payment = await paymentApi.uploadProof(item.value.payment.id, fd)
+    if (item.value) item.value.payment = payment
+    showUploadProofModal.value = false
+    uploadProofFile.value = null
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Gagal'
   }
@@ -146,18 +164,28 @@ async function handleDownload(certificateId: number) {
 
         <div class="section">
           <Card title="Pembayaran">
+            <template v-if="item.status === 'approved' && item.biaya">
+              <div class="biaya-info">
+                <div class="biaya-label">Biaya yang harus dibayar</div>
+                <div class="biaya-value">Rp {{ Number(item.biaya).toLocaleString('id-ID') }}</div>
+              </div>
+            </template>
+
             <div v-if="!item.payment" class="empty-text">Belum ada pembayaran</div>
             <template v-else>
               <table class="detail-table">
                 <tr><td class="label">Jumlah</td><td>Rp {{ Number(item.payment.amount).toLocaleString('id-ID') }}</td></tr>
                 <tr v-if="item.payment.discount_request"><td class="label">Diskon Diminta</td><td>Rp {{ Number(item.payment.discount_request).toLocaleString('id-ID') }}</td></tr>
+                <tr v-if="item.payment.discount_reason"><td class="label">Alasan Diskon</td><td>{{ item.payment.discount_reason }}</td></tr>
                 <tr v-if="item.payment.discount_approved"><td class="label">Diskon Disetujui</td><td>Rp {{ Number(item.payment.discount_approved).toLocaleString('id-ID') }}</td></tr>
-                <tr><td class="label">Status</td><td><Badge :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'" :text="item.payment.status" /></td></tr>
+                <tr v-if="item.payment.payment_proof"><td class="label">Bukti Pembayaran</td><td>Sudah diupload</td></tr>
+                <tr><td class="label">Status</td><td><Badge :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'" :text="item.payment.status === 'approved' ? 'Lunas' : item.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td></tr>
               </table>
             </template>
             <div class="action-group">
-              <Button v-if="canPay" @click="showPaymentModal = true">Bayar Sekarang</Button>
-              <Button v-if="item.payment && item.payment.status === 'pending'" variant="outline" @click="showDiscountModal = true">Ajukan Diskon</Button>
+              <Button v-if="canPay" @click="showPaymentModal = true">Ajukan Pembayaran</Button>
+              <Button v-if="canUploadProof" variant="outline" @click="showUploadProofModal = true">Upload Bukti Pembayaran</Button>
+              <Button v-if="canRequestDiscount" variant="ghost" @click="showDiscountModal = true">Ajukan Diskon</Button>
             </div>
           </Card>
         </div>
@@ -177,8 +205,19 @@ async function handleDownload(certificateId: number) {
           </Card>
         </div>
 
-        <Modal :show="showPaymentModal" title="Pembayaran" @close="showPaymentModal = false">
-          <PaymentForm :berita-acara-id="item.id" @submit="handlePayment" />
+        <Modal :show="showPaymentModal" title="Ajukan Pembayaran" @close="showPaymentModal = false">
+          <PaymentForm v-if="item" :berita-acara="item" @submit="handlePayment" />
+        </Modal>
+
+        <Modal :show="showUploadProofModal" title="Upload Bukti Pembayaran" @close="showUploadProofModal = false">
+          <div class="upload-proof-form">
+            <form @submit.prevent="handleUploadSubmit">
+              <FileUpload v-model="uploadProofFile" label="Pilih File Bukti" accept="image/*,.pdf" />
+              <div class="form-actions">
+                <Button type="submit" :disabled="!uploadProofFile">Upload</Button>
+              </div>
+            </form>
+          </div>
         </Modal>
 
         <Modal :show="showDiscountModal" title="Ajukan Diskon" @close="showDiscountModal = false">
@@ -236,6 +275,34 @@ async function handleDownload(certificateId: number) {
   color: #94a3b8;
   text-align: center;
   padding: 20px;
+}
+.biaya-info {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.biaya-label {
+  font-size: 12px;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.biaya-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #15803d;
+}
+.upload-proof-form {
+  padding: 8px 0;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 </style>

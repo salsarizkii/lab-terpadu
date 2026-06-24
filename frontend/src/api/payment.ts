@@ -23,4 +23,11 @@ export const paymentApi = {
     const { data } = await api.get<Payment>(`/user/payments/${id}`)
     return data
   },
+
+  async uploadProof(id: number, formData: FormData): Promise<Payment> {
+    const { data } = await api.post(`/user/payments/${id}/upload-proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data || data
+  },
 }

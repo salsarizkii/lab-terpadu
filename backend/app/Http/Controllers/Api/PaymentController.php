@@ -22,12 +22,15 @@ class PaymentController extends Controller
     {
         $request->validate([
             'berita_acara_id' => 'required|exists:berita_acaras,id',
-            'amount' => 'required|numeric|min:0',
             'payment_proof' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
         $beritaAcara = BeritaAcara::where('user_id', auth()->id())
             ->findOrFail($request->berita_acara_id);
+
+        if ($beritaAcara->status !== 'approved') {
+            return response()->json(['message' => 'Berita acara must be approved first'], 422);
+        }
 
         if ($beritaAcara->payment) {
             return response()->json(['message' => 'Payment already exists for this berita acara'], 422);
@@ -35,7 +38,7 @@ class PaymentController extends Controller
 
         $data = [
             'berita_acara_id' => $request->berita_acara_id,
-            'amount' => $request->amount,
+            'amount' => $beritaAcara->biaya,
         ];
 
         if ($request->hasFile('payment_proof')) {
@@ -43,6 +46,7 @@ class PaymentController extends Controller
         }
 
         $payment = Payment::create($data);
+        $payment->load('beritaAcara');
 
         return response()->json([
             'message' => 'Payment created successfully',
@@ -59,10 +63,31 @@ class PaymentController extends Controller
         return response()->json($payment);
     }
 
+    public function uploadProof(Request $request, $id)
+    {
+        $request->validate([
+            'payment_proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $payment = Payment::whereHas('beritaAcara', function ($q) {
+            $q->where('user_id', auth()->id());
+        })->findOrFail($id);
+
+        $payment->update([
+            'payment_proof' => $request->file('payment_proof')->store('payments', 'public'),
+        ]);
+
+        return response()->json([
+            'message' => 'Payment proof uploaded',
+            'data' => $payment,
+        ]);
+    }
+
     public function requestDiscount(Request $request, $id)
     {
         $request->validate([
             'discount_request' => 'required|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:1000',
         ]);
 
         $payment = Payment::whereHas('beritaAcara', function ($q) {
@@ -71,6 +96,7 @@ class PaymentController extends Controller
 
         $payment->update([
             'discount_request' => $request->discount_request,
+            'discount_reason' => $request->discount_reason,
         ]);
 
         return response()->json([

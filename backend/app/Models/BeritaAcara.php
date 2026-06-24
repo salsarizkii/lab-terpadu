@@ -32,12 +32,15 @@ class BeritaAcara extends Model
         'masa_berlaku_akses',
         'status_pelanggan',
         'status_berkas',
+        'biaya',
+        'diskon_diizinkan',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => 'string',
+            'diskon_diizinkan' => 'boolean',
         ];
     }
 
