@@ -73,4 +73,9 @@ class BeritaAcara extends Model
     {
         return $this->hasOne(Certificate::class);
     }
+
+    public function pengujians()
+    {
+        return $this->hasMany(Pengujian::class);
+    }
 }

@@ -29,4 +29,12 @@ export const analystApi = {
     )
     return data.data || data
   },
+
+  async storePengujian(beritaAcaraId: number, payload: any): Promise<any> {
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/pengujian`,
+      payload
+    )
+    return data.data || data
+  },
 }

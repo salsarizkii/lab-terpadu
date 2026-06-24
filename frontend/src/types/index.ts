@@ -42,6 +42,7 @@ export interface BeritaAcara {
   payment?: Payment
   samples?: Sample[]
   certificate?: Certificate
+  pengujians?: any[]
   created_at: string
   updated_at: string
 }
@@ -64,6 +65,7 @@ export interface Payment {
   discount_approved?: string
   status: 'pending' | 'approved' | 'rejected'
   payment_proof?: string
+  berita_acara?: BeritaAcara
   created_at: string
 }
 

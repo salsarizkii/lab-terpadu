@@ -72,6 +72,77 @@ function formatValue(val: any): string {
         <td class="detail__td-value">{{ formatValue((beritaAcara as any)[f.key]) }}</td>
       </tr>
     </table>
+
+    <div v-if="beritaAcara.status === 'approved' || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected'" class="detail__section">
+      <div class="detail__section-title">Informasi Verifikasi</div>
+      <table class="detail__table">
+        <tr>
+          <td class="detail__td-label">Hasil Verifikasi</td>
+          <td class="detail__td-value">
+            <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
+          </td>
+        </tr>
+        <tr v-if="beritaAcara.biaya">
+          <td class="detail__td-label">Biaya</td>
+          <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
+        </tr>
+        <tr v-if="beritaAcara.biaya">
+          <td class="detail__td-label">Diskon Diizinkan</td>
+          <td class="detail__td-value">{{ beritaAcara.diskon_diizinkan ? 'Ya' : 'Tidak' }}</td>
+        </tr>
+        <tr v-if="beritaAcara.revisions && beritaAcara.revisions.length">
+          <td class="detail__td-label">Catatan Revisi</td>
+          <td class="detail__td-value">
+            <div v-for="rev in beritaAcara.revisions" :key="rev.id" class="revision-note">
+              <div>{{ rev.note }}</div>
+              <div class="revision-date">{{ new Date(rev.created_at).toLocaleString('id-ID') }}</div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="detail__section">
+      <div class="detail__section-title">Informasi Pembayaran</div>
+      <table class="detail__table">
+        <tr v-if="beritaAcara.biaya">
+          <td class="detail__td-label">Nominal Biaya</td>
+          <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
+        </tr>
+        <tr>
+          <td class="detail__td-label">Status Pembayaran</td>
+          <td class="detail__td-value">
+            <template v-if="beritaAcara.payment">
+              <Badge
+                :type="beritaAcara.payment.status === 'approved' ? 'success' : beritaAcara.payment.status === 'rejected' ? 'danger' : 'warning'"
+                :text="beritaAcara.payment.status === 'approved' ? 'Lunas' : beritaAcara.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'"
+              />
+            </template>
+            <span v-else>Belum dibayar</span>
+          </td>
+        </tr>
+        <tr v-if="beritaAcara.payment">
+          <td class="detail__td-label">Jumlah Dibayar</td>
+          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.amount).toLocaleString('id-ID') }}</td>
+        </tr>
+        <tr v-if="beritaAcara.payment?.discount_request">
+          <td class="detail__td-label">Diskon Diminta</td>
+          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_request).toLocaleString('id-ID') }}</td>
+        </tr>
+        <tr v-if="beritaAcara.payment?.discount_reason">
+          <td class="detail__td-label">Alasan Diskon</td>
+          <td class="detail__td-value">{{ beritaAcara.payment.discount_reason }}</td>
+        </tr>
+        <tr v-if="beritaAcara.payment?.discount_approved">
+          <td class="detail__td-label">Diskon Disetujui</td>
+          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_approved).toLocaleString('id-ID') }}</td>
+        </tr>
+        <tr v-if="beritaAcara.payment?.payment_proof">
+          <td class="detail__td-label">Bukti Pembayaran</td>
+          <td class="detail__td-value">Sudah diupload</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -121,5 +192,24 @@ function formatValue(val: any): string {
   color: var(--color-text);
   line-height: 1.5;
   word-break: break-word;
+}
+.detail__section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid var(--color-border-light);
+}
+.detail__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.revision-note {
+  margin-bottom: 8px;
+}
+.revision-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 </style>

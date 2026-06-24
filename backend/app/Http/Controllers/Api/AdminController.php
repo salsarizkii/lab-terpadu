@@ -48,6 +48,15 @@ class AdminController extends Controller
 
         $beritaAcara->update($data);
 
+        if ($request->status === 'approved') {
+            if (!$beritaAcara->payment) {
+                Payment::create([
+                    'berita_acara_id' => $beritaAcara->id,
+                    'amount' => $request->biaya,
+                ]);
+            }
+        }
+
         if ($request->status === 'revision') {
             BeritaAcaraRevision::create([
                 'berita_acara_id' => $beritaAcara->id,
@@ -113,7 +122,7 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => 'Payment confirmed successfully',
-            'data' => $payment,
+            'data' => $payment->load('beritaAcara.user'),
         ]);
     }
 

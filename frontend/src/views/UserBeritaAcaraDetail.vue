@@ -8,7 +8,6 @@ import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import Alert from '../components/common/Alert.vue'
-import FileUpload from '../components/common/FileUpload.vue'
 import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
@@ -23,8 +22,6 @@ const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
 const error = ref('')
 const showPaymentModal = ref(false)
-const uploadProofFile = ref<File | null>(null)
-const showUploadProofModal = ref(false)
 const showDiscountModal = ref(false)
 
 const statusMap: Record<string, string> = {
@@ -44,8 +41,7 @@ const statusTypeMap: Record<string, string> = {
 }
 
 const canEdit = computed(() => item.value && ['draft', 'pending', 'revision'].includes(item.value.status))
-const canPay = computed(() => item.value?.status === 'approved' && (!item.value.payment || item.value.payment.status === 'rejected'))
-const canUploadProof = computed(() => item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
+const canPay = computed(() => item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
 const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && item.value.payment.status === 'pending' && !item.value.payment.discount_request)
 const canDownloadCert = computed(() => item.value?.certificate)
 
@@ -66,8 +62,9 @@ onMounted(async () => {
 })
 
 async function handlePayment(fd: FormData) {
+  if (!item.value?.payment) return
   try {
-    const payment = await paymentApi.create(fd)
+    const payment = await paymentApi.uploadProof(item.value.payment.id, fd)
     if (item.value) item.value.payment = payment
     showPaymentModal.value = false
   } catch (e: any) {
@@ -75,18 +72,8 @@ async function handlePayment(fd: FormData) {
   }
 }
 
-async function handleUploadSubmit() {
-  if (!uploadProofFile.value || !item.value?.payment) return
-  try {
-    const fd = new FormData()
-    fd.append('payment_proof', uploadProofFile.value)
-    const payment = await paymentApi.uploadProof(item.value.payment.id, fd)
-    if (item.value) item.value.payment = payment
-    showUploadProofModal.value = false
-    uploadProofFile.value = null
-  } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
-  }
+function openDiscountModal() {
+  showDiscountModal.value = true
 }
 
 async function handleDiscount(data: any) {
@@ -183,9 +170,8 @@ async function handleDownload(certificateId: number) {
               </table>
             </template>
             <div class="action-group">
-              <Button v-if="canPay" @click="showPaymentModal = true">Ajukan Pembayaran</Button>
-              <Button v-if="canUploadProof" variant="outline" @click="showUploadProofModal = true">Upload Bukti Pembayaran</Button>
-              <Button v-if="canRequestDiscount" variant="ghost" @click="showDiscountModal = true">Ajukan Diskon</Button>
+              <Button v-if="canPay" @click="showPaymentModal = true">Bayar</Button>
+              <Button v-if="canRequestDiscount" variant="ghost" @click="openDiscountModal">Ajukan Diskon</Button>
             </div>
           </Card>
         </div>
@@ -205,23 +191,12 @@ async function handleDownload(certificateId: number) {
           </Card>
         </div>
 
-        <Modal :show="showPaymentModal" title="Ajukan Pembayaran" @close="showPaymentModal = false">
+        <Modal :show="showPaymentModal" title="Pembayaran" @close="showPaymentModal = false">
           <PaymentForm v-if="item" :berita-acara="item" @submit="handlePayment" />
         </Modal>
 
-        <Modal :show="showUploadProofModal" title="Upload Bukti Pembayaran" @close="showUploadProofModal = false">
-          <div class="upload-proof-form">
-            <form @submit.prevent="handleUploadSubmit">
-              <FileUpload v-model="uploadProofFile" label="Pilih File Bukti" accept="image/*,.pdf" />
-              <div class="form-actions">
-                <Button type="submit" :disabled="!uploadProofFile">Upload</Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
-
         <Modal :show="showDiscountModal" title="Ajukan Diskon" @close="showDiscountModal = false">
-          <DiscountRequest :payment="item.payment!" @submit="handleDiscount" />
+          <DiscountRequest v-if="item.payment" :payment="item.payment" @submit="handleDiscount" />
         </Modal>
       </template>
     </div>

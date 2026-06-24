@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
+use App\Models\Pengujian;
 use App\Models\Sample;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class AnalystController extends Controller
     public function beritaAcaraIndex()
     {
         $beritaAcaras = BeritaAcara::where('analyst_id', auth()->id())
-            ->with(['user', 'revisions', 'payment', 'samples', 'certificate'])
+            ->with(['user', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
             ->get();
 
         return response()->json($beritaAcaras);
@@ -21,7 +22,7 @@ class AnalystController extends Controller
     public function beritaAcaraShow($id)
     {
         $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())
-            ->with(['user', 'revisions', 'payment', 'samples', 'certificate'])
+            ->with(['user', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
             ->findOrFail($id);
 
         return response()->json($beritaAcara);
@@ -65,6 +66,37 @@ class AnalystController extends Controller
         return response()->json([
             'message' => 'Sample marked as ready',
             'data' => $sample,
+        ]);
+    }
+
+    public function storePengujian(Request $request, $id)
+    {
+        $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())->findOrFail($id);
+
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
+            'agenda' => 'nullable|string|max:255',
+            'jumlah_pengujian' => 'nullable|string|max:255',
+            'nama_pengujian' => 'nullable|string|max:255',
+            'tanggal_permohonan' => 'nullable|date',
+            'tanggal_pengujian' => 'nullable|date',
+            'analis' => 'nullable|string|max:255',
+            'pengambilan_hasil' => 'nullable|string',
+            'nama_file_pengujian' => 'nullable|string|max:255',
+            'keterangan_pengujian' => 'nullable|string',
+            'verifikator' => 'nullable|string|max:255',
+        ]);
+
+        $validated['berita_acara_id'] = $beritaAcara->id;
+
+        $pengujian = Pengujian::updateOrCreate(
+            ['berita_acara_id' => $beritaAcara->id],
+            $validated
+        );
+
+        return response()->json([
+            'message' => 'Pengujian saved successfully',
+            'data' => $pengujian,
         ]);
     }
 }

@@ -8,6 +8,7 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import Alert from '../components/common/Alert.vue'
 import SampleDataForm from '../components/analyst/SampleDataForm.vue'
+import PengujianForm from '../components/analyst/PengujianForm.vue'
 import { analystApi } from '../api/analyst'
 import type { BeritaAcara } from '../types'
 
@@ -17,6 +18,13 @@ const error = ref('')
 const selectedBa = ref<BeritaAcara | null>(null)
 const showSampleModal = ref(false)
 const selectedSample = ref<any>(null)
+const showPengujianModal = ref(false)
+const pengujianBa = ref<BeritaAcara | null>(null)
+
+function openPengujian(ba: BeritaAcara) {
+  pengujianBa.value = ba
+  showPengujianModal.value = true
+}
 
 onMounted(async () => {
   try {
@@ -63,6 +71,20 @@ async function markReady(baId: number, sampleId: number) {
       const s = ba.samples?.find(s => s.id === sampleId)
       if (s) s.status = 'ready'
     }
+  } catch (e: any) {
+    error.value = e.response?.data?.message || 'Gagal'
+  }
+}
+
+async function handlePengujianSubmit(data: any) {
+  if (!pengujianBa.value) return
+  try {
+    const result = await analystApi.storePengujian(pengujianBa.value.id, data)
+    const ba = items.value.find(i => i.id === pengujianBa.value!.id)
+    if (ba) {
+      ba.pengujians = [result]
+    }
+    showPengujianModal.value = false
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Gagal'
   }
@@ -119,6 +141,23 @@ const sampleStatusType: Record<string, string> = {
               </div>
             </div>
           </div>
+
+          <div class="pengujian-section">
+            <h4 class="section-title">Laporan Pengujian</h4>
+            <div v-if="ba.pengujians && ba.pengujians.length" class="pengujian-info">
+              <div class="pengujian-badge">Pengujian sudah dilaporkan</div>
+              <Button size="sm" variant="ghost" @click="openPengujian(ba)">Edit Laporan</Button>
+            </div>
+            <div v-else>
+              <div v-if="ba.samples && ba.samples.length > 0 && ba.samples.every(s => s.status === 'ready')" class="pengujian-ready">
+                <p class="pengujian-desc">Semua sampel sudah siap. Laporkan hasil pengujian.</p>
+                <Button size="sm" @click="openPengujian(ba)">Laporkan Pengujian</Button>
+              </div>
+              <div v-else class="pengujian-pending">
+                <p class="pengujian-desc">Tunggu semua sampel siap sebelum melaporkan pengujian.</p>
+              </div>
+            </div>
+          </div>
         </Card>
       </div>
 
@@ -128,6 +167,15 @@ const sampleStatusType: Record<string, string> = {
           :sample="selectedSample"
           :berita-acara-id="selectedSample.berita_acara_id"
           @submit="handleSampleUpdate"
+        />
+      </Modal>
+
+      <Modal :show="showPengujianModal" title="Laporan Pengujian" size="lg" @close="showPengujianModal = false">
+        <PengujianForm
+          v-if="pengujianBa"
+          :berita-acara="pengujianBa"
+          :existing="pengujianBa.pengujians?.[0] || null"
+          @submit="handlePengujianSubmit"
         />
       </Modal>
     </div>
@@ -155,5 +203,11 @@ const sampleStatusType: Record<string, string> = {
 .sample-name { font-weight: 500; color: #1e293b; }
 .sample-detail { font-size: 13px; color: #64748b; }
 .sample-actions { display: flex; gap: 8px; }
+.pengujian-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.pengujian-ready { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pengujian-pending { color: #94a3b8; font-size: 14px; }
+.pengujian-desc { margin: 0; font-size: 14px; color: #475569; }
+.pengujian-info { display: flex; align-items: center; gap: 12px; }
+.pengujian-badge { font-size: 13px; color: #16a34a; font-weight: 500; }
 
 </style>

@@ -42,5 +42,6 @@ Route::middleware('api.token')->group(function () {
         Route::get('/berita-acara/{id}', [AnalystController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/samples/{sampleId}', [AnalystController::class, 'updateSample']);
         Route::put('/berita-acara/{id}/samples/{sampleId}/ready', [AnalystController::class, 'markSampleReady']);
+        Route::post('/berita-acara/{id}/pengujian', [AnalystController::class, 'storePengujian']);
     });
 });

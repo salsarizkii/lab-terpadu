@@ -23,10 +23,7 @@ const biayaDisplay = computed(() => {
 
 function handleSubmit() {
   const fd = new FormData()
-  fd.append('berita_acara_id', String(props.beritaAcara.id))
-  if (paymentProof.value) {
-    fd.append('payment_proof', paymentProof.value)
-  }
+  fd.append('payment_proof', paymentProof.value!)
   emit('submit', fd)
 }
 </script>
@@ -40,7 +37,7 @@ function handleSubmit() {
     <FileUpload v-model="paymentProof" label="Upload Bukti Pembayaran" accept="image/*,.pdf" />
     <div class="form-actions">
       <Button type="submit" :disabled="loading || !paymentProof">
-        {{ loading ? 'Mengirim...' : 'Ajukan Pembayaran' }}
+        {{ loading ? 'Mengirim...' : 'Upload & Bayar' }}
       </Button>
     </div>
   </form>
