@@ -12,16 +12,16 @@ export const adminApi = {
     return data
   },
 
-  async updateStatus(id: number, data: { status: string; note?: string }): Promise<BeritaAcara> {
-    const { data: res } = await api.put<BeritaAcara>(`/admin/berita-acara/${id}/status`, data)
-    return res
+  async updateStatus(id: number, payload: { status: string; note?: string }): Promise<BeritaAcara> {
+    const { data } = await api.put(`/admin/berita-acara/${id}/status`, payload)
+    return data.data || data
   },
 
   async assignAnalyst(id: number, analystId: number): Promise<BeritaAcara> {
-    const { data } = await api.put<BeritaAcara>(`/admin/berita-acara/${id}/assign-analyst`, {
+    const { data } = await api.put(`/admin/berita-acara/${id}/assign-analyst`, {
       analyst_id: analystId,
     })
-    return data
+    return data.data || data
   },
 
   async getPayments(params?: Record<string, any>): Promise<Payment[]> {
@@ -29,9 +29,9 @@ export const adminApi = {
     return data
   },
 
-  async confirmPayment(id: number, data: { status: string; discount_approved?: string }): Promise<Payment> {
-    const { data: res } = await api.put<Payment>(`/admin/payments/${id}/confirm`, data)
-    return res
+  async confirmPayment(id: number, payload: { status: string; discount_approved?: string }): Promise<Payment> {
+    const { data } = await api.put(`/admin/payments/${id}/confirm`, payload)
+    return data.data || data
   },
 
   async getSamples(params?: Record<string, any>): Promise<Sample[]> {
@@ -40,8 +40,8 @@ export const adminApi = {
   },
 
   async markSampleTaken(id: number): Promise<Sample> {
-    const { data } = await api.put<Sample>(`/admin/samples/${id}/mark-taken`)
-    return data
+    const { data } = await api.put(`/admin/samples/${id}/mark-taken`)
+    return data.data || data
   },
 
   async getAnalysts(): Promise<User[]> {

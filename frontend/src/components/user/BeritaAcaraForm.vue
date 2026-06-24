@@ -81,22 +81,22 @@ function handleSubmit() {
       <FormInput v-model="form.dosen_pembimbing" label="Dosen Pembimbing" />
       <FormInput v-model="form.telp_hp" label="Telp/No. HP" />
       <FormInput v-model="form.email" label="Email" type="email" />
-      <FormTextarea v-model="form.alamat" label="Alamat" rows="3" />
+      <FormTextarea v-model="form.alamat" label="Alamat" :rows="3" />
     </div>
 
     <div class="ba-form__section">
       <h3 class="ba-form__section-title">Informasi Penelitian</h3>
-      <FormTextarea v-model="form.judul_penelitian" label="Judul Penelitian" rows="3" />
-      <FormTextarea v-model="form.akses_lab" label="Akses Lab" rows="3" />
-      <FormTextarea v-model="form.bahan_contoh_uji" label="Bahan Contoh Uji" rows="3" />
-      <FormTextarea v-model="form.kemasan_packing" label="Kemasan/Packing" rows="3" />
+      <FormTextarea v-model="form.judul_penelitian" label="Judul Penelitian" :rows="3" />
+      <FormTextarea v-model="form.akses_lab" label="Akses Lab" :rows="3" />
+      <FormTextarea v-model="form.bahan_contoh_uji" label="Bahan Contoh Uji" :rows="3" />
+      <FormTextarea v-model="form.kemasan_packing" label="Kemasan/Packing" :rows="3" />
       <MetodeInstrumenPicker v-model="form.permintaan_analisa" label="Metode / Instrumen" />
       <FormInput v-model="form.jumlah_sampel" label="Jumlah Sampel" />
       <FormInput v-model="form.kode_nama_sampel" label="Kode/Nama Sampel" />
-      <FormTextarea v-model="form.keterangan_sampel" label="Keterangan Sampel" rows="3" />
-      <FormTextarea v-model="form.keterangan_tambahan" label="Keterangan Tambahan" rows="3" />
+      <FormTextarea v-model="form.keterangan_sampel" label="Keterangan Sampel" :rows="3" />
+      <FormTextarea v-model="form.keterangan_tambahan" label="Keterangan Tambahan" :rows="3" />
       <FormInput v-model="form.pengukuran_per_sampel" label="Pengukuran/Pengulangan per Sampel" />
-      <FormTextarea v-model="form.sisa_sampel" label="Sisa Sampel Setelah Pengujian" rows="3" />
+      <FormTextarea v-model="form.sisa_sampel" label="Sisa Sampel Setelah Pengujian" :rows="3" />
     </div>
 
     <div class="ba-form__actions">

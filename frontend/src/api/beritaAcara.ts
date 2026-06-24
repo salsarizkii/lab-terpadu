@@ -13,17 +13,17 @@ export const beritaAcaraApi = {
   },
 
   async create(formData: FormData): Promise<BeritaAcara> {
-    const { data } = await api.post<BeritaAcara>('/user/berita-acara', formData, {
+    const { data } = await api.post('/user/berita-acara', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return data
+    return data.data || data
   },
 
   async update(id: number, formData: FormData): Promise<BeritaAcara> {
     formData.append('_method', 'PUT')
-    const { data } = await api.post<BeritaAcara>(`/user/berita-acara/${id}`, formData, {
+    const { data } = await api.post(`/user/berita-acara/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return data
+    return data.data || data
   },
 }

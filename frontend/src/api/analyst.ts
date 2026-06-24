@@ -12,21 +12,21 @@ export const analystApi = {
     return data
   },
 
-  async updateSample(beritaAcaraId: number, sampleId: number, data: {
+  async updateSample(beritaAcaraId: number, sampleId: number, payload: {
     test_result?: string
     status?: string
   }): Promise<Sample> {
-    const { data: res } = await api.put<Sample>(
+    const { data } = await api.put(
       `/analyst/berita-acara/${beritaAcaraId}/samples/${sampleId}`,
-      data
+      payload
     )
-    return res
+    return data.data || data
   },
 
   async markSampleReady(beritaAcaraId: number, sampleId: number): Promise<Sample> {
-    const { data } = await api.put<Sample>(
+    const { data } = await api.put(
       `/analyst/berita-acara/${beritaAcaraId}/samples/${sampleId}/ready`
     )
-    return data
+    return data.data || data
   },
 }

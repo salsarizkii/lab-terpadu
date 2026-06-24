@@ -8,6 +8,7 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import Alert from '../components/common/Alert.vue'
 import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification.vue'
+import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
 import type { BeritaAcara, User } from '../types'
@@ -19,6 +20,7 @@ const error = ref('')
 const filterStatus = ref('')
 const selectedBa = ref<BeritaAcara | null>(null)
 const showVerifyModal = ref(false)
+const showDetailModal = ref(false)
 const showAssignModal = ref(false)
 
 const statusMap: Record<string, string> = {
@@ -51,6 +53,11 @@ onMounted(async () => {
 function openVerify(item: BeritaAcara) {
   selectedBa.value = item
   showVerifyModal.value = true
+}
+
+function openDetail(item: BeritaAcara) {
+  selectedBa.value = item
+  showDetailModal.value = true
 }
 
 function openAssign(item: BeritaAcara) {
@@ -121,6 +128,7 @@ async function handleAssign(analystId: number) {
                 <td><Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" /></td>
                 <td>{{ item.analyst?.name || '-' }}</td>
                 <td class="actions">
+                  <Button size="sm" variant="ghost" @click="openDetail(item)">Detail</Button>
                   <Button size="sm" @click="openVerify(item)">Verifikasi</Button>
                   <Button size="sm" variant="outline" @click="openAssign(item)">Assign</Button>
                 </td>
@@ -132,6 +140,10 @@ async function handleAssign(analystId: number) {
           </table>
         </div>
       </Card>
+
+      <Modal :show="showDetailModal" title="Detail Berita Acara" size="lg" @close="showDetailModal = false">
+        <BeritaAcaraDetailView v-if="selectedBa" :berita-acara="selectedBa" />
+      </Modal>
 
       <Modal :show="showVerifyModal" title="Verifikasi Berita Acara" size="lg" @close="showVerifyModal = false">
         <BeritaAcaraVerification v-if="selectedBa" :berita-acara="selectedBa" @submit="handleVerify" />

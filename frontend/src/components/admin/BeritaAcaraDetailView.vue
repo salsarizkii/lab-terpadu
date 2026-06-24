@@ -1,0 +1,125 @@
+<script setup lang="ts">
+import Badge from '../common/Badge.vue'
+import type { BeritaAcara } from '../../types'
+
+defineProps<{
+  beritaAcara: BeritaAcara
+}>()
+
+const fields = [
+  { label: 'Nama Pemohon', key: 'nama_pemohon' },
+  { label: 'NIM', key: 'nim' },
+  { label: 'Prodi/Fakultas/Instansi', key: 'prodi_fakultas_instansi' },
+  { label: 'Dosen Pembimbing', key: 'dosen_pembimbing' },
+  { label: 'Telp/No. HP', key: 'telp_hp' },
+  { label: 'Email', key: 'email' },
+  { label: 'Alamat', key: 'alamat' },
+  { label: 'Judul Penelitian', key: 'judul_penelitian' },
+  { label: 'Akses Lab', key: 'akses_lab' },
+  { label: 'Bahan Contoh Uji', key: 'bahan_contoh_uji' },
+  { label: 'Kemasan/Packing', key: 'kemasan_packing' },
+  { label: 'Metode / Instrumen', key: 'permintaan_analisa' },
+  { label: 'Jumlah Sampel', key: 'jumlah_sampel' },
+  { label: 'Kode/Nama Sampel', key: 'kode_nama_sampel' },
+  { label: 'Keterangan Sampel', key: 'keterangan_sampel' },
+  { label: 'Keterangan Tambahan', key: 'keterangan_tambahan' },
+  { label: 'Pengukuran per Sampel', key: 'pengukuran_per_sampel' },
+  { label: 'Sisa Sampel Setelah Pengujian', key: 'sisa_sampel' },
+]
+
+const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'default'; label: string }> = {
+  draft: { type: 'default', label: 'Draft' },
+  pending: { type: 'warning', label: 'Menunggu' },
+  revision: { type: 'danger', label: 'Revisi' },
+  approved: { type: 'success', label: 'Disetujui' },
+  rejected: { type: 'danger', label: 'Ditolak' },
+}
+
+function formatValue(val: any): string {
+  if (!val) return '-'
+  if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+    try {
+      const parsed = JSON.parse(val)
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: string) => s.replace('Lainnya: ', '🖊️ ')).join(', ')
+      }
+    } catch {}
+  }
+  return val
+}
+</script>
+
+<template>
+  <div class="detail">
+    <div class="detail__meta">
+      <div class="detail__meta-item">
+        <span class="detail__label">Status</span>
+        <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
+      </div>
+      <div class="detail__meta-item">
+        <span class="detail__label">Pemohon</span>
+        <span>{{ beritaAcara.user?.name || '-' }}</span>
+      </div>
+      <div class="detail__meta-item">
+        <span class="detail__label">Diajukan</span>
+        <span>{{ new Date(beritaAcara.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+      </div>
+    </div>
+
+    <table class="detail__table">
+      <tr v-for="f in fields" :key="f.key">
+        <td class="detail__td-label">{{ f.label }}</td>
+        <td class="detail__td-value">{{ formatValue((beritaAcara as any)[f.key]) }}</td>
+      </tr>
+    </table>
+  </div>
+</template>
+
+<style scoped>
+.detail__meta {
+  display: flex;
+  gap: 24px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
+}
+.detail__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.detail__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.detail__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.detail__table tr {
+  border-bottom: 1px solid var(--color-border-light);
+}
+.detail__table tr:last-child {
+  border-bottom: none;
+}
+.detail__td-label {
+  padding: 10px 16px 10px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  vertical-align: top;
+  width: 220px;
+}
+.detail__td-value {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+</style>

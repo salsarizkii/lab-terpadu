@@ -45,8 +45,14 @@ const canPay = computed(() => item.value?.status === 'approved' && (!item.value.
 const canDownloadCert = computed(() => item.value?.certificate)
 
 onMounted(async () => {
+  const id = Number(route.params.id)
+  if (!id || isNaN(id)) {
+    error.value = 'ID tidak valid'
+    loading.value = false
+    return
+  }
   try {
-    item.value = await beritaAcaraApi.getById(Number(route.params.id))
+    item.value = await beritaAcaraApi.getById(id)
   } catch {
     error.value = 'Gagal memuat data'
   } finally {

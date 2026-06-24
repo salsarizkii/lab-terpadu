@@ -3,15 +3,15 @@ import type { Payment } from '../types'
 
 export const paymentApi = {
   async create(formData: FormData): Promise<Payment> {
-    const { data } = await api.post<Payment>('/user/payments', formData, {
+    const { data } = await api.post('/user/payments', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    return data
+    return data.data || data
   },
 
   async requestDiscount(id: number, payload: { discount_request: string }): Promise<Payment> {
-    const { data } = await api.post<Payment>(`/user/payments/${id}/discount`, payload)
-    return data
+    const { data } = await api.post(`/user/payments/${id}/discount`, payload)
+    return data.data || data
   },
 
   async getList(params?: Record<string, any>): Promise<Payment[]> {
