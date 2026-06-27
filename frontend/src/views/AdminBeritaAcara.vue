@@ -6,17 +6,16 @@ import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import Alert from '../components/common/Alert.vue'
 import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification.vue'
 import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
 import type { BeritaAcara, User } from '../types'
+import { toast } from 'vue-sonner'
 
 const items = ref<BeritaAcara[]>([])
 const analysts = ref<User[]>([])
 const loading = ref(true)
-const error = ref('')
 const filterStatus = ref('')
 const selectedBa = ref<BeritaAcara | null>(null)
 const showVerifyModal = ref(false)
@@ -44,7 +43,7 @@ onMounted(async () => {
     items.value = baRes
     analysts.value = aRes
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -71,9 +70,10 @@ async function handleVerify(data: any) {
     const updated = await adminApi.updateStatus(selectedBa.value.id, data)
     const idx = items.value.findIndex(i => i.id === selectedBa.value!.id)
     if (idx !== -1) items.value[idx] = updated
+    toast.success('Status Berita Acara diperbarui')
     showVerifyModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 
@@ -81,9 +81,10 @@ async function handleAssign(analystId: number) {
   if (!selectedBa.value) return
   try {
     await adminApi.assignAnalyst(selectedBa.value.id, analystId)
+    toast.success('Analis berhasil di-assign')
     showAssignModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 </script>
@@ -94,8 +95,6 @@ async function handleAssign(analystId: number) {
       <div class="page-header">
         <h1>Verifikasi Berita Acara</h1>
       </div>
-
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
 
       <Card>
         <div class="filter-bar">

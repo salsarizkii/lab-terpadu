@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { Check } from '@lucide/vue'
 
 const props = withDefaults(defineProps<{
   modelValue: string
@@ -88,9 +89,7 @@ function toggle(item: string) {
         @keydown.space.prevent="toggle(item)"
       >
         <div class="picker__checkbox" :class="{ 'picker__checkbox--checked': selected.includes(item) }">
-          <svg v-if="selected.includes(item)" width="12" height="10" viewBox="0 0 12 10" fill="none">
-            <path d="M1.5 5L4.5 8L10.5 2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <Check v-if="selected.includes(item)" :size="14" color="white" stroke-width="3" />
         </div>
         <span class="picker__label">{{ item }}</span>
       </div>

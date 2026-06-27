@@ -6,16 +6,15 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
-import Alert from '../components/common/Alert.vue'
+import { Search, Users as UsersIcon, Check, X, CheckCircle, XCircle } from '@lucide/vue'
 import { adminApi } from '../api/admin'
 import { roleApi } from '../api/role'
 import type { User, Role } from '../types'
+import { toast } from 'vue-sonner'
 
 const users = ref<User[]>([])
 const roles = ref<Role[]>([])
 const loading = ref(true)
-const error = ref('')
-const success = ref('')
 
 // Filters
 const searchQuery = ref('')
@@ -43,7 +42,7 @@ async function fetchData() {
     users.value = usersData
     roles.value = rolesData
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -71,14 +70,13 @@ function openVerifyModal(user: User, action: boolean) {
 async function handleVerify() {
   if (!verifyingUser.value) return
   verifyLoading.value = true
-  error.value = ''
   try {
     const res = await adminApi.verifyUser(verifyingUser.value.id, verifyAction.value)
-    success.value = res.message
+    toast.success(res.message)
     showVerifyModal.value = false
     await fetchData()
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal memproses verifikasi'
+    toast.error(e.response?.data?.message || 'Gagal memproses verifikasi')
   } finally {
     verifyLoading.value = false
   }
@@ -108,17 +106,11 @@ function formatDate(dateStr: string) {
         </div>
       </div>
 
-      <Alert v-if="success" type="success" :message="success" @dismiss="success = ''" />
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
-
       <!-- Filters -->
       <Card class="filter-card">
         <div class="filters">
           <div class="filter-search">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" class="search-icon">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M16 16L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
+            <Search class="search-icon" :size="18" />
             <input
               v-model="searchQuery"
               type="text"
@@ -153,11 +145,7 @@ function formatDate(dateStr: string) {
         </div>
 
         <div v-if="users.length === 0" class="empty-state">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="32" r="30" stroke="#e2e8f0" stroke-width="2"/>
-            <path d="M32 22C28.69 22 26 24.69 26 28C26 31.31 28.69 34 32 34C35.31 34 38 31.31 38 28C38 24.69 35.31 22 32 22Z" stroke="#cbd5e1" stroke-width="2"/>
-            <path d="M44 44C44 38.48 38.63 34 32 34C25.37 34 20 38.48 20 44" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
-          </svg>
+          <UsersIcon :size="64" color="#cbd5e1" />
           <p>Tidak ada pengguna ditemukan</p>
         </div>
 
@@ -196,9 +184,7 @@ function formatDate(dateStr: string) {
                       @click="openVerifyModal(user, true)"
                       title="Verifikasi akun"
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8L6.5 11.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
+                      <Check :size="16" />
                     </button>
                     <button
                       v-if="user.is_verified && user.role !== 'superadmin'"
@@ -206,9 +192,7 @@ function formatDate(dateStr: string) {
                       @click="openVerifyModal(user, false)"
                       title="Cabut verifikasi"
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                      </svg>
+                      <X :size="16" />
                     </button>
                   </div>
                 </td>
@@ -222,14 +206,8 @@ function formatDate(dateStr: string) {
       <Modal :show="showVerifyModal" :title="verifyAction ? 'Verifikasi Akun' : 'Cabut Verifikasi'" size="sm" @close="showVerifyModal = false">
         <div class="verify-confirm">
           <div class="verify-icon">
-            <svg v-if="verifyAction" width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <circle cx="24" cy="24" r="22" stroke="#059669" stroke-width="2" fill="#ecfdf5"/>
-              <path d="M16 24L22 30L32 18" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <circle cx="24" cy="24" r="22" stroke="#ef4444" stroke-width="2" fill="#fef2f2"/>
-              <path d="M18 18L30 30M30 18L18 30" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
-            </svg>
+            <CheckCircle v-if="verifyAction" :size="48" color="#059669" />
+            <XCircle v-else :size="48" color="#ef4444" />
           </div>
           <p v-if="verifyAction">
             Verifikasi akun <strong>{{ verifyingUser?.name }}</strong> sebagai <strong class="role-highlight">{{ verifyingUser?.role }}</strong>?

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { GripVertical, Trash2, File as FileIcon, ChevronRight, CircleDot, CheckSquare, Plus, FileQuestion, Type, AlignLeft, Hash, Mail, Phone, Calendar, Clock, List, ChevronDown, Minus, Heading } from '@lucide/vue'
 import type { FormField, FormFieldOption } from '../../types'
 
 const props = defineProps<{
@@ -11,21 +12,23 @@ const emit = defineEmits<{
 }>()
 
 const fieldTypes = [
-  { value: 'text', label: 'Text', icon: 'T', group: 'input' },
-  { value: 'textarea', label: 'Text Panjang', icon: '¶', group: 'input' },
-  { value: 'number', label: 'Angka', icon: '#', group: 'input' },
-  { value: 'email', label: 'Email', icon: '@', group: 'input' },
-  { value: 'phone', label: 'Telepon', icon: 'TEL', group: 'input' },
-  { value: 'date', label: 'Tanggal', icon: 'cal', group: 'input' },
-  { value: 'time', label: 'Jam', icon: 'jam', group: 'input' },
-  { value: 'file', label: 'File', icon: 'file', group: 'input' },
-  { value: 'select', label: 'Dropdown', icon: 'v', group: 'choice' },
-  { value: 'radio', label: 'Radio', icon: 'O', group: 'choice' },
-  { value: 'checkbox', label: 'Checkbox', icon: '[]', group: 'choice' },
-  { value: 'heading', label: 'Judul', icon: 'H', group: 'layout' },
-  { value: 'paragraph', label: 'Paragraf', icon: 'P', group: 'layout' },
-  { value: 'divider', label: 'Garis', icon: '—', group: 'layout' },
+  { value: 'text', label: 'Text', lucide: Type, group: 'input' },
+  { value: 'textarea', label: 'Text Panjang', lucide: AlignLeft, group: 'input' },
+  { value: 'number', label: 'Angka', lucide: Hash, group: 'input' },
+  { value: 'email', label: 'Email', lucide: Mail, group: 'input' },
+  { value: 'phone', label: 'Telepon', lucide: Phone, group: 'input' },
+  { value: 'date', label: 'Tanggal', lucide: Calendar, group: 'input' },
+  { value: 'time', label: 'Jam', lucide: Clock, group: 'input' },
+  { value: 'file', label: 'File', lucide: FileIcon, group: 'input' },
+  { value: 'select', label: 'Dropdown', lucide: List, group: 'choice' },
+  { value: 'radio', label: 'Radio', lucide: CircleDot, group: 'choice' },
+  { value: 'checkbox', label: 'Checkbox', lucide: CheckSquare, group: 'choice' },
+  { value: 'heading', label: 'Judul', lucide: Heading, group: 'layout' },
+  { value: 'paragraph', label: 'Paragraf', lucide: AlignLeft, group: 'layout' },
+  { value: 'divider', label: 'Garis', lucide: Minus, group: 'layout' },
 ]
+
+const typePickerOpen = ref<number | null>(null)
 
 const selectedIndex = ref<number | null>(null)
 const dragIndex = ref<number | null>(null)
@@ -39,6 +42,18 @@ function hasOptions(type: string) {
 function isInput(type: string) {
   return !['heading', 'paragraph', 'divider'].includes(type)
 }
+
+function closeTypePicker() {
+  typePickerOpen.value = null
+}
+
+onMounted(() => {
+  window.addEventListener('click', closeTypePicker)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeTypePicker)
+})
 
 function addField(type: FormField['type'], afterIndex: number) {
   const newField: FormField = {
@@ -77,6 +92,7 @@ function changeFieldType(type: FormField['type']) {
   if (needsOpts && !field.options?.length) patch.options = [{ label: '', is_other: false }]
   if (!needsOpts) patch.options = undefined
   updateField(selectedIndex.value, patch)
+  typePickerOpen.value = null
 }
 
 function addOption(fieldIndex: number) {
@@ -184,7 +200,7 @@ function onDrop(e: DragEvent, toIndex: number) {
       >
         <div class="field-card__header">
           <div class="field-card__drag" title="Geser">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="5" cy="4" r="1.2" fill="currentColor"/><circle cx="11" cy="4" r="1.2" fill="currentColor"/><circle cx="5" cy="8" r="1.2" fill="currentColor"/><circle cx="11" cy="8" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="11" cy="12" r="1.2" fill="currentColor"/></svg>
+            <GripVertical :size="16" />
           </div>
 
           <div class="field-card__body">
@@ -218,12 +234,15 @@ function onDrop(e: DragEvent, toIndex: number) {
                 placeholder="Pertanyaan..."
                 @click.stop
               />
-              <span class="field-type-badge">{{ fieldTypes.find(t => t.value === field.type)?.label }}</span>
+              <span class="field-type-badge">
+                <component :is="fieldTypes.find(t => t.value === field.type)?.lucide" :size="12" style="margin-right:4px;" />
+                {{ fieldTypes.find(t => t.value === field.type)?.label }}
+              </span>
             </template>
           </div>
 
           <button class="field-card__delete" @click.stop="removeField(index)" title="Hapus">
-            <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <Trash2 :size="16" />
           </button>
         </div>
 
@@ -236,14 +255,14 @@ function onDrop(e: DragEvent, toIndex: number) {
           <input v-else-if="field.type === 'date'" class="field-preview-input" type="date" disabled />
           <input v-else-if="field.type === 'time'" class="field-preview-input" type="time" disabled />
           <div v-else-if="field.type === 'file'" class="field-preview-file">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7.5 1.5h-4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5l-3.5-3.5z" stroke="currentColor" stroke-width="1.2"/><path d="M8.5 1.5v3.5h3.5" stroke="currentColor" stroke-width="1.2"/></svg>
+            <FileIcon :size="14" />
             Upload file
           </div>
 
           <!-- Select -->
           <div v-else-if="field.type === 'select'" class="field-options" @click.stop>
             <div v-for="(opt, oi) in (field.options || [])" :key="oi" class="field-option" :class="{ 'field-option--other': opt.is_other }">
-              <svg class="field-option__bullet" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3.5 5.5L7 9l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <ChevronRight :size="14" class="field-option__bullet" />
               <input
                 class="field-option__input"
                 :value="opt.label"
@@ -255,7 +274,7 @@ function onDrop(e: DragEvent, toIndex: number) {
                 <span class="field-option__toggle-text">isi manual</span>
               </label>
               <button class="field-option__remove" @click="removeOption(index, oi)" title="Hapus">
-                <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <Trash2 :size="14" />
               </button>
             </div>
             <button class="field-option__add" @click="addOption(index)">+ Tambah opsi</button>
@@ -264,7 +283,7 @@ function onDrop(e: DragEvent, toIndex: number) {
           <!-- Radio -->
           <div v-else-if="field.type === 'radio'" class="field-options" @click.stop>
             <div v-for="(opt, oi) in (field.options || [])" :key="oi" class="field-option" :class="{ 'field-option--other': opt.is_other }">
-              <svg class="field-option__bullet" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2.5" fill="currentColor"/></svg>
+              <CircleDot :size="14" class="field-option__bullet" />
               <input
                 class="field-option__input"
                 :value="opt.label"
@@ -276,7 +295,7 @@ function onDrop(e: DragEvent, toIndex: number) {
                 <span class="field-option__toggle-text">isi manual</span>
               </label>
               <button class="field-option__remove" @click="removeOption(index, oi)" title="Hapus">
-                <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <Trash2 :size="14" />
               </button>
             </div>
             <button class="field-option__add" @click="addOption(index)">+ Tambah opsi</button>
@@ -285,7 +304,7 @@ function onDrop(e: DragEvent, toIndex: number) {
           <!-- Checkbox -->
           <div v-else-if="field.type === 'checkbox'" class="field-options" @click.stop>
             <div v-for="(opt, oi) in (field.options || [])" :key="oi" class="field-option" :class="{ 'field-option--other': opt.is_other }">
-              <svg class="field-option__bullet" width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 7l2 2 3.5-3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <CheckSquare :size="14" class="field-option__bullet" />
               <input
                 class="field-option__input"
                 :value="opt.label"
@@ -297,7 +316,7 @@ function onDrop(e: DragEvent, toIndex: number) {
                 <span class="field-option__toggle-text">isi manual</span>
               </label>
               <button class="field-option__remove" @click="removeOption(index, oi)" title="Hapus">
-                <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <Trash2 :size="14" />
               </button>
             </div>
             <button class="field-option__add" @click="addOption(index)">+ Tambah opsi</button>
@@ -315,17 +334,26 @@ function onDrop(e: DragEvent, toIndex: number) {
           </label>
           <div class="field-card__footer-right">
             <button class="add-inside-btn" @click.stop="addField('text', index)" title="Tambah pertanyaan setelah ini">
-              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <Plus :size="14" />
               Tambah
             </button>
-            <select class="field-type-select" :value="field.type" @click.stop @change.stop="changeFieldType(($event.target as HTMLSelectElement).value as FormField['type'])">
-              <optgroup label="Input">
-                <option v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" :value="ft.value">[{{ ft.icon }}] {{ ft.label }}</option>
-              </optgroup>
-              <optgroup label="Pilihan">
-                <option v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" :value="ft.value">[{{ ft.icon }}] {{ ft.label }}</option>
-              </optgroup>
-            </select>
+            <div class="custom-type-picker" @click.stop="typePickerOpen = typePickerOpen === index ? null : index">
+              <div class="custom-type-display">
+                <component :is="fieldTypes.find(t => t.value === field.type)?.lucide" :size="14" />
+                <span>{{ fieldTypes.find(t => t.value === field.type)?.label }}</span>
+                <ChevronDown :size="14" class="custom-type-chevron" />
+              </div>
+              <div v-if="typePickerOpen === index" class="custom-type-dropdown" @click.stop>
+                <div class="custom-type-group">Input</div>
+                <div v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+                  <component :is="ft.lucide" :size="14" /> {{ ft.label }}
+                </div>
+                <div class="custom-type-group">Pilihan</div>
+                <div v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+                  <component :is="ft.lucide" :size="14" /> {{ ft.label }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -345,13 +373,13 @@ function onDrop(e: DragEvent, toIndex: number) {
     <!-- Empty state -->
     <div v-if="fields.length === 0" class="add-area">
       <button class="add-btn" @click="addField('text', -1)">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <Plus :size="18" />
         Tambah Pertanyaan
       </button>
     </div>
 
     <div v-if="fields.length === 0" class="empty-state">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#cbd5e1" stroke-width="2"/><path d="M24 16v16M16 24h16" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/></svg>
+      <FileQuestion :size="48" color="#cbd5e1" stroke-width="1.5" />
       <p>Belum ada field. Klik tombol di atas untuk menambahkan.</p>
     </div>
   </div>
@@ -369,7 +397,7 @@ function onDrop(e: DragEvent, toIndex: number) {
   padding: 16px; cursor: pointer; transition: all 0.15s ease;
 }
 .field-card:hover { border-color: #cbd5e1; }
-.field-card--selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.field-card--selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); position: relative; z-index: 10; }
 .field-card--heading, .field-card--paragraph, .field-card--divider { border-style: dashed; background: #fafbfc; }
 .field-card--dragging { opacity: 0.4; }
 
@@ -415,10 +443,8 @@ function onDrop(e: DragEvent, toIndex: number) {
 .field-divider { border: none; border-top: 2px solid #e2e8f0; margin: 8px 0; }
 .field-divider-preview { border: none; border-top: 2px solid #e2e8f0; margin: 8px 0; }
 
-.field-type-badge {
-  display: inline-block; margin-top: 4px; font-size: 11px; padding: 2px 8px;
-  border-radius: 20px; background: #f1f5f9; color: #64748b; font-weight: 500;
-}
+.field-divider { border: none; border-top: 2px solid #e2e8f0; margin: 8px 0; }
+.field-divider-preview { border: none; border-top: 2px solid #e2e8f0; margin: 8px 0; }
 
 .field-card__preview { padding: 4px 0 4px 34px; }
 .field-preview-input, .field-preview-textarea {
@@ -466,11 +492,71 @@ function onDrop(e: DragEvent, toIndex: number) {
 .field-card__footer-right { display: flex; align-items: center; gap: 8px; }
 .field-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; cursor: pointer; }
 .field-toggle input { accent-color: #2563eb; }
-.field-type-select {
-  border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px;
-  font-size: 11px; color: #475569; background: #fff; cursor: pointer; outline: none;
+.field-type-badge {
+  display: inline-flex; align-items: center; margin-top: 4px; font-size: 11px; padding: 2px 8px;
+  border-radius: 20px; background: #f1f5f9; color: #64748b; font-weight: 500;
 }
-.field-type-select:focus { border-color: #2563eb; }
+
+.custom-type-picker {
+  position: relative;
+  font-size: 11px;
+  color: #475569;
+}
+.custom-type-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+.custom-type-display:hover {
+  border-color: #cbd5e1;
+}
+.custom-type-chevron {
+  color: #94a3b8;
+  margin-left: 4px;
+}
+.custom-type-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 160px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 50;
+  padding: 6px 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.custom-type-group {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+.custom-type-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #334155;
+  transition: background 0.15s;
+}
+.custom-type-option:hover {
+  background: #f8fafc;
+}
+.custom-type-option.active {
+  background: #eff6ff;
+  color: #2563eb;
+}
 
 .add-inside-btn {
   display: inline-flex; align-items: center; gap: 4px;
@@ -492,4 +578,16 @@ function onDrop(e: DragEvent, toIndex: number) {
 
 .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
 .empty-state p { margin-top: 12px; font-size: 14px; }
+
+@media (max-width: 640px) {
+  .field-card__footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .field-card__footer-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
 </style>

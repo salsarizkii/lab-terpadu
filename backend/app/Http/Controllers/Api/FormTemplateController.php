@@ -61,25 +61,38 @@ class FormTemplateController extends Controller
     {
         $template = FormTemplate::findOrFail($id);
 
+        $messages = [
+            'fields.*.label.required' => 'Judul pertanyaan wajib diisi.',
+            'fields.*.label.max' => 'Judul pertanyaan maksimal 200 karakter.',
+            'fields.*.type.required' => 'Jenis pertanyaan wajib dipilih.',
+            'fields.*.type.in' => 'Jenis pertanyaan tidak valid.',
+            'fields.*.options.*.label.max' => 'Label opsi maksimal 200 karakter.',
+        ];
+
         $validated = $request->validate([
             'fields' => 'required|array',
             'fields.*.label' => 'required|string|max:200',
             'fields.*.type' => 'required|in:text,textarea,number,select,checkbox,radio,date,time,email,phone,file,heading,paragraph,divider',
             'fields.*.options' => 'nullable|array',
-            'fields.*.options.*.label' => 'required|string|max:200',
+            'fields.*.options.*.label' => 'nullable|string|max:200',
             'fields.*.options.*.is_other' => 'sometimes|boolean',
             'fields.*.is_required' => 'sometimes|boolean',
-        ]);
+        ], $messages);
 
         $template->fields()->delete();
 
         foreach ($validated['fields'] as $index => $field) {
             $options = null;
             if (isset($field['options'])) {
-                $options = array_map(fn($opt) => [
-                    'label' => $opt['label'],
-                    'is_other' => $opt['is_other'] ?? false,
-                ], $field['options']);
+                $options = array_filter(
+                    array_map(fn($opt) => [
+                        'label' => $opt['label'] ?? '',
+                        'is_other' => $opt['is_other'] ?? false,
+                    ], $field['options']),
+                    fn($opt) => $opt['label'] !== '' || $opt['is_other']
+                );
+                $options = array_values($options);
+                if (empty($options)) $options = null;
             }
 
             $template->fields()->create([

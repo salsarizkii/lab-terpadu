@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Upload } from '@lucide/vue'
 
 withDefaults(defineProps<{
   label?: string
@@ -29,10 +30,7 @@ function handleChange(event: Event) {
     <label v-if="label" class="form-label">{{ label }}</label>
     <div class="file-upload" :class="{ 'file-upload--error': error }">
       <label class="file-upload__label">
-        <svg class="file-upload__icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 3V13M10 3L6 7M10 3L14 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2 15V16.5C2 17.88 3.12 19 4.5 19H15.5C16.88 19 18 17.88 18 16.5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
+        <Upload class="file-upload__icon" :size="20" stroke-width="1.5" />
         <span v-if="fileName" class="file-upload__name">{{ fileName }}</span>
         <span v-else class="file-upload__placeholder">Pilih file...</span>
         <input type="file" :accept="accept" class="file-upload__input" @change="handleChange" />

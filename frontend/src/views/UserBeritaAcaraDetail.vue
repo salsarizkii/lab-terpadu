@@ -7,7 +7,6 @@ import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import Alert from '../components/common/Alert.vue'
 import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
@@ -15,12 +14,12 @@ import { beritaAcaraApi } from '../api/beritaAcara'
 import { paymentApi } from '../api/payment'
 import { certificateApi } from '../api/certificate'
 import type { BeritaAcara } from '../types'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
 const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
-const error = ref('')
 const showPaymentModal = ref(false)
 const showDiscountModal = ref(false)
 
@@ -48,14 +47,14 @@ const canDownloadCert = computed(() => item.value?.certificate)
 onMounted(async () => {
   const id = Number(route.params.id)
   if (!id || isNaN(id)) {
-    error.value = 'ID tidak valid'
+    toast.error('ID tidak valid')
     loading.value = false
     return
   }
   try {
     item.value = await beritaAcaraApi.getById(id)
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -66,9 +65,10 @@ async function handlePayment(fd: FormData) {
   try {
     const payment = await paymentApi.uploadProof(item.value.payment.id, fd)
     if (item.value) item.value.payment = payment
+    toast.success('Bukti pembayaran berhasil diupload')
     showPaymentModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 
@@ -80,9 +80,10 @@ async function handleDiscount(data: any) {
   try {
     const payment = await paymentApi.requestDiscount(item.value!.payment!.id, data)
     if (item.value) item.value.payment = payment
+    toast.success('Pengajuan diskon berhasil dikirim')
     showDiscountModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 
@@ -96,7 +97,7 @@ async function handleDownload(certificateId: number) {
     a.click()
     window.URL.revokeObjectURL(url)
   } catch (e: any) {
-    error.value = 'Gagal mengunduh sertifikat'
+    toast.error('Gagal mengunduh sertifikat')
   }
 }
 </script>
@@ -104,8 +105,6 @@ async function handleDownload(certificateId: number) {
 <template>
   <AppLayout>
     <div>
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
-
       <LoadingSpinner v-if="loading" size="lg" />
 
       <template v-else-if="item">

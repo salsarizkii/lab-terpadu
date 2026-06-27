@@ -5,13 +5,12 @@ import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
-import Alert from '../components/common/Alert.vue'
 import { adminApi } from '../api/admin'
 import type { Sample } from '../types'
+import { toast } from 'vue-sonner'
 
 const samples = ref<Sample[]>([])
 const loading = ref(true)
-const error = ref('')
 
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default',
@@ -24,7 +23,7 @@ onMounted(async () => {
   try {
     samples.value = await adminApi.getSamples()
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -35,8 +34,9 @@ async function markTaken(id: number) {
     await adminApi.markSampleTaken(id)
     const idx = samples.value.findIndex(s => s.id === id)
     if (idx !== -1) samples.value[idx]!.status = 'taken'
+    toast.success('Sampel telah diambil')
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 </script>
@@ -47,8 +47,6 @@ async function markTaken(id: number) {
       <div class="page-header">
         <h1>Status Sampel</h1>
       </div>
-
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
 
       <Card>
         <LoadingSpinner v-if="loading" size="lg" />

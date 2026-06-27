@@ -2,35 +2,32 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { toast } from 'vue-sonner'
 import LoginForm from '../components/auth/LoginForm.vue'
-import Alert from '../components/common/Alert.vue'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const error = ref('')
 const loading = ref(false)
-const successMessage = ref('')
 
 onMounted(() => {
   if (route.query.registered === 'true') {
     if (route.query.needs_verification === '1') {
-      successMessage.value = 'Registrasi berhasil! Akun Anda memerlukan verifikasi dari superadmin sebelum dapat login. Silakan hubungi administrator.'
+      toast.success('Registrasi berhasil! Akun Anda memerlukan verifikasi dari superadmin sebelum dapat login.')
     } else {
-      successMessage.value = 'Registrasi berhasil! Silakan login dengan akun Anda.'
+      toast.success('Registrasi berhasil! Silakan login dengan akun Anda.')
     }
   }
 })
 
 async function handleLogin(data: { email: string; password: string }) {
-  error.value = ''
-  successMessage.value = ''
   loading.value = true
   try {
     await auth.login(data.email, data.password)
+    toast.success('Login berhasil')
     router.push('/dashboard')
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Login gagal'
+    toast.error(e.response?.data?.message || 'Login gagal')
   } finally {
     loading.value = false
   }
@@ -44,14 +41,6 @@ async function handleLogin(data: { email: string; password: string }) {
         <h1>Lab Terpadu</h1>
         <p>Pemesanan Data Sampel Penelitian</p>
       </div>
-      <div v-if="successMessage" class="login-success-banner">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="login-success-icon">
-          <circle cx="10" cy="10" r="9" stroke="#059669" stroke-width="1.5"/>
-          <path d="M6 10L9 13L14 7" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>{{ successMessage }}</span>
-      </div>
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
       <LoginForm @submit="handleLogin" :loading="loading" />
       <p class="login-footer">
         Belum punya akun? <router-link to="/register">Daftar</router-link>

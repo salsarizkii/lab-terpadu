@@ -6,15 +6,14 @@ import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import Alert from '../components/common/Alert.vue'
 import SampleDataForm from '../components/analyst/SampleDataForm.vue'
 import PengujianForm from '../components/analyst/PengujianForm.vue'
 import { analystApi } from '../api/analyst'
 import type { BeritaAcara } from '../types'
+import { toast } from 'vue-sonner'
 
 const items = ref<BeritaAcara[]>([])
 const loading = ref(true)
-const error = ref('')
 const selectedBa = ref<BeritaAcara | null>(null)
 const showSampleModal = ref(false)
 const selectedSample = ref<any>(null)
@@ -30,7 +29,7 @@ onMounted(async () => {
   try {
     items.value = await analystApi.getBeritaAcara()
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -57,9 +56,10 @@ async function handleSampleUpdate(data: any) {
         if (data.test_result !== undefined && s) s.test_result = data.test_result
       }
     }
+    toast.success('Data sampel diperbarui')
     showSampleModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal update sampel'
+    toast.error(e.response?.data?.message || 'Gagal update sampel')
   }
 }
 
@@ -71,8 +71,9 @@ async function markReady(baId: number, sampleId: number) {
       const s = ba.samples?.find(s => s.id === sampleId)
       if (s) s.status = 'ready'
     }
+    toast.success('Sampel siap diambil')
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 
@@ -84,9 +85,10 @@ async function handlePengujianSubmit(data: any) {
     if (ba) {
       ba.pengujians = [result]
     }
+    toast.success('Laporan pengujian disimpan')
     showPengujianModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 
@@ -104,8 +106,6 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
       <div class="page-header">
         <h1>Tugas Saya</h1>
       </div>
-
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
       <LoadingSpinner v-if="loading" size="lg" />
 
       <div v-else-if="items.length === 0" class="empty">

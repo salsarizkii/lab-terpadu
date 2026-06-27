@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Pause, Play, Pencil } from '@lucide/vue'
 import LoadingSpinner from './LoadingSpinner.vue'
-import Alert from './Alert.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { FormTemplate } from '../../types'
+import { toast } from 'vue-sonner'
 
 const emit = defineEmits<{
   edit: [id: number]
@@ -11,15 +12,13 @@ const emit = defineEmits<{
 
 const templates = ref<FormTemplate[]>([])
 const loading = ref(true)
-const error = ref('')
-const success = ref('')
 
 async function fetchTemplates() {
   loading.value = true
   try {
     templates.value = await formTemplateApi.getTemplates()
   } catch {
-    error.value = 'Gagal memuat data template'
+    toast.error('Gagal memuat data template')
   } finally {
     loading.value = false
   }
@@ -31,8 +30,9 @@ async function toggleActive(tpl: FormTemplate) {
   try {
     await formTemplateApi.updateTemplate(tpl.id, { is_active: !tpl.is_active })
     tpl.is_active = !tpl.is_active
+    toast.success(tpl.is_active ? 'Template diaktifkan' : 'Template dinonaktifkan')
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal update status'
+    toast.error(e.response?.data?.message || 'Gagal update status')
   }
 }
 
@@ -43,9 +43,6 @@ function typeLabel(type: string) {
 
 <template>
   <div>
-    <Alert v-if="success" type="success" :message="success" @dismiss="success = ''" />
-    <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
-
     <LoadingSpinner v-if="loading" size="lg" />
 
     <div v-else class="template-list">
@@ -63,10 +60,13 @@ function typeLabel(type: string) {
         <div class="template-card__footer">
           <span class="template-card__creator">{{ tpl.creator?.name || '-' }}</span>
           <div class="template-card__actions">
-            <button v-if="!tpl.is_default" class="t-action" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
-              {{ tpl.is_active ? '⏸' : '▶' }}
+            <button v-if="!tpl.is_default" class="t-action flex-center" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
+              <Pause v-if="tpl.is_active" :size="16" />
+              <Play v-else :size="16" />
             </button>
-            <button class="t-action t-action--edit" @click="emit('edit', tpl.id)" title="Edit form">✏️</button>
+            <button class="t-action t-action--edit flex-center" @click="emit('edit', tpl.id)" title="Edit form">
+              <Pencil :size="16" />
+            </button>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ function typeLabel(type: string) {
 </template>
 
 <style scoped>
-.template-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.template-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
 .template-card {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
   padding: 18px; transition: all 0.15s;
@@ -97,9 +97,15 @@ function typeLabel(type: string) {
 .template-card__creator { font-size: 12px; color: #94a3b8; }
 .template-card__actions { display: flex; gap: 4px; }
 .t-action {
-  width: 30px; height: 30px; border: none; border-radius: 6px; background: transparent;
-  cursor: pointer; font-size: 14px; transition: background 0.15s;
+  width: 32px; height: 32px; border: none; border-radius: 6px; background: transparent;
+  cursor: pointer; transition: background 0.15s;
+  color: #64748b;
 }
-.t-action:hover { background: #f1f5f9; }
-.t-action--edit:hover { background: #eff6ff; }
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.t-action:hover { background: #f1f5f9; color: #1e293b; }
+.t-action--edit:hover { background: #eff6ff; color: #2563eb; }
 </style>

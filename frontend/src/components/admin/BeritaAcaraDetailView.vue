@@ -41,7 +41,7 @@ function formatValue(val: any): string {
     try {
       const parsed = JSON.parse(val)
       if (Array.isArray(parsed)) {
-        return parsed.map((s: string) => s.replace('Lainnya: ', '🖊️ ')).join(', ')
+        return parsed.map((s: string) => s.replace('Lainnya: ', '(Lainnya) ')).join(', ')
       }
     } catch {}
   }

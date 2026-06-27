@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Check } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Button from '../components/common/Button.vue'
-import Alert from '../components/common/Alert.vue'
 import BeritaAcaraForm from '../components/user/BeritaAcaraForm.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import type { BeritaAcara } from '../types'
+import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const error = ref('')
 const loading = ref(false)
 const created = ref<BeritaAcara | null>(null)
 
 async function handleSubmit(data: any) {
-  error.value = ''
   loading.value = true
   try {
     const ba = await beritaAcaraApi.create(data)
     created.value = ba
+    toast.success('Berita Acara berhasil dibuat!')
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal membuat berita acara'
+    toast.error(e.response?.data?.message || 'Gagal membuat berita acara')
   } finally {
     loading.value = false
   }
@@ -34,12 +34,13 @@ async function handleSubmit(data: any) {
       <div class="page-header">
         <h1>Buat Berita Acara Baru</h1>
       </div>
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
 
       <template v-if="created">
         <Card>
           <div class="success-wrap">
-            <div class="success-icon">✓</div>
+            <div class="success-icon">
+              <Check :size="32" />
+            </div>
             <h2 class="success-title">Permohonan Pengajuan Berita Acara Berhasil!</h2>
             <p class="success-desc">Pengajuan Anda telah berhasil dikirim dan sedang menunggu verifikasi oleh admin.</p>
             <Button @click="router.push(`/user/berita-acara/${created.id}`)">Lihat Detail Pengajuan</Button>

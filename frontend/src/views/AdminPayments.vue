@@ -6,14 +6,13 @@ import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import Alert from '../components/common/Alert.vue'
 import PaymentConfirmation from '../components/admin/PaymentConfirmation.vue'
 import { adminApi } from '../api/admin'
 import type { Payment } from '../types'
+import { toast } from 'vue-sonner'
 
 const payments = ref<Payment[]>([])
 const loading = ref(true)
-const error = ref('')
 const filterStatus = ref('')
 const selectedPayment = ref<Payment | null>(null)
 const showConfirmModal = ref(false)
@@ -33,7 +32,7 @@ onMounted(async () => {
   try {
     payments.value = await adminApi.getPayments()
   } catch {
-    error.value = 'Gagal memuat data'
+    toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
@@ -50,9 +49,10 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
     const updated = await adminApi.confirmPayment(selectedPayment.value.id, data)
     const idx = payments.value.findIndex(p => p.id === selectedPayment.value!.id)
     if (idx !== -1) payments.value[idx] = updated
+    toast.success('Status pembayaran diperbarui')
     showConfirmModal.value = false
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Gagal'
+    toast.error(e.response?.data?.message || 'Gagal')
   }
 }
 </script>
@@ -63,8 +63,6 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
       <div class="page-header">
         <h1>Konfirmasi Pembayaran</h1>
       </div>
-
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
 
       <Card>
         <div class="filter-bar">

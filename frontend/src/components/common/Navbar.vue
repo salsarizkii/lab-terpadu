@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
+import { FlaskConical, LogOut } from '@lucide/vue'
 import Button from './Button.vue'
 
 const auth = useAuthStore()
@@ -16,10 +17,9 @@ async function handleLogout() {
   <nav class="navbar">
     <div class="navbar__brand" @click="router.push('/dashboard')">
       <div class="navbar__logo">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect width="28" height="28" rx="8" fill="var(--color-accent)"/>
-          <path d="M8 14L12 18L20 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <div class="logo-box">
+          <FlaskConical :size="18" color="white" stroke-width="2.5" />
+        </div>
       </div>
       <div class="navbar__brand-text">
         <span class="navbar__title">Lab Terpadu</span>
@@ -35,9 +35,7 @@ async function handleLogout() {
         </div>
       </div>
       <Button variant="ghost" size="sm" @click="handleLogout">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M6 2H3C2.45 2 2 2.45 2 3V13C2 13.55 2.45 14 3 14H6M11 11L14 8L11 5M14 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <LogOut :size="16" />
         Keluar
       </Button>
     </div>
@@ -68,6 +66,15 @@ async function handleLogout() {
 }
 .navbar__logo {
   display: flex;
+}
+.logo-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .navbar__brand-text {
   display: flex;

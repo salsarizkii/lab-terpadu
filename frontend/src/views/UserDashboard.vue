@@ -8,6 +8,7 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import FlowSteps from '../components/user/FlowSteps.vue'
+import { PlusSquare } from '@lucide/vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import type { BeritaAcara } from '../types'
 
@@ -74,10 +75,7 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
 
         <div class="empty-state" v-if="items.length === 0">
           <div class="empty-icon">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="12" fill="var(--color-accent-soft)"/>
-              <path d="M24 14V34M14 24H34" stroke="var(--color-accent)" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <PlusSquare :size="48" color="var(--color-accent)" stroke-width="1.5" />
           </div>
           <h3>Belum ada pengajuan</h3>
           <p>Mulai dengan membuat berita acara penelitian Anda</p>

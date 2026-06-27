@@ -2,6 +2,17 @@
 import { useAuthStore } from '../../stores/authStore'
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
+import {
+  LayoutDashboard,
+  FileText,
+  CreditCard,
+  FlaskConical,
+  ClipboardList,
+  KeyRound,
+  Users,
+  Award,
+  ClipboardCheck
+} from '@lucide/vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -9,50 +20,37 @@ const route = useRoute()
 const menuItems = computed(() => {
   if (auth.isSuperAdmin) {
     return [
-      { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
-      { label: 'Berita Acara', path: '/admin/berita-acara', icon: 'file' },
-      { label: 'Pembayaran', path: '/admin/payments', icon: 'payment' },
-      { label: 'Sampel', path: '/admin/samples', icon: 'sample' },
-      { label: 'Kelola Form', path: '/admin/forms', icon: 'form' },
-      { label: 'Kelola Role', path: '/admin/roles', icon: 'key' },
-      { label: 'Kelola Pengguna', path: '/admin/users', icon: 'users' },
+      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText },
+      { label: 'Pembayaran', path: '/admin/payments', icon: CreditCard },
+      { label: 'Sampel', path: '/admin/samples', icon: FlaskConical },
+      { label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList },
+      { label: 'Kelola Role', path: '/admin/roles', icon: KeyRound },
+      { label: 'Kelola Pengguna', path: '/admin/users', icon: Users },
     ]
   }
   if (auth.isAdmin) {
     return [
-      { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
-      { label: 'Berita Acara', path: '/admin/berita-acara', icon: 'file' },
-      { label: 'Pembayaran', path: '/admin/payments', icon: 'payment' },
-      { label: 'Sampel', path: '/admin/samples', icon: 'sample' },
-      { label: 'Kelola Form', path: '/admin/forms', icon: 'form' },
+      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText },
+      { label: 'Pembayaran', path: '/admin/payments', icon: CreditCard },
+      { label: 'Sampel', path: '/admin/samples', icon: FlaskConical },
+      { label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList },
     ]
   }
   if (auth.isAnalyst) {
     return [
-      { label: 'Dashboard', path: '/analyst/dashboard', icon: 'dashboard' },
-      { label: 'Tugas Saya', path: '/analyst/assigned', icon: 'assignment' },
+      { label: 'Dashboard', path: '/analyst/dashboard', icon: LayoutDashboard },
+      { label: 'Tugas Saya', path: '/analyst/assigned', icon: ClipboardCheck },
     ]
   }
   return [
-    { label: 'Dashboard', path: '/user/dashboard', icon: 'dashboard' },
-    { label: 'Pengajuan', path: '/user/berita-acara', icon: 'file' },
-    { label: 'Pembayaran', path: '/user/payments', icon: 'payment' },
-    { label: 'Sertifikat', path: '/user/certificates', icon: 'certificate' },
+    { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
+    { label: 'Pengajuan', path: '/user/berita-acara', icon: FileText },
+    { label: 'Pembayaran', path: '/user/payments', icon: CreditCard },
+    { label: 'Sertifikat', path: '/user/certificates', icon: Award },
   ]
 })
-
-const icons: Record<string, string> = {
-  dashboard: '<path d="M3 9L12 2L21 9V20C21 20.55 20.55 21 20 21H15.5C14.95 21 14.5 20.55 14.5 20V14.5C14.5 13.95 14.05 13.5 13.5 13.5H10.5C9.95 13.5 9.5 13.95 9.5 14.5V20C9.5 20.55 9.05 21 8.5 21H4C3.45 21 3 20.55 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  file: '<path d="M14 2H6C5.45 2 5 2.45 5 3V21C5 21.55 5.45 22 6 22H18C18.55 22 19 21.55 19 21V8L14 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2V8H19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  payment: '<path d="M2 8C2 6.9 2.9 6 4 6H20C21.1 6 22 6.9 22 8V16C22 17.1 21.1 18 20 18H4C2.9 18 2 17.1 2 16V8Z" stroke="currentColor" stroke-width="1.5"/><path d="M2 10H22" stroke="currentColor" stroke-width="1.5"/><path d="M7 14H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
-  sample: '<path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  plus: '<path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  certificate: '<path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  assignment: '<path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8H16M8 12H14M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
-  key: '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
-  form: '<path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8H16M8 12H16M8 16H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
-}
 </script>
 
 <template>
@@ -65,7 +63,7 @@ const icons: Record<string, string> = {
         class="sidebar__item"
         active-class="sidebar__item--active"
       >
-        <span class="sidebar__icon" v-html="icons[item.icon] || icons.dashboard" />
+        <component :is="item.icon" class="sidebar__icon" :size="20" />
         <span class="sidebar__label">{{ item.label }}</span>
       </router-link>
     </nav>
@@ -88,6 +86,7 @@ const icons: Record<string, string> = {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  transition: width 0.3s ease;
 }
 .sidebar__nav {
   display: flex;
@@ -120,11 +119,6 @@ const icons: Record<string, string> = {
   color: var(--color-accent);
 }
 .sidebar__icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   color: var(--color-text-muted);
 }
@@ -145,5 +139,22 @@ const icons: Record<string, string> = {
   font-size: 11px;
   color: var(--color-text-muted);
   letter-spacing: 0.5px;
+}
+
+/* Make sidebar more responsive on smaller screens */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+  }
+  .sidebar__label {
+    display: none;
+  }
+  .sidebar__item {
+    justify-content: center;
+    padding: 10px;
+  }
+  .sidebar__version {
+    display: none;
+  }
 }
 </style>

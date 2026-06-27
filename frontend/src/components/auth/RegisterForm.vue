@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import FormInput from '../common/FormInput.vue'
 import Button from '../common/Button.vue'
+import { CheckCircle2, Circle } from '@lucide/vue'
 import { roleApi } from '../../api/role'
 import type { Role } from '../../types'
 
@@ -96,13 +97,8 @@ function handleSubmit() {
             <p v-if="role.description" class="role-card__desc">{{ role.description }}</p>
           </div>
           <div class="role-card__check">
-            <svg v-if="selectedRole === role.name" width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="2" fill="currentColor" fill-opacity="0.1"/>
-              <path d="M6 10L9 13L14 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
+            <CheckCircle2 v-if="selectedRole === role.name" :size="20" />
+            <Circle v-else :size="20" />
           </div>
         </label>
       </div>

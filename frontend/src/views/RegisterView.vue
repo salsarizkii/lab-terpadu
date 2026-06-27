@@ -2,23 +2,21 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { toast } from 'vue-sonner'
 import RegisterForm from '../components/auth/RegisterForm.vue'
-import Alert from '../components/common/Alert.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
-const error = ref('')
 const loading = ref(false)
 
 async function handleRegister(data: { name: string; email: string; password: string; password_confirmation: string; phone?: string; role: string }) {
-  error.value = ''
   loading.value = true
   try {
     const res = await auth.register(data)
     const needsVerification = res.needs_verification ? '1' : '0'
     router.push(`/login?registered=true&needs_verification=${needsVerification}`)
   } catch (e: any) {
-    error.value = e.response?.data?.message || 'Registrasi gagal'
+    toast.error(e.response?.data?.message || 'Registrasi gagal')
   } finally {
     loading.value = false
   }
@@ -33,7 +31,6 @@ async function handleRegister(data: { name: string; email: string; password: str
         <h1>Daftar Akun</h1>
         <p>Lab Terpadu - Pemesanan Data Sampel</p>
       </div>
-      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
       <RegisterForm @submit="handleRegister" :loading="loading" />
       <p class="register-footer">
         Sudah punya akun? <router-link to="/login">Masuk</router-link>
