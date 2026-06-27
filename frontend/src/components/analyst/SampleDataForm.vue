@@ -44,7 +44,7 @@ function handleSubmit() {
       <p><strong>Sample:</strong> {{ sample.name }}</p>
       <p><strong>Quantity:</strong> {{ sample.quantity || '-' }} {{ sample.unit || '' }}</p>
     </div>
-    <FormTextarea v-model="testResult" label="Test Result" rows="4" />
+    <FormTextarea v-model="testResult" label="Test Result" :rows="4" />
     <FormSelect v-model="status" label="Status" :options="statusOptions" required />
     <div class="form-actions">
       <Button type="submit" :disabled="loading">

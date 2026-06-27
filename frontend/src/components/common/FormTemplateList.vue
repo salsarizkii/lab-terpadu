@@ -63,7 +63,7 @@ function typeLabel(type: string) {
         <div class="template-card__footer">
           <span class="template-card__creator">{{ tpl.creator?.name || '-' }}</span>
           <div class="template-card__actions">
-            <button class="t-action" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
+            <button v-if="!tpl.is_default" class="t-action" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
               {{ tpl.is_active ? '⏸' : '▶' }}
             </button>
             <button class="t-action t-action--edit" @click="emit('edit', tpl.id)" title="Edit form">✏️</button>

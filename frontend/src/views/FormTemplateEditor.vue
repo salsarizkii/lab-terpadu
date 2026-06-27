@@ -27,7 +27,6 @@ async function fetchTemplate(id: number) {
       type: f.type,
       options: f.options,
       is_required: f.is_required,
-      placeholder: f.placeholder,
     }))
     view.value = 'editor'
   } catch {
@@ -58,7 +57,6 @@ async function saveFields() {
         type: f.type,
         options: f.options,
         is_required: f.is_required,
-        placeholder: f.placeholder,
       })),
     })
     success.value = 'Form berhasil disimpan'

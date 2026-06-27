@@ -13,7 +13,7 @@ const samples = ref<Sample[]>([])
 const loading = ref(true)
 const error = ref('')
 
-const statusTypeMap: Record<string, string> = {
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default',
   processing: 'warning',
   ready: 'success',
@@ -34,7 +34,7 @@ async function markTaken(id: number) {
   try {
     await adminApi.markSampleTaken(id)
     const idx = samples.value.findIndex(s => s.id === id)
-    if (idx !== -1) samples.value[idx].status = 'taken'
+    if (idx !== -1) samples.value[idx]!.status = 'taken'
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Gagal'
   }

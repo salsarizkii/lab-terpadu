@@ -13,6 +13,8 @@ const router = useRouter()
 
 const ba = computed(() => props.beritaAcara)
 
+type BadgeType = 'default' | 'danger' | 'success' | 'warning' | 'info'
+
 const steps = computed(() => {
   return [
     {
@@ -22,7 +24,7 @@ const steps = computed(() => {
       icon: 'file',
       status: !ba.value ? 'inactive' : (ba.value.status === 'draft' || ba.value.status === 'pending' || ba.value.status === 'revision') ? 'active' : 'done',
       badge: ba.value ? (ba.value.status === 'revision' ? 'Perlu Revisi' : ba.value.status === 'pending' ? 'Menunggu' : ba.value.status === 'approved' ? 'Disetujui' : 'Draft') : '',
-      badgeType: ba.value ? (ba.value.status === 'revision' ? 'warning' : ba.value.status === 'pending' ? 'warning' : ba.value.status === 'approved' ? 'success' : 'default') : 'default',
+      badgeType: (ba.value ? (ba.value.status === 'revision' ? 'warning' : ba.value.status === 'pending' ? 'warning' : ba.value.status === 'approved' ? 'success' : 'default') : 'default') as BadgeType,
       action: (ba.value.status === 'revision' || ba.value.status === 'draft') ? 'Lanjutkan' : 'Lihat',
       route: `/user/berita-acara/${ba.value.id}`,
     },
@@ -33,7 +35,7 @@ const steps = computed(() => {
       icon: 'payment',
       status: ba.value.status !== 'approved' ? 'inactive' : (!ba.value.payment) ? 'active' : (ba.value.payment.status === 'approved') ? 'done' : 'active',
       badge: ba.value.payment ? (ba.value.payment.status === 'approved' ? 'Lunas' : ba.value.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu') : '',
-      badgeType: ba.value.payment ? (ba.value.payment.status === 'approved' ? 'success' : ba.value.payment.status === 'rejected' ? 'danger' : 'warning') : 'default',
+      badgeType: (ba.value.payment ? (ba.value.payment.status === 'approved' ? 'success' : ba.value.payment.status === 'rejected' ? 'danger' : 'warning') : 'default') as BadgeType,
       action: ba.value.status === 'approved' ? 'Lihat' : null,
       route: `/user/berita-acara/${ba.value.id}`,
     },
@@ -44,7 +46,7 @@ const steps = computed(() => {
       icon: 'sample',
       status: !ba.value.samples || ba.value.samples.length === 0 ? 'inactive' : (ba.value.samples.some(s => s.status === 'ready' || s.status === 'taken')) ? 'done' : (ba.value.samples.some(s => s.status === 'processing')) ? 'active' : 'inactive',
       badge: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'Siap Diambil' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'Sudah Diambil' : ''),
-      badgeType: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'success' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'info' : 'default'),
+      badgeType: (ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'success' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'info' : 'default')) as BadgeType,
       action: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'Lihat' : null,
       route: `/user/berita-acara/${ba.value.id}`,
     },
@@ -55,7 +57,7 @@ const steps = computed(() => {
       icon: 'certificate',
       status: ba.value.certificate ? 'done' : 'inactive',
       badge: ba.value.certificate ? (ba.value.certificate.downloaded_at ? 'Sudah Diunduh' : 'Tersedia') : '',
-      badgeType: ba.value.certificate ? (ba.value.certificate.downloaded_at ? 'info' : 'success') : 'default',
+      badgeType: (ba.value.certificate ? (ba.value.certificate.downloaded_at ? 'info' : 'success') : 'default') as BadgeType,
       action: ba.value.certificate ? 'Unduh' : null,
       route: ba.value.certificate ? `/user/berita-acara/${ba.value.id}` : null,
     },

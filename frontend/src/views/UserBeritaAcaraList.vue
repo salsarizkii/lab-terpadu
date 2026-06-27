@@ -44,7 +44,7 @@ const statusMap: Record<string, string> = {
   rejected: 'Ditolak',
 }
 
-const statusTypeMap: Record<string, string> = {
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   draft: 'default',
   pending: 'warning',
   revision: 'warning',

@@ -64,22 +64,30 @@ class FormTemplateController extends Controller
         $validated = $request->validate([
             'fields' => 'required|array',
             'fields.*.label' => 'required|string|max:200',
-            'fields.*.type' => 'required|in:text,textarea,number,select,checkbox,date,file',
+            'fields.*.type' => 'required|in:text,textarea,number,select,checkbox,radio,date,time,email,phone,file,heading,paragraph,divider',
             'fields.*.options' => 'nullable|array',
+            'fields.*.options.*.label' => 'required|string|max:200',
+            'fields.*.options.*.is_other' => 'sometimes|boolean',
             'fields.*.is_required' => 'sometimes|boolean',
-            'fields.*.placeholder' => 'nullable|string|max:200',
         ]);
 
         $template->fields()->delete();
 
         foreach ($validated['fields'] as $index => $field) {
+            $options = null;
+            if (isset($field['options'])) {
+                $options = array_map(fn($opt) => [
+                    'label' => $opt['label'],
+                    'is_other' => $opt['is_other'] ?? false,
+                ], $field['options']);
+            }
+
             $template->fields()->create([
                 'label' => $field['label'],
                 'type' => $field['type'],
-                'options' => $field['options'] ?? null,
+                'options' => $options,
                 'is_required' => $field['is_required'] ?? false,
                 'sort_order' => $index,
-                'placeholder' => $field['placeholder'] ?? null,
             ]);
         }
 

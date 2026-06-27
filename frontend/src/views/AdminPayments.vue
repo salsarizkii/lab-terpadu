@@ -18,7 +18,7 @@ const filterStatus = ref('')
 const selectedPayment = ref<Payment | null>(null)
 const showConfirmModal = ref(false)
 
-const statusTypeMap: Record<string, string> = {
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'warning',
   approved: 'success',
   rejected: 'danger',
@@ -44,7 +44,7 @@ function openConfirm(payment: Payment) {
   showConfirmModal.value = true
 }
 
-async function handleConfirm(data: { status: string; discount_approved?: number }) {
+async function handleConfirm(data: { status: string; discount_approved?: string }) {
   if (!selectedPayment.value) return
   try {
     const updated = await adminApi.confirmPayment(selectedPayment.value.id, data)

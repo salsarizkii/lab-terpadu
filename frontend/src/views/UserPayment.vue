@@ -10,7 +10,7 @@ import type { Payment } from '../types'
 const payments = ref<Payment[]>([])
 const loading = ref(true)
 
-const statusTypeMap: Record<string, string> = {
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'warning',
   approved: 'success',
   rejected: 'danger',

@@ -1,13 +1,12 @@
 import api from './axios'
-import type { FormTemplate } from '../types'
+import type { FormTemplate, FormFieldOption } from '../types'
 
 export interface SyncFieldsPayload {
   fields: {
     label: string
     type: string
-    options?: string[]
+    options?: FormFieldOption[]
     is_required?: boolean
-    placeholder?: string
   }[]
 }
 

@@ -90,7 +90,7 @@ async function handlePengujianSubmit(data: any) {
   }
 }
 
-const sampleStatusType: Record<string, string> = {
+const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default',
   processing: 'warning',
   ready: 'success',

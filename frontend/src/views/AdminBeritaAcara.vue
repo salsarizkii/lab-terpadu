@@ -26,7 +26,7 @@ const showAssignModal = ref(false)
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Menunggu', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
 }
-const statusTypeMap: Record<string, string> = {
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
 }
 

@@ -110,13 +110,17 @@ export interface Certificate {
   downloaded_at?: string
 }
 
+export interface FormFieldOption {
+  label: string
+  is_other: boolean
+}
+
 export interface FormField {
   id?: number
   label: string
-  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date' | 'file'
-  options?: string[]
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'radio' | 'date' | 'time' | 'email' | 'phone' | 'file' | 'heading' | 'paragraph' | 'divider'
+  options?: FormFieldOption[]
   is_required: boolean
-  placeholder?: string
   sort_order?: number
 }
 

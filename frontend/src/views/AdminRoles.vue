@@ -32,7 +32,7 @@ const groupedPermissions = computed(() => {
   const groups: Record<string, Permission[]> = {}
   for (const p of allPermissions.value) {
     if (!groups[p.group]) groups[p.group] = []
-    groups[p.group].push(p)
+    groups[p.group]!.push(p)
   }
   return groups
 })

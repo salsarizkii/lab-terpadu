@@ -16,7 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const status = ref('')
-const biaya = ref<number | null>(null)
+const biaya = ref('')
 const diskonDiizinkan = ref(false)
 const note = ref('')
 const loading = ref(false)
@@ -33,7 +33,7 @@ function handleSubmit() {
   loading.value = true
   const data: any = { status: status.value, note: note.value || undefined }
   if (isApproved.value) {
-    data.biaya = biaya.value ?? 0
+    data.biaya = Number(biaya.value) || 0
     data.diskon_diizinkan = diskonDiizinkan.value
   }
   emit('submit', data)
@@ -62,7 +62,7 @@ const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info
       <FormSelect v-model="status" label="Status Baru" :options="statusOptions" required />
 
       <template v-if="isApproved">
-        <FormInput v-model.number="biaya" label="Nominal Biaya (Rp)" type="number" required />
+        <FormInput v-model="biaya" label="Nominal Biaya (Rp)" type="number" required />
         <div class="form-toggle">
           <label class="toggle-label">
             <input type="checkbox" v-model="diskonDiizinkan" class="toggle-input" />
