@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,18 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    /**
+     * List roles available for registration (excludes superadmin).
+     */
+    public function listPublicRoles()
+    {
+        $roles = Role::where('name', '!=', 'superadmin')
+            ->select('id', 'name', 'description')
+            ->get();
+
+        return response()->json($roles);
+    }
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -17,19 +30,31 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
             'phone' => 'nullable|string|max:20',
-            'role' => 'nullable|string|in:user,admin,analyst',
+            'role' => 'nullable|string',
         ]);
+
+        $validated['role'] = $validated['role'] ?: 'user';
+
+        // Prevent registering as superadmin
+        if ($validated['role'] === 'superadmin') {
+            return response()->json(['message' => 'Role tidak valid untuk registrasi'], 422);
+        }
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['api_token'] = Str::random(60);
-        $validated['role'] = $validated['role'] ?? 'user';
+
+        // Users with role 'user' are auto-verified, others need superadmin approval
+        $validated['is_verified'] = ($validated['role'] === 'user');
 
         $user = User::create($validated);
 
+        $message = $validated['is_verified']
+            ? 'Registrasi berhasil. Silakan login.'
+            : 'Registrasi berhasil. Akun Anda perlu diverifikasi oleh superadmin sebelum dapat login.';
+
         return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'token' => $user->api_token,
+            'message' => $message,
+            'needs_verification' => !$validated['is_verified'],
         ], 201);
     }
 
@@ -44,6 +69,13 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        // Check if user is verified
+        if (!$user->is_verified) {
+            return response()->json([
+                'message' => 'Akun Anda belum diverifikasi oleh superadmin. Silakan hubungi administrator.',
+            ], 403);
         }
 
         $user->api_token = Str::random(60);
@@ -69,3 +101,4 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 }
+

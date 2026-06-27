@@ -12,6 +12,12 @@ export interface RegisterData {
   password: string
   password_confirmation: string
   phone?: string
+  role: string
+}
+
+export interface RegisterResponse {
+  message: string
+  needs_verification: boolean
 }
 
 export const authApi = {
@@ -20,8 +26,8 @@ export const authApi = {
     return data
   },
 
-  async register(data: RegisterData): Promise<{ message: string }> {
-    const { data: res } = await api.post<{ message: string }>('/auth/register', data)
+  async register(data: RegisterData): Promise<RegisterResponse> {
+    const { data: res } = await api.post<RegisterResponse>('/auth/register', data)
     return res
   },
 

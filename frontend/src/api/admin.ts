@@ -48,4 +48,15 @@ export const adminApi = {
     const { data } = await api.get<User[]>('/admin/analysts')
     return data
   },
+
+  async getUsers(params?: { search?: string; role?: string; is_verified?: string }): Promise<User[]> {
+    const { data } = await api.get<User[]>('/admin/users', { params })
+    return data
+  },
+
+  async verifyUser(id: number, isVerified: boolean): Promise<{ message: string; data: User }> {
+    const { data } = await api.put(`/admin/users/${id}/verify`, { is_verified: isVerified })
+    return data
+  },
 }
+

@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'phone',
         'api_token',
+        'is_verified',
     ];
 
     protected $hidden = [
@@ -38,8 +39,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => 'string',
+            'is_verified' => 'boolean',
         ];
+    }
+
+    public function roleModel()
+    {
+        return $this->belongsTo(Role::class, 'role', 'name');
     }
 
     public function beritaAcaras()
@@ -52,3 +58,4 @@ class User extends Authenticatable
         return $this->hasMany(BeritaAcara::class, 'analyst_id');
     }
 }
+

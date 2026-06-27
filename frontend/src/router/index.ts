@@ -18,7 +18,7 @@ const routes = [
     path: '/dashboard',
     redirect: () => {
       const auth = useAuthStore()
-      if (auth.isAdmin) return '/admin/dashboard'
+      if (auth.isSuperAdmin || auth.isAdmin) return '/admin/dashboard'
       if (auth.isAnalyst) return '/analyst/dashboard'
       return '/user/dashboard'
     },
@@ -84,6 +84,24 @@ const routes = [
     meta: { auth: true, role: 'admin' },
   },
   {
+    path: '/admin/roles',
+    name: 'AdminRoles',
+    component: () => import('../views/AdminRoles.vue'),
+    meta: { auth: true, role: 'superadmin' },
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('../views/AdminUsers.vue'),
+    meta: { auth: true, role: 'superadmin' },
+  },
+  {
+    path: '/admin/forms',
+    name: 'FormTemplateEditor',
+    component: () => import('../views/FormTemplateEditor.vue'),
+    meta: { auth: true, role: 'admin' },
+  },
+  {
     path: '/analyst/dashboard',
     name: 'AnalystDashboard',
     component: () => import('../views/AnalystDashboard.vue'),
@@ -117,8 +135,19 @@ router.beforeEach((to, _from, next) => {
     return next('/dashboard')
   }
 
-  if (to.meta.role && auth.user && auth.user.role !== to.meta.role) {
-    return next('/dashboard')
+  if (to.meta.role && auth.user) {
+    const requiredRole = to.meta.role as string
+    const userRole = auth.user.role
+
+    // Superadmin can access admin and superadmin routes
+    if (userRole === 'superadmin' && (requiredRole === 'admin' || requiredRole === 'superadmin')) {
+      return next()
+    }
+
+    // Check exact role match
+    if (userRole !== requiredRole) {
+      return next('/dashboard')
+    }
   }
 
   next()

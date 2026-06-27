@@ -150,4 +150,67 @@ class AdminController extends Controller
 
         return response()->json($analysts);
     }
+
+    /**
+     * Get all registered users with search and filter support.
+     */
+    public function getUsers(Request $request)
+    {
+        $query = User::query();
+
+        // Search by name, email, or phone
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by role
+        if ($role = $request->query('role')) {
+            $query->where('role', $role);
+        }
+
+        // Filter by verification status
+        if ($request->has('is_verified')) {
+            $isVerified = filter_var($request->query('is_verified'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isVerified !== null) {
+                $query->where('is_verified', $isVerified);
+            }
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json($users);
+    }
+
+    /**
+     * Verify or reject a user account.
+     */
+    public function verifyUser(Request $request, $id)
+    {
+        $request->validate([
+            'is_verified' => 'required|boolean',
+        ]);
+
+        $user = User::findOrFail($id);
+
+        // Prevent modifying superadmin
+        if ($user->role === 'superadmin') {
+            return response()->json(['message' => 'Tidak dapat mengubah status superadmin'], 403);
+        }
+
+        $user->update([
+            'is_verified' => $request->is_verified,
+        ]);
+
+        $status = $request->is_verified ? 'diverifikasi' : 'ditolak';
+
+        return response()->json([
+            'message' => "Akun {$user->name} berhasil {$status}",
+            'data' => $user,
+        ]);
+    }
 }
+

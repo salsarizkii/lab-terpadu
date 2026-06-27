@@ -1,0 +1,488 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import AppLayout from '../components/common/AppLayout.vue'
+import Card from '../components/common/Card.vue'
+import Button from '../components/common/Button.vue'
+import Modal from '../components/common/Modal.vue'
+import Badge from '../components/common/Badge.vue'
+import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import Alert from '../components/common/Alert.vue'
+import { adminApi } from '../api/admin'
+import { roleApi } from '../api/role'
+import type { User, Role } from '../types'
+
+const users = ref<User[]>([])
+const roles = ref<Role[]>([])
+const loading = ref(true)
+const error = ref('')
+const success = ref('')
+
+// Filters
+const searchQuery = ref('')
+const filterRole = ref('')
+const filterVerified = ref('')
+
+// Verify modal
+const showVerifyModal = ref(false)
+const verifyingUser = ref<User | null>(null)
+const verifyAction = ref(true)
+const verifyLoading = ref(false)
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const params: Record<string, any> = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    if (filterRole.value) params.role = filterRole.value
+    if (filterVerified.value !== '') params.is_verified = filterVerified.value
+
+    const [usersData, rolesData] = await Promise.all([
+      adminApi.getUsers(params),
+      roles.value.length === 0 ? roleApi.getRoles() : Promise.resolve(roles.value),
+    ])
+    users.value = usersData
+    roles.value = rolesData
+  } catch {
+    error.value = 'Gagal memuat data'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchData)
+
+function applyFilters() {
+  fetchData()
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  filterRole.value = ''
+  filterVerified.value = ''
+  fetchData()
+}
+
+function openVerifyModal(user: User, action: boolean) {
+  verifyingUser.value = user
+  verifyAction.value = action
+  showVerifyModal.value = true
+}
+
+async function handleVerify() {
+  if (!verifyingUser.value) return
+  verifyLoading.value = true
+  error.value = ''
+  try {
+    const res = await adminApi.verifyUser(verifyingUser.value.id, verifyAction.value)
+    success.value = res.message
+    showVerifyModal.value = false
+    await fetchData()
+  } catch (e: any) {
+    error.value = e.response?.data?.message || 'Gagal memproses verifikasi'
+  } finally {
+    verifyLoading.value = false
+  }
+}
+
+function getVerifiedBadge(user: User) {
+  if (user.is_verified) return { variant: 'success' as const, text: 'Terverifikasi' }
+  return { variant: 'warning' as const, text: 'Menunggu Verifikasi' }
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+</script>
+
+<template>
+  <AppLayout>
+    <div class="users-page">
+      <div class="users-header">
+        <div>
+          <h1>Kelola Pengguna</h1>
+          <p class="users-subtitle">Lihat, cari, dan verifikasi akun pengguna terdaftar</p>
+        </div>
+      </div>
+
+      <Alert v-if="success" type="success" :message="success" @dismiss="success = ''" />
+      <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
+
+      <!-- Filters -->
+      <Card class="filter-card">
+        <div class="filters">
+          <div class="filter-search">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" class="search-icon">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M16 16L12.5 12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari nama, email, atau telepon..."
+              class="filter-input"
+              @keyup.enter="applyFilters"
+            />
+          </div>
+          <div class="filter-selects">
+            <select v-model="filterRole" class="filter-select" @change="applyFilters">
+              <option value="">Semua Role</option>
+              <option v-for="role in roles" :key="role.name" :value="role.name">
+                {{ role.name }}
+              </option>
+            </select>
+            <select v-model="filterVerified" class="filter-select" @change="applyFilters">
+              <option value="">Semua Status</option>
+              <option value="true">Terverifikasi</option>
+              <option value="false">Menunggu Verifikasi</option>
+            </select>
+            <Button variant="secondary" size="sm" @click="applyFilters">Cari</Button>
+            <Button variant="ghost" size="sm" @click="resetFilters">Reset</Button>
+          </div>
+        </div>
+      </Card>
+
+      <LoadingSpinner v-if="loading" size="lg" />
+
+      <div v-else>
+        <div class="users-count">
+          Menampilkan <strong>{{ users.length }}</strong> pengguna
+        </div>
+
+        <div v-if="users.length === 0" class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="30" stroke="#e2e8f0" stroke-width="2"/>
+            <path d="M32 22C28.69 22 26 24.69 26 28C26 31.31 28.69 34 32 34C35.31 34 38 31.31 38 28C38 24.69 35.31 22 32 22Z" stroke="#cbd5e1" stroke-width="2"/>
+            <path d="M44 44C44 38.48 38.63 34 32 34C25.37 34 20 38.48 20 44" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p>Tidak ada pengguna ditemukan</p>
+        </div>
+
+        <div v-else class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Email</th>
+                <th>Telepon</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Terdaftar</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in users" :key="user.id">
+                <td class="user-name">{{ user.name }}</td>
+                <td class="user-email">{{ user.email }}</td>
+                <td>{{ user.phone || '-' }}</td>
+                <td>
+                  <span class="role-tag">{{ user.role }}</span>
+                </td>
+                <td>
+                  <Badge :variant="getVerifiedBadge(user).variant">
+                    {{ getVerifiedBadge(user).text }}
+                  </Badge>
+                </td>
+                <td class="user-date">{{ formatDate(user.created_at) }}</td>
+                <td>
+                  <div class="action-btns">
+                    <button
+                      v-if="!user.is_verified && user.role !== 'superadmin'"
+                      class="action-btn action-btn--verify"
+                      @click="openVerifyModal(user, true)"
+                      title="Verifikasi akun"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 8L6.5 11.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                    <button
+                      v-if="user.is_verified && user.role !== 'superadmin'"
+                      class="action-btn action-btn--revoke"
+                      @click="openVerifyModal(user, false)"
+                      title="Cabut verifikasi"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Verify/Revoke Modal -->
+      <Modal :show="showVerifyModal" :title="verifyAction ? 'Verifikasi Akun' : 'Cabut Verifikasi'" size="sm" @close="showVerifyModal = false">
+        <div class="verify-confirm">
+          <div class="verify-icon">
+            <svg v-if="verifyAction" width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" stroke="#059669" stroke-width="2" fill="#ecfdf5"/>
+              <path d="M16 24L22 30L32 18" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="22" stroke="#ef4444" stroke-width="2" fill="#fef2f2"/>
+              <path d="M18 18L30 30M30 18L18 30" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p v-if="verifyAction">
+            Verifikasi akun <strong>{{ verifyingUser?.name }}</strong> sebagai <strong class="role-highlight">{{ verifyingUser?.role }}</strong>?
+          </p>
+          <p v-else>
+            Cabut verifikasi akun <strong>{{ verifyingUser?.name }}</strong>? Pengguna tidak akan bisa login.
+          </p>
+        </div>
+        <template #footer>
+          <Button variant="secondary" @click="showVerifyModal = false">Batal</Button>
+          <Button
+            :variant="verifyAction ? 'primary' : 'danger'"
+            @click="handleVerify"
+            :loading="verifyLoading"
+          >
+            {{ verifyAction ? 'Verifikasi' : 'Cabut' }}
+          </Button>
+        </template>
+      </Modal>
+    </div>
+  </AppLayout>
+</template>
+
+<style scoped>
+.users-page {
+  max-width: 1100px;
+}
+
+.users-header {
+  margin-bottom: 24px;
+}
+
+.users-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.users-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.filter-card {
+  margin-bottom: 20px;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 10px 14px 10px 42px;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-primary, inherit);
+  color: var(--color-text, #1e293b);
+  background: var(--color-surface, #fff);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-input:focus {
+  border-color: #2d6a9f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 159, 0.1);
+}
+
+.filter-input::placeholder {
+  color: #94a3b8;
+}
+
+.filter-selects {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 8px 32px 8px 12px;
+  border: 1.5px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--font-primary, inherit);
+  color: var(--color-text, #1e293b);
+  background: var(--color-surface, #fff);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 160px;
+}
+
+.filter-select:focus {
+  border-color: #2d6a9f;
+}
+
+.users-count {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-state p {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.users-table-wrap {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.users-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.users-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.users-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.user-email {
+  color: #64748b;
+}
+
+.user-date {
+  white-space: nowrap;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.role-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  text-transform: capitalize;
+}
+
+.action-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn--verify {
+  color: #059669;
+}
+
+.action-btn--verify:hover {
+  background: #ecfdf5;
+}
+
+.action-btn--revoke {
+  color: #ef4444;
+}
+
+.action-btn--revoke:hover {
+  background: #fef2f2;
+}
+
+.verify-confirm {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.verify-icon {
+  margin-bottom: 16px;
+}
+
+.verify-confirm p {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.role-highlight {
+  text-transform: capitalize;
+  color: #2d6a9f;
+}
+</style>

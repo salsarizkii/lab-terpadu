@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,30 +16,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::firstOrCreate(
-            ['email' => 'admin@lab.com'],
+        $this->call(PermissionsSeeder::class);
+
+        // Seed only superadmin role (admin/analyst/user must be created via UI)
+        Role::firstOrCreate(
+            ['name' => 'superadmin'],
             [
-                'name' => 'Admin',
-                'password' => bcrypt('password'),
-                'role' => 'admin',
+                'description' => 'Super Administrator dengan akses penuh ke seluruh sistem',
+                'is_system' => true,
             ]
         );
 
+        // Seed only 1 superadmin account
         User::firstOrCreate(
-            ['email' => 'analyst@lab.com'],
+            ['email' => 'superadmin@lab.com'],
             [
-                'name' => 'Analyst',
+                'name' => 'Super Admin',
                 'password' => bcrypt('password'),
-                'role' => 'analyst',
-            ]
-        );
-
-        User::firstOrCreate(
-            ['email' => 'user@lab.com'],
-            [
-                'name' => 'User',
-                'password' => bcrypt('password'),
-                'role' => 'user',
+                'role' => 'superadmin',
+                'is_verified' => true,
             ]
         );
     }

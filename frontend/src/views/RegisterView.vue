@@ -10,18 +10,20 @@ const auth = useAuthStore()
 const error = ref('')
 const loading = ref(false)
 
-async function handleRegister(data: { name: string; email: string; password: string; password_confirmation: string; phone?: string }) {
+async function handleRegister(data: { name: string; email: string; password: string; password_confirmation: string; phone?: string; role: string }) {
   error.value = ''
   loading.value = true
   try {
-    await auth.register(data)
-    router.push('/login?registered=true')
+    const res = await auth.register(data)
+    const needsVerification = res.needs_verification ? '1' : '0'
+    router.push(`/login?registered=true&needs_verification=${needsVerification}`)
   } catch (e: any) {
     error.value = e.response?.data?.message || 'Registrasi gagal'
   } finally {
     loading.value = false
   }
 }
+
 </script>
 
 <template>

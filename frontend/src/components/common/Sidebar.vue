@@ -7,12 +7,24 @@ const auth = useAuthStore()
 const route = useRoute()
 
 const menuItems = computed(() => {
+  if (auth.isSuperAdmin) {
+    return [
+      { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
+      { label: 'Berita Acara', path: '/admin/berita-acara', icon: 'file' },
+      { label: 'Pembayaran', path: '/admin/payments', icon: 'payment' },
+      { label: 'Sampel', path: '/admin/samples', icon: 'sample' },
+      { label: 'Kelola Form', path: '/admin/forms', icon: 'form' },
+      { label: 'Kelola Role', path: '/admin/roles', icon: 'key' },
+      { label: 'Kelola Pengguna', path: '/admin/users', icon: 'users' },
+    ]
+  }
   if (auth.isAdmin) {
     return [
       { label: 'Dashboard', path: '/admin/dashboard', icon: 'dashboard' },
       { label: 'Berita Acara', path: '/admin/berita-acara', icon: 'file' },
       { label: 'Pembayaran', path: '/admin/payments', icon: 'payment' },
       { label: 'Sampel', path: '/admin/samples', icon: 'sample' },
+      { label: 'Kelola Form', path: '/admin/forms', icon: 'form' },
     ]
   }
   if (auth.isAnalyst) {
@@ -37,6 +49,9 @@ const icons: Record<string, string> = {
   plus: '<path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   certificate: '<path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   assignment: '<path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8H16M8 12H14M8 16H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  key: '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  form: '<path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 8H16M8 12H16M8 16H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
 }
 </script>
 

@@ -1,17 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import LoginForm from '../components/auth/LoginForm.vue'
 import Alert from '../components/common/Alert.vue'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const error = ref('')
 const loading = ref(false)
+const successMessage = ref('')
+
+onMounted(() => {
+  if (route.query.registered === 'true') {
+    if (route.query.needs_verification === '1') {
+      successMessage.value = 'Registrasi berhasil! Akun Anda memerlukan verifikasi dari superadmin sebelum dapat login. Silakan hubungi administrator.'
+    } else {
+      successMessage.value = 'Registrasi berhasil! Silakan login dengan akun Anda.'
+    }
+  }
+})
 
 async function handleLogin(data: { email: string; password: string }) {
   error.value = ''
+  successMessage.value = ''
   loading.value = true
   try {
     await auth.login(data.email, data.password)
@@ -30,6 +43,13 @@ async function handleLogin(data: { email: string; password: string }) {
       <div class="login-header">
         <h1>Lab Terpadu</h1>
         <p>Pemesanan Data Sampel Penelitian</p>
+      </div>
+      <div v-if="successMessage" class="login-success-banner">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="login-success-icon">
+          <circle cx="10" cy="10" r="9" stroke="#059669" stroke-width="1.5"/>
+          <path d="M6 10L9 13L14 7" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>{{ successMessage }}</span>
       </div>
       <Alert v-if="error" type="error" :message="error" @dismiss="error = ''" />
       <LoginForm @submit="handleLogin" :loading="loading" />
@@ -70,6 +90,23 @@ async function handleLogin(data: { email: string; password: string }) {
   font-size: 14px;
   color: #64748b;
   margin: 0;
+}
+.login-success-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #065f46;
+  line-height: 1.5;
+}
+.login-success-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 .login-footer {
   text-align: center;

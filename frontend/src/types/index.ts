@@ -1,11 +1,33 @@
+export interface Permission {
+  id: number
+  name: string
+  display_name: string
+  group: string
+  description?: string
+}
+
+export interface Role {
+  id: number
+  name: string
+  description: string | null
+  is_system: boolean
+  users_count?: number
+  permissions?: Permission[]
+  pivot?: { permission_id: number }
+  created_at?: string
+  updated_at?: string
+}
+
 export interface User {
   id: number
   name: string
   email: string
-  role: 'user' | 'admin' | 'analyst'
+  role: string
   phone?: string
+  is_verified: boolean
   created_at: string
 }
+
 
 export interface BeritaAcara {
   id: number
@@ -86,4 +108,29 @@ export interface Certificate {
   berita_acara_id: number
   file_path?: string
   downloaded_at?: string
+}
+
+export interface FormField {
+  id?: number
+  label: string
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date' | 'file'
+  options?: string[]
+  is_required: boolean
+  placeholder?: string
+  sort_order?: number
+}
+
+export interface FormTemplate {
+  id: number
+  name: string
+  type: 'berita_acara' | 'rekap_analis'
+  description?: string
+  is_active: boolean
+  is_default: boolean
+  created_by: number
+  fields_count?: number
+  fields?: FormField[]
+  creator?: { id: number; name: string }
+  created_at: string
+  updated_at: string
 }
