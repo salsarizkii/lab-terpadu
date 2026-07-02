@@ -27,6 +27,16 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Seed user role for registration (auto-verified, no superadmin approval needed)
+        Role::firstOrCreate(
+            ['name' => 'user'],
+            [
+                'description' => 'Pengguna biasa untuk pengajuan pengujian sampel',
+                'is_system' => false,
+                'requires_verification' => false,
+            ]
+        );
+
         // Seed only 1 superadmin account
         User::firstOrCreate(
             ['email' => 'superadmin@lab.com'],

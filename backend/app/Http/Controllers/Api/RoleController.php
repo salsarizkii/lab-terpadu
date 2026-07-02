@@ -21,6 +21,7 @@ class RoleController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:50|unique:roles,name|regex:/^[a-z_]+$/',
             'description' => 'nullable|string|max:500',
+            'requires_verification' => 'nullable|boolean',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'integer|exists:permissions,id',
         ]);
@@ -29,6 +30,7 @@ class RoleController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'is_system' => false,
+            'requires_verification' => $validated['requires_verification'] ?? false,
         ]);
 
         if (!empty($validated['permission_ids'])) {
@@ -56,6 +58,7 @@ class RoleController extends Controller
 
         $rules = [
             'description' => 'nullable|string|max:500',
+            'requires_verification' => 'nullable|boolean',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'integer|exists:permissions,id',
         ];

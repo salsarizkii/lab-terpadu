@@ -19,12 +19,12 @@ export const roleApi = {
     return data
   },
 
-  async createRole(payload: { name: string; description?: string; permission_ids?: number[] }): Promise<{ message: string; data: Role }> {
+  async createRole(payload: { name: string; description?: string; requires_verification?: boolean; permission_ids?: number[] }): Promise<{ message: string; data: Role }> {
     const { data } = await api.post<{ message: string; data: Role }>('/admin/roles', payload)
     return data
   },
 
-  async updateRole(id: number, payload: { name?: string; description?: string; permission_ids?: number[] }): Promise<{ message: string; data: Role }> {
+  async updateRole(id: number, payload: { name?: string; description?: string; requires_verification?: boolean; permission_ids?: number[] }): Promise<{ message: string; data: Role }> {
     const { data } = await api.put<{ message: string; data: Role }>(`/admin/roles/${id}`, payload)
     return data
   },

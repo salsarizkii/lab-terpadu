@@ -23,6 +23,7 @@ const modalLoading = ref(false)
 
 const formName = ref('')
 const formDescription = ref('')
+const formRequiresVerification = ref(false)
 const formPermissionIds = ref<number[]>([])
 const editingRole = ref<Role | null>(null)
 const deletingRole = ref<Role | null>(null)
@@ -97,6 +98,7 @@ function rolePermissionNames(role: Role): string[] {
 function openCreateModal() {
   formName.value = ''
   formDescription.value = ''
+  formRequiresVerification.value = false
   formPermissionIds.value = []
   showCreateModal.value = true
 }
@@ -105,6 +107,7 @@ function openEditModal(role: Role) {
   editingRole.value = role
   formName.value = role.name
   formDescription.value = role.description || ''
+  formRequiresVerification.value = role.requires_verification
   formPermissionIds.value = (role.permissions || []).map(p => p.id)
   showEditModal.value = true
 }
@@ -120,6 +123,7 @@ async function createRole() {
     await roleApi.createRole({
       name: formName.value,
       description: formDescription.value || undefined,
+      requires_verification: formRequiresVerification.value,
       permission_ids: formPermissionIds.value.length ? formPermissionIds.value : undefined,
     })
     toast.success('Role berhasil dibuat')
@@ -138,6 +142,7 @@ async function updateRole() {
   try {
     const payload: Record<string, any> = {
       description: formDescription.value,
+      requires_verification: formRequiresVerification.value,
       permission_ids: formPermissionIds.value,
     }
     if (!editingRole.value.is_system) {
@@ -191,6 +196,7 @@ async function deleteRole() {
             <div class="role-item__title-row">
               <h3 class="role-item__name">{{ role.name }}</h3>
               <Badge v-if="role.is_system" type="info" text="Sistem" />
+              <Badge v-if="role.requires_verification" type="warning" text="Verifikasi Superadmin" />
             </div>
             <p class="role-item__desc">{{ role.description || 'Tidak ada deskripsi' }}</p>
             <div v-if="role.permissions && role.permissions.length" class="role-item__perms">
@@ -222,6 +228,12 @@ async function deleteRole() {
           <p class="form-hint">Gunakan huruf kecil dan underscore, tanpa spasi.</p>
           <FormTextarea v-model="formDescription" label="Deskripsi" placeholder="Jelaskan tugas dan tanggung jawab role ini" />
 
+          <label class="verify-check">
+            <input type="checkbox" v-model="formRequiresVerification" />
+            <span>Membutuhkan verifikasi superadmin</span>
+          </label>
+          <p class="form-hint">Jika dicentang, pengguna dengan role ini harus diverifikasi superadmin sebelum bisa login.</p>
+
           <div class="perm-section">
             <label class="perm-label">Hak Akses</label>
             <div v-for="(perms, groupName) in groupedPermissions" :key="groupName" class="perm-group">
@@ -251,6 +263,12 @@ async function deleteRole() {
           <FormInput v-model="formName" label="Nama Role" :disabled="editingRole?.is_system" placeholder="Nama role" required />
           <p v-if="editingRole?.is_system" class="form-hint form-hint--warn">Nama role sistem tidak dapat diubah.</p>
           <FormTextarea v-model="formDescription" label="Deskripsi" placeholder="Jelaskan tugas dan tanggung jawab role ini" />
+
+          <label class="verify-check">
+            <input type="checkbox" v-model="formRequiresVerification" />
+            <span>Membutuhkan verifikasi superadmin</span>
+          </label>
+          <p class="form-hint">Jika dicentang, pengguna dengan role ini harus diverifikasi superadmin sebelum bisa login.</p>
 
           <div class="perm-section">
             <label class="perm-label">Hak Akses</label>
@@ -322,6 +340,9 @@ async function deleteRole() {
 
 .form-hint { margin: -8px 0 16px; font-size: 12px; color: #94a3b8; }
 .form-hint--warn { color: #d97706; }
+
+.verify-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; cursor: pointer; padding: 10px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; margin-bottom: 4px; user-select: none; }
+.verify-check input[type="checkbox"] { accent-color: #d97706; width: 16px; height: 16px; }
 
 .perm-section { margin-top: 16px; margin-bottom: 8px; }
 .perm-label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 10px; }

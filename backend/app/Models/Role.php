@@ -13,12 +13,14 @@ class Role extends Model
         'name',
         'description',
         'is_system',
+        'requires_verification',
     ];
 
     protected function casts(): array
     {
         return [
             'is_system' => 'boolean',
+            'requires_verification' => 'boolean',
         ];
     }
 

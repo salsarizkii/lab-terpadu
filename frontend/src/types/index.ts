@@ -11,6 +11,7 @@ export interface Role {
   name: string
   description: string | null
   is_system: boolean
+  requires_verification: boolean
   users_count?: number
   permissions?: Permission[]
   pivot?: { permission_id: number }

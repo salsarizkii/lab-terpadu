@@ -91,7 +91,7 @@ function handleSubmit() {
           <div class="role-card__content">
             <div class="role-card__header">
               <span class="role-card__name">{{ role.name }}</span>
-              <span v-if="role.name !== 'user'" class="role-card__badge">Perlu Verifikasi</span>
+              <span v-if="role.requires_verification" class="role-card__badge">Perlu Verifikasi</span>
               <span v-else class="role-card__badge role-card__badge--auto">Otomatis Terverifikasi</span>
             </div>
             <p v-if="role.description" class="role-card__desc">{{ role.description }}</p>

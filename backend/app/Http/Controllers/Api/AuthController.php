@@ -17,7 +17,7 @@ class AuthController extends Controller
     public function listPublicRoles()
     {
         $roles = Role::where('name', '!=', 'superadmin')
-            ->select('id', 'name', 'description')
+            ->select('id', 'name', 'description', 'requires_verification')
             ->get();
 
         return response()->json($roles);
@@ -43,8 +43,9 @@ class AuthController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         $validated['api_token'] = Str::random(60);
 
-        // Users with role 'user' are auto-verified, others need superadmin approval
-        $validated['is_verified'] = ($validated['role'] === 'user');
+        // Check if the selected role requires superadmin verification
+        $role = Role::where('name', $validated['role'])->first();
+        $validated['is_verified'] = $role ? !$role->requires_verification : true;
 
         $user = User::create($validated);
 

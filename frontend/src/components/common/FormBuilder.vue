@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { GripVertical, Trash2, File as FileIcon, ChevronRight, CircleDot, CheckSquare, Plus, FileQuestion, Type, AlignLeft, Hash, Mail, Phone, Calendar, Clock, List, ChevronDown, Minus, Heading } from '@lucide/vue'
+import { GripVertical, Trash2, File as FileIcon, ChevronRight, CircleDot, CheckSquare, Plus, FileQuestion, Type, AlignLeft, Hash, Mail, Phone, Calendar, Clock, List, ChevronDown, Minus, Heading, Copy } from '@lucide/vue'
 import type { FormField, FormFieldOption } from '../../types'
 
 const props = defineProps<{
@@ -73,6 +73,21 @@ function removeField(index: number) {
   emit('update:fields', updated)
   if (selectedIndex.value === index) selectedIndex.value = null
   else if (selectedIndex.value !== null && selectedIndex.value > index) selectedIndex.value--
+}
+
+function duplicateField(index: number) {
+  const original = props.fields[index]
+  if (!original) return
+  const clone: FormField = {
+    label: original.label ? original.label + ' (salinan)' : '',
+    type: original.type,
+    is_required: original.is_required,
+    options: original.options ? original.options.map(o => ({ ...o })) : undefined,
+  }
+  const updated = [...props.fields]
+  updated.splice(index + 1, 0, clone)
+  emit('update:fields', updated)
+  selectedIndex.value = index + 1
 }
 
 function updateField(index: number, patch: Partial<FormField>) {
@@ -234,16 +249,20 @@ function onDrop(e: DragEvent, toIndex: number) {
                 placeholder="Pertanyaan..."
                 @click.stop
               />
-              <span class="field-type-badge">
-                <component :is="fieldTypes.find(t => t.value === field.type)?.lucide" :size="12" style="margin-right:4px;" />
-                {{ fieldTypes.find(t => t.value === field.type)?.label }}
-              </span>
             </template>
           </div>
 
-          <button class="field-card__delete" @click.stop="removeField(index)" title="Hapus">
-            <Trash2 :size="16" />
-          </button>
+          <div class="field-card__actions">
+            <button class="field-action-btn" @click.stop="addField('text', index)" title="Tambah pertanyaan setelah ini">
+              <Plus :size="15" />
+            </button>
+            <button class="field-action-btn field-action-btn--delete" @click.stop="removeField(index)" title="Hapus">
+              <Trash2 :size="15" />
+            </button>
+            <button class="field-action-btn" @click.stop="duplicateField(index)" title="Duplikasi">
+              <Copy :size="15" />
+            </button>
+          </div>
         </div>
 
         <div v-if="isInput(field.type)" class="field-card__preview">
@@ -332,26 +351,20 @@ function onDrop(e: DragEvent, toIndex: number) {
             <input type="checkbox" :checked="field.is_required" @change="updateField(index, { is_required: ($event.target as HTMLInputElement).checked })" />
             Wajib diisi
           </label>
-          <div class="field-card__footer-right">
-            <button class="add-inside-btn" @click.stop="addField('text', index)" title="Tambah pertanyaan setelah ini">
-              <Plus :size="14" />
-              Tambah
-            </button>
-            <div class="custom-type-picker" @click.stop="typePickerOpen = typePickerOpen === index ? null : index">
-              <div class="custom-type-display">
-                <component :is="fieldTypes.find(t => t.value === field.type)?.lucide" :size="14" />
-                <span>{{ fieldTypes.find(t => t.value === field.type)?.label }}</span>
-                <ChevronDown :size="14" class="custom-type-chevron" />
+          <div class="custom-type-picker" @click.stop="typePickerOpen = typePickerOpen === index ? null : index">
+            <div class="custom-type-display">
+              <component :is="fieldTypes.find(t => t.value === field.type)?.lucide" :size="14" />
+              <span>{{ fieldTypes.find(t => t.value === field.type)?.label }}</span>
+              <ChevronDown :size="14" class="custom-type-chevron" />
+            </div>
+            <div v-if="typePickerOpen === index" class="custom-type-dropdown" @click.stop>
+              <div class="custom-type-group">Input</div>
+              <div v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+                <component :is="ft.lucide" :size="14" /> {{ ft.label }}
               </div>
-              <div v-if="typePickerOpen === index" class="custom-type-dropdown" @click.stop>
-                <div class="custom-type-group">Input</div>
-                <div v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
-                  <component :is="ft.lucide" :size="14" /> {{ ft.label }}
-                </div>
-                <div class="custom-type-group">Pilihan</div>
-                <div v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
-                  <component :is="ft.lucide" :size="14" /> {{ ft.label }}
-                </div>
+              <div class="custom-type-group">Pilihan</div>
+              <div v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+                <component :is="ft.lucide" :size="14" /> {{ ft.label }}
               </div>
             </div>
           </div>
@@ -410,13 +423,23 @@ function onDrop(e: DragEvent, toIndex: number) {
 .field-card__drag:hover { color: #94a3b8; background: #f1f5f9; }
 .field-card__drag:active { cursor: grabbing; }
 
-.field-card__delete {
+.field-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.field-card:hover .field-card__actions { opacity: 1; }
+
+.field-action-btn {
   width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent;
   color: #94a3b8; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; opacity: 0; transition: all 0.15s;
+  transition: all 0.15s;
 }
-.field-card:hover .field-card__delete { opacity: 1; }
-.field-card__delete:hover { color: #ef4444; background: #fef2f2; }
+.field-action-btn:hover { background: #f1f5f9; color: #1e293b; }
+.field-action-btn--delete:hover { color: #ef4444; background: #fef2f2; }
 
 .field-card__body { flex: 1; }
 .field-label-input {
@@ -489,14 +512,8 @@ function onDrop(e: DragEvent, toIndex: number) {
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 8px; border-top: 1px solid #f1f5f9; margin-top: 8px;
 }
-.field-card__footer-right { display: flex; align-items: center; gap: 8px; }
 .field-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; cursor: pointer; }
 .field-toggle input { accent-color: #2563eb; }
-.field-type-badge {
-  display: inline-flex; align-items: center; margin-top: 4px; font-size: 11px; padding: 2px 8px;
-  border-radius: 20px; background: #f1f5f9; color: #64748b; font-weight: 500;
-}
-
 .custom-type-picker {
   position: relative;
   font-size: 11px;
@@ -558,14 +575,6 @@ function onDrop(e: DragEvent, toIndex: number) {
   color: #2563eb;
 }
 
-.add-inside-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border: 1px dashed #d1d5db; border-radius: 6px;
-  background: transparent; color: #94a3b8; font-size: 11px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s;
-}
-.add-inside-btn:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
-
 /* Empty state */
 .add-area { display: flex; justify-content: center; padding: 8px 0; }
 .add-btn {
@@ -585,9 +594,8 @@ function onDrop(e: DragEvent, toIndex: number) {
     align-items: flex-start;
     gap: 12px;
   }
-  .field-card__footer-right {
-    width: 100%;
-    justify-content: space-between;
+  .field-card__actions {
+    opacity: 1;
   }
 }
 </style>
