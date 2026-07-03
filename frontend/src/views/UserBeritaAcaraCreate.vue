@@ -14,10 +14,15 @@ const router = useRouter()
 const loading = ref(false)
 const created = ref<BeritaAcara | null>(null)
 
-async function handleSubmit(data: any) {
+async function handleSubmit(data: { form_data: Record<string, any>; form_template_id: number | null }) {
   loading.value = true
   try {
-    const ba = await beritaAcaraApi.create(data)
+    const fd = new FormData()
+    fd.append('form_data', JSON.stringify(data.form_data))
+    if (data.form_template_id) {
+      fd.append('form_template_id', String(data.form_template_id))
+    }
+    const ba = await beritaAcaraApi.create(fd)
     created.value = ba
     toast.success('Berita Acara berhasil dibuat!')
   } catch (e: any) {

@@ -98,15 +98,15 @@ function updateField(index: number, patch: Partial<FormField>) {
   emit('update:fields', updated)
 }
 
-function changeFieldType(type: FormField['type']) {
-  if (selectedIndex.value === null) return
-  const field = props.fields[selectedIndex.value]
+function changeFieldType(type: FormField['type'], index: number) {
+  selectedIndex.value = index
+  const field = props.fields[index]
   if (!field) return
   const needsOpts = hasOptions(type)
   const patch: Partial<FormField> = { type }
   if (needsOpts && !field.options?.length) patch.options = [{ label: '', is_other: false }]
   if (!needsOpts) patch.options = undefined
-  updateField(selectedIndex.value, patch)
+  updateField(index, patch)
   typePickerOpen.value = null
 }
 
@@ -359,11 +359,15 @@ function onDrop(e: DragEvent, toIndex: number) {
             </div>
             <div v-if="typePickerOpen === index" class="custom-type-dropdown" @click.stop>
               <div class="custom-type-group">Input</div>
-              <div v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+              <div v-for="ft in fieldTypes.filter(t => t.group === 'input')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'], index)">
                 <component :is="ft.lucide" :size="14" /> {{ ft.label }}
               </div>
               <div class="custom-type-group">Pilihan</div>
-              <div v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'])">
+              <div v-for="ft in fieldTypes.filter(t => t.group === 'choice')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'], index)">
+                <component :is="ft.lucide" :size="14" /> {{ ft.label }}
+              </div>
+              <div class="custom-type-group">Layout</div>
+              <div v-for="ft in fieldTypes.filter(t => t.group === 'layout')" :key="ft.value" class="custom-type-option" :class="{'active': field.type === ft.value}" @click="changeFieldType(ft.value as FormField['type'], index)">
                 <component :is="ft.lucide" :size="14" /> {{ ft.label }}
               </div>
             </div>

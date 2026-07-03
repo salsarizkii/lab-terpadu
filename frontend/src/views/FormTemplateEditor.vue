@@ -1,27 +1,49 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ArrowLeft, Save } from '@lucide/vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { ArrowLeft, Save, FileText, FlaskConical } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Button from '../components/common/Button.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
-import FormTemplateList from '../components/common/FormTemplateList.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
 import { formTemplateApi } from '../api/formTemplate'
-import type { FormTemplate, FormField } from '../types'
+import { useAuthStore } from '../stores/authStore'
+import type { FormTemplate, FormField } from '../../types'
 import { toast } from 'vue-sonner'
 
-const view = ref<'list' | 'editor'>('list')
-const templates = ref<FormTemplate[]>([])
+const auth = useAuthStore()
+const route = useRoute()
+
+const view = ref<'cards' | 'editor'>('cards')
 const currentTemplate = ref<FormTemplate | null>(null)
 const currentFields = ref<FormField[]>([])
 const loading = ref(false)
 const saving = ref(false)
 
-async function fetchTemplate(id: number) {
+onMounted(() => {
+  const type = route.query.type as string
+  if (type === 'berita_acara' || type === 'rekap_analis') {
+    selectType(type)
+  }
+})
+
+const pageTitle = computed(() => {
+  if (view.value === 'editor' && currentTemplate.value) {
+    return currentTemplate.value.name
+  }
+  return 'Kelola Form'
+})
+
+async function selectType(type: string) {
   loading.value = true
   try {
-    currentTemplate.value = await formTemplateApi.getTemplate(id)
-    currentFields.value = (currentTemplate.value.fields || []).map(f => ({
+    const template = await formTemplateApi.getPublicActiveByType(type)
+    if (!template) {
+      toast.error('Template tidak ditemukan atau belum aktif')
+      return
+    }
+    currentTemplate.value = template
+    currentFields.value = (template.fields || []).map(f => ({
       label: f.label,
       type: f.type,
       options: f.options,
@@ -35,12 +57,8 @@ async function fetchTemplate(id: number) {
   }
 }
 
-function goToEditor(id: number) {
-  fetchTemplate(id)
-}
-
-function goToList() {
-  view.value = 'list'
+function goBack() {
+  view.value = 'cards'
   currentTemplate.value = null
   currentFields.value = []
 }
@@ -74,7 +92,7 @@ async function saveFields() {
   saving.value = true
   try {
     await formTemplateApi.syncFields(currentTemplate.value.id, {
-      fields: currentFields.value.map((f, i) => ({
+      fields: currentFields.value.map((f) => ({
         label: f.label,
         type: f.type,
         options: f.options,
@@ -102,19 +120,48 @@ async function saveFields() {
     <div class="ft-page">
       <div class="ft-header">
         <div>
-          <h1>Kelola Form</h1>
-          <p class="ft-subtitle">Buat dan edit form berita acara serta rekap data analis</p>
+          <div class="ft-header__top">
+            <button v-if="view === 'editor'" class="ft-back" @click="goBack">
+              <ArrowLeft :size="18" /> Kembali
+            </button>
+            <h1>{{ pageTitle }}</h1>
+          </div>
+          <p v-if="view === 'cards'" class="ft-subtitle">Kelola template form untuk berita acara dan rekap data analis</p>
         </div>
       </div>
 
       <LoadingSpinner v-if="loading" size="lg" />
 
       <template v-else>
-        <div v-if="view === 'list'">
-          <FormTemplateList @edit="goToEditor" />
+        <!-- View: 2 Cards -->
+        <div v-if="view === 'cards'" class="ft-cards">
+          <div
+            v-if="auth.hasPermission('form_manage_berita_acara')"
+            class="ft-card"
+            @click="selectType('berita_acara')"
+          >
+            <div class="ft-card__icon ft-card__icon--blue">
+              <FileText :size="28" />
+            </div>
+            <h3 class="ft-card__title">Form Berita Acara</h3>
+            <p class="ft-card__desc">Kelola pertanyaan dan formulir untuk berita acara pengujian sampel</p>
+          </div>
+
+          <div
+            v-if="auth.hasPermission('form_manage_rekap_analis')"
+            class="ft-card"
+            @click="selectType('rekap_analis')"
+          >
+            <div class="ft-card__icon ft-card__icon--green">
+              <FlaskConical :size="28" />
+            </div>
+            <h3 class="ft-card__title">Form Rekap Analis</h3>
+            <p class="ft-card__desc">Kelola pertanyaan dan formulir untuk rekap data hasil analis</p>
+          </div>
         </div>
 
-        <div v-else-if="currentTemplate" class="editor-section">
+        <!-- View: Form Builder -->
+        <div v-else-if="view === 'editor' && currentTemplate" class="editor-section">
           <div class="editor-topbar">
             <div>
               <h2 class="editor-title">{{ currentTemplate.name }}</h2>
@@ -122,9 +169,9 @@ async function saveFields() {
             </div>
           </div>
           <FormBuilder v-model:fields="currentFields" class="mb-4" />
-          
+
           <div class="editor-sticky-footer">
-            <Button variant="outline" @click="goToList" class="flex-align-center gap-2">
+            <Button variant="outline" @click="goBack" class="flex-align-center gap-2">
               <ArrowLeft :size="16" /> Kembali
             </Button>
             <Button variant="primary" :loading="saving" @click="saveFields" class="flex-align-center gap-2">
@@ -139,11 +186,42 @@ async function saveFields() {
 
 <style scoped>
 .ft-page { max-width: 1100px; }
-.ft-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.ft-header { margin-bottom: 24px; }
+.ft-header__top { display: flex; align-items: center; gap: 12px; }
 .ft-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 .ft-subtitle { font-size: 14px; color: #64748b; margin: 4px 0 0; }
 .flex-align-center { display: flex; align-items: center; }
 .gap-2 { gap: 8px; }
+.mb-4 { margin-bottom: 24px; }
+
+.ft-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 8px; border: 1.5px solid #e2e8f0;
+  background: #fff; color: #475569; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.ft-back:hover { border-color: #cbd5e1; color: #1e293b; }
+
+.ft-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;
+}
+.ft-card {
+  background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px;
+  padding: 28px 24px; cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+}
+.ft-card:hover {
+  border-color: #2d6a9f; box-shadow: 0 6px 20px rgba(45, 106, 159, 0.1);
+  transform: translateY(-2px);
+}
+.ft-card__icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ft-card__icon--blue { background: #eff6ff; color: #2563eb; }
+.ft-card__icon--green { background: #ecfdf5; color: #059669; }
+.ft-card__title { font-size: 17px; font-weight: 600; color: #1e293b; margin: 0; }
+.ft-card__desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; }
 
 .editor-section { margin-top: 4px; }
 .editor-topbar {
@@ -153,37 +231,17 @@ async function saveFields() {
 .editor-title { font-size: 20px; font-weight: 600; color: #1e293b; margin: 0; }
 .editor-meta { font-size: 13px; color: #64748b; margin: 2px 0 0; }
 
-@media (max-width: 640px) {
-  .ft-header, .editor-topbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-}
-
-.mb-4 {
-  margin-bottom: 24px;
-}
-
 .editor-sticky-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 100;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid #e2e8f0;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
-  margin: 0 -4px -4px -4px; /* compensate for any padding if needed, or just let it sit inside */
+  position: sticky; bottom: 0; z-index: 100;
+  display: flex; justify-content: flex-end; gap: 12px;
+  padding: 16px; background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px); border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px; box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
 }
 
 @media (max-width: 640px) {
-  .editor-sticky-footer {
-    justify-content: space-between;
-  }
+  .ft-header__top { flex-direction: column; align-items: stretch; }
+  .editor-topbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .editor-sticky-footer { justify-content: space-between; }
 }
 </style>

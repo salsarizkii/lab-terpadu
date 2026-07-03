@@ -14,8 +14,14 @@ class AdminController extends Controller
 {
     public function beritaAcaraIndex()
     {
-        $beritaAcaras = BeritaAcara::with(['user', 'analyst', 'revisions', 'payment', 'samples', 'certificate'])
-            ->get();
+        $query = BeritaAcara::with(['user', 'analyst', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+
+        // Jika hanya punya permission riwayat personal, filter milik sendiri
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        $beritaAcaras = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json($beritaAcaras);
     }
@@ -128,7 +134,16 @@ class AdminController extends Controller
 
     public function sampleIndex()
     {
-        $samples = Sample::with('beritaAcara.user')->get();
+        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst');
+
+        // Jika hanya punya permission riwayat personal, filter milik sendiri
+        if (!auth()->user()->hasPermission('pengujian_riwayat_semua')) {
+            $query->whereHas('beritaAcara', function ($q) {
+                $q->where('user_id', auth()->id());
+            });
+        }
+
+        $samples = $query->get();
 
         return response()->json($samples);
     }

@@ -26,6 +26,25 @@ class FormTemplateController extends Controller
         return response()->json($template);
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:200',
+            'type' => 'required|string|in:berita_acara,rekap_analis',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $validated['created_by'] = auth()->id();
+        $validated['is_active'] = true;
+
+        $template = FormTemplate::create($validated);
+
+        return response()->json([
+            'message' => 'Template form berhasil dibuat',
+            'data' => $template,
+        ], 201);
+    }
+
     public function update(Request $request, $id)
     {
         $template = FormTemplate::findOrFail($id);
@@ -117,6 +136,20 @@ class FormTemplateController extends Controller
         $template = FormTemplate::with('fields')
             ->where('is_active', true)
             ->findOrFail($id);
+
+        return response()->json($template);
+    }
+
+    public function publicActiveByType($type)
+    {
+        $template = FormTemplate::with('fields')
+            ->where('type', $type)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$template) {
+            return response()->json(['message' => 'Template tidak ditemukan'], 404);
+        }
 
         return response()->json($template);
     }

@@ -34,6 +34,8 @@ class BeritaAcara extends Model
         'status_berkas',
         'biaya',
         'diskon_diizinkan',
+        'form_data',
+        'form_template_id',
     ];
 
     protected function casts(): array
@@ -41,6 +43,7 @@ class BeritaAcara extends Model
         return [
             'status' => 'string',
             'diskon_diizinkan' => 'boolean',
+            'form_data' => 'array',
         ];
     }
 

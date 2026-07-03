@@ -18,38 +18,59 @@ const auth = useAuthStore()
 const route = useRoute()
 
 const menuItems = computed(() => {
-  if (auth.isSuperAdmin) {
-    return [
-      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText },
-      { label: 'Pembayaran', path: '/admin/payments', icon: CreditCard },
-      { label: 'Sampel', path: '/admin/samples', icon: FlaskConical },
-      { label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList },
-      { label: 'Kelola Role', path: '/admin/roles', icon: KeyRound },
-      { label: 'Kelola Pengguna', path: '/admin/users', icon: Users },
-    ]
+  const items = []
+
+  // Dashboard — harus punya permission 'dashboard'
+  if (auth.hasPermission('dashboard')) {
+    const dashboardPath = auth.isAdmin ? '/admin/dashboard' : auth.isAnalyst ? '/analyst/dashboard' : '/user/dashboard'
+    items.push({ label: 'Dashboard', path: dashboardPath, icon: LayoutDashboard })
   }
-  if (auth.isAdmin) {
-    return [
-      { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText },
-      { label: 'Pembayaran', path: '/admin/payments', icon: CreditCard },
-      { label: 'Sampel', path: '/admin/samples', icon: FlaskConical },
-      { label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList },
-    ]
+
+  // Menu berdasarkan permission saja (tanpa cek role string)
+  // Custom roles: lihat Berita Acara (admin view) jika ada permission terkait
+  if (auth.hasPermission('berita_acara_view') && !auth.isUser) {
+    items.push({ label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText })
   }
-  if (auth.isAnalyst) {
-    return [
-      { label: 'Dashboard', path: '/analyst/dashboard', icon: LayoutDashboard },
-      { label: 'Tugas Saya', path: '/analyst/assigned', icon: ClipboardCheck },
-    ]
+
+  if (auth.hasPermission('berita_acara_create') && auth.isUser) {
+    items.push({ label: 'Pengajuan', path: '/user/berita-acara', icon: FileText })
   }
-  return [
-    { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
-    { label: 'Pengajuan', path: '/user/berita-acara', icon: FileText },
-    { label: 'Pembayaran', path: '/user/payments', icon: CreditCard },
-    { label: 'Sertifikat', path: '/user/certificates', icon: Award },
-  ]
+
+  if (auth.hasPermission('payment_view') && !auth.isUser) {
+    items.push({ label: 'Pembayaran', path: '/admin/payments', icon: CreditCard })
+  }
+
+  if (auth.hasPermission('payment_upload') && auth.isUser) {
+    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
+  }
+
+  // Sampel: tampil jika ada sample_view ATAU pengujian_input
+  if (auth.hasPermission('sample_view') || auth.hasPermission('pengujian_input')) {
+    items.push({ label: 'Sampel', path: '/admin/samples', icon: FlaskConical })
+  }
+
+  if (auth.hasPermission('role_manage')) {
+    items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
+  }
+
+  if (auth.hasPermission('user_view')) {
+    items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
+  }
+
+  if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis')) {
+    items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
+  }
+
+  // Tugas Saya: hanya untuk role analyst (bukan admin/superadmin/custom)
+  if (auth.hasPermission('berita_acara_view') && auth.isAnalyst) {
+    items.push({ label: 'Tugas Saya', path: '/analyst/assigned', icon: ClipboardCheck })
+  }
+
+  if (auth.hasPermission('certificate_download') && auth.isUser) {
+    items.push({ label: 'Sertifikat', path: '/user/certificates', icon: Award })
+  }
+
+  return items
 })
 </script>
 

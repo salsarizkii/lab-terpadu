@@ -10,8 +10,10 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import FlowSteps from '../components/user/FlowSteps.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
+import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
 
+const auth = useAuthStore()
 const router = useRouter()
 const items = ref<BeritaAcara[]>([])
 const loading = ref(true)
@@ -67,7 +69,7 @@ onMounted(async () => {
     <div>
       <div class="page-header">
         <h1>Berita Acara Saya</h1>
-        <Button @click="router.push('/user/berita-acara/create')">
+        <Button v-if="auth.hasPermission('berita_acara_create')" @click="router.push('/user/berita-acara/create')">
           + Buat Baru
         </Button>
       </div>

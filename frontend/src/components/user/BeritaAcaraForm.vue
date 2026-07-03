@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import FormInput from '../common/FormInput.vue'
-import FormTextarea from '../common/FormTextarea.vue'
-import MetodeInstrumenPicker from '../common/MetodeInstrumenPicker.vue'
+import DynamicForm from '../common/DynamicForm.vue'
+import LoadingSpinner from '../common/LoadingSpinner.vue'
 import Button from '../common/Button.vue'
-import type { BeritaAcara } from '../../types'
+import { formTemplateApi } from '../../api/formTemplate'
+import type { FormField } from '../../types'
+import { toast } from 'vue-sonner'
 
 const props = withDefaults(defineProps<{
-  initialData?: BeritaAcara | null
+  initialData?: Record<string, any> | null
   loading?: boolean
 }>(), {
   initialData: null,
@@ -15,96 +16,87 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  submit: [data: FormData]
+  submit: [data: { form_data: Record<string, any>; form_template_id: number | null }]
 }>()
 
-const form = ref({
-  nama_pemohon: '',
-  nim: '',
-  prodi_fakultas_instansi: '',
-  dosen_pembimbing: '',
-  telp_hp: '',
-  email: '',
-  alamat: '',
-  judul_penelitian: '',
-  akses_lab: '',
-  bahan_contoh_uji: '',
-  kemasan_packing: '',
-  permintaan_analisa: '',
-  jumlah_sampel: '',
-  kode_nama_sampel: '',
-  keterangan_sampel: '',
-  keterangan_tambahan: '',
-  pengukuran_per_sampel: '',
-  sisa_sampel: '',
-})
+const templateFields = ref<FormField[]>([])
+const templateId = ref<number | null>(null)
+const loadingTemplate = ref(true)
+const formValues = ref<Record<string, any>>({})
+const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 
-onMounted(() => {
-  if (props.initialData) {
-    form.value.nama_pemohon = props.initialData.nama_pemohon || ''
-    form.value.nim = props.initialData.nim || ''
-    form.value.prodi_fakultas_instansi = props.initialData.prodi_fakultas_instansi || ''
-    form.value.dosen_pembimbing = props.initialData.dosen_pembimbing || ''
-    form.value.telp_hp = props.initialData.telp_hp || ''
-    form.value.email = props.initialData.email || ''
-    form.value.alamat = props.initialData.alamat || ''
-    form.value.judul_penelitian = props.initialData.judul_penelitian || ''
-    form.value.akses_lab = props.initialData.akses_lab || ''
-    form.value.bahan_contoh_uji = props.initialData.bahan_contoh_uji || ''
-    form.value.kemasan_packing = props.initialData.kemasan_packing || ''
-    form.value.permintaan_analisa = props.initialData.permintaan_analisa || ''
-    form.value.jumlah_sampel = props.initialData.jumlah_sampel || ''
-    form.value.kode_nama_sampel = props.initialData.kode_nama_sampel || ''
-    form.value.keterangan_sampel = props.initialData.keterangan_sampel || ''
-    form.value.keterangan_tambahan = props.initialData.keterangan_tambahan || ''
-    form.value.pengukuran_per_sampel = props.initialData.pengukuran_per_sampel || ''
-    form.value.sisa_sampel = props.initialData.sisa_sampel || ''
+onMounted(async () => {
+  try {
+    const template = await formTemplateApi.getPublicActiveByType('berita_acara')
+    if (template && template.fields) {
+      templateFields.value = template.fields
+      templateId.value = template.id
+    }
+  } catch {
+    // No template found
+  } finally {
+    loadingTemplate.value = false
   }
 })
 
+function handleValuesUpdate(values: Record<string, any>) {
+  formValues.value = values
+}
+
+function scrollToField(fieldId: string) {
+  const el = document.getElementById(fieldId)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.focus?.()
+  }
+}
+
 function handleSubmit() {
-  const fd = new FormData()
-  Object.entries(form.value).forEach(([key, val]) => {
-    fd.append(key, val)
+  if (!dynamicFormRef.value) return
+
+  const result = dynamicFormRef.value.validate()
+  if (!result.valid) {
+    toast.error('Masih ada pertanyaan wajib yang belum diisi')
+    if (result.firstErrorField) {
+      setTimeout(() => scrollToField(result.firstErrorField!), 100)
+    }
+    return
+  }
+
+  emit('submit', {
+    form_data: formValues.value,
+    form_template_id: templateId.value,
   })
-  emit('submit', fd)
 }
 </script>
 
 <template>
-  <form class="ba-form" @submit.prevent="handleSubmit">
-    <div class="ba-form__section">
-      <h3 class="ba-form__section-title">Informasi Pemohon</h3>
-      <FormInput v-model="form.nama_pemohon" label="Nama Pemohon" required />
-      <FormInput v-model="form.nim" label="NIM" />
-      <FormInput v-model="form.prodi_fakultas_instansi" label="Prodi/Fakultas/Instansi" />
-      <FormInput v-model="form.dosen_pembimbing" label="Dosen Pembimbing" />
-      <FormInput v-model="form.telp_hp" label="Telp/No. HP" />
-      <FormInput v-model="form.email" label="Email" type="email" />
-      <FormTextarea v-model="form.alamat" label="Alamat" :rows="3" />
+  <div class="ba-form">
+    <LoadingSpinner v-if="loadingTemplate" size="md" />
+
+    <div v-else-if="templateFields.length === 0" class="ba-form__empty">
+      <p>Belum ada form template aktif untuk berita acara.</p>
+      <p class="ba-form__empty-hint">Hubungi admin untuk membuat form template.</p>
     </div>
 
-    <div class="ba-form__section">
-      <h3 class="ba-form__section-title">Informasi Penelitian</h3>
-      <FormTextarea v-model="form.judul_penelitian" label="Judul Penelitian" :rows="3" />
-      <FormTextarea v-model="form.akses_lab" label="Akses Lab" :rows="3" />
-      <FormTextarea v-model="form.bahan_contoh_uji" label="Bahan Contoh Uji" :rows="3" />
-      <FormTextarea v-model="form.kemasan_packing" label="Kemasan/Packing" :rows="3" />
-      <MetodeInstrumenPicker v-model="form.permintaan_analisa" label="Metode / Instrumen" />
-      <FormInput v-model="form.jumlah_sampel" label="Jumlah Sampel" />
-      <FormInput v-model="form.kode_nama_sampel" label="Kode/Nama Sampel" />
-      <FormTextarea v-model="form.keterangan_sampel" label="Keterangan Sampel" :rows="3" />
-      <FormTextarea v-model="form.keterangan_tambahan" label="Keterangan Tambahan" :rows="3" />
-      <FormInput v-model="form.pengukuran_per_sampel" label="Pengukuran/Pengulangan per Sampel" />
-      <FormTextarea v-model="form.sisa_sampel" label="Sisa Sampel Setelah Pengujian" :rows="3" />
-    </div>
+    <form v-else class="ba-form__form" @submit.prevent="handleSubmit">
+      <div class="ba-form__section">
+        <h3 class="ba-form__section-title">Formulir Berita Acara</h3>
+        <DynamicForm
+          ref="dynamicFormRef"
+          :fields="templateFields"
+          :initial-data="initialData || undefined"
+          @update:values="handleValuesUpdate"
+        />
+      </div>
 
-    <div class="ba-form__actions">
-      <Button type="submit" :disabled="loading">
-        {{ loading ? 'Saving...' : (initialData ? 'Update' : 'Submit') }}
-      </Button>
-    </div>
-  </form>
+      <div class="ba-form__actions">
+        <Button type="submit" :disabled="loading">
+          {{ loading ? 'Saving...' : 'Submit' }}
+        </Button>
+      </div>
+    </form>
+  </div>
 </template>
 
 <style scoped>
@@ -128,5 +120,14 @@ function handleSubmit() {
   gap: 12px;
   justify-content: flex-end;
 }
-
+.ba-form__empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+.ba-form__empty-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
 </style>

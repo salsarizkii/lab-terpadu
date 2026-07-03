@@ -6,13 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class FormTemplate extends Model
 {
-    protected $fillable = ['name', 'type', 'description', 'is_active', 'created_by', 'is_default'];
+    protected $fillable = ['name', 'type', 'description', 'is_active', 'created_by'];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
-            'is_default' => 'boolean',
         ];
     }
 

@@ -68,8 +68,12 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        if (!$user) {
+            return response()->json(['message' => 'Akun dengan email tersebut belum terdaftar'], 401);
+        }
+
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Password yang Anda masukkan salah'], 401);
         }
 
         // Check if user is verified
@@ -81,6 +85,8 @@ class AuthController extends Controller
 
         $user->api_token = Str::random(60);
         $user->save();
+
+        $user->load('roleModel.permissions');
 
         return response()->json([
             'message' => 'Login successful',
@@ -99,7 +105,9 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+        $user->load('roleModel.permissions');
+        return response()->json($user);
     }
 }
 

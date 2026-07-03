@@ -73,10 +73,16 @@ class RoleController extends Controller
             unset($validated['name']);
         }
 
+        // Simpan permission_ids lalu hapus dari array update
+        $hasPermissionIds = array_key_exists('permission_ids', $validated);
+        $permissionIds = $validated['permission_ids'] ?? [];
+        unset($validated['permission_ids']);
+
         $role->update($validated);
 
-        if (array_key_exists('permission_ids', $validated)) {
-            $role->permissions()->sync($validated['permission_ids'] ?? []);
+        // Hanya sync jika permission_ids dikirim dalam request
+        if ($hasPermissionIds) {
+            $role->permissions()->sync($permissionIds);
         }
 
         $role->load('permissions');

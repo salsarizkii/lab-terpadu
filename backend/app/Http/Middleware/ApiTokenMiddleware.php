@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApiTokenMiddleware
 {
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next, ...$params): Response
     {
         $token = $request->bearerToken();
         if (!$token) {
@@ -26,9 +26,36 @@ class ApiTokenMiddleware
             return response()->json(['message' => 'Akun Anda belum diverifikasi oleh superadmin'], 403);
         }
 
-        // Superadmin bypasses all role checks
-        if (!empty($roles) && $user->role !== 'superadmin' && !in_array($user->role, $roles)) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        // Superadmin bypasses all checks
+        if ($user->role === 'superadmin') {
+            Auth::setUser($user);
+            return $next($request);
+        }
+
+        if (!empty($params)) {
+            // Split params: roles (no underscore) and permissions (with underscore)
+            $allowedRoles = array_filter($params, fn($p) => !str_contains($p, '_'));
+            $requiredPermissions = array_filter($params, fn($p) => str_contains($p, '_'));
+
+            $roleMatch = empty($allowedRoles) || in_array($user->role, $allowedRoles);
+
+            // If role doesn't match, check permissions as fallback
+            if (!$roleMatch && !empty($requiredPermissions)) {
+                if (!$user->relationLoaded('roleModel.permissions')) {
+                    $user->load('roleModel.permissions');
+                }
+                $userPermissions = $user->roleModel?->permissions?->pluck('name')->toArray() ?? [];
+                $hasPermission = !empty(array_intersect($requiredPermissions, $userPermissions));
+
+                if ($hasPermission) {
+                    Auth::setUser($user);
+                    return $next($request);
+                }
+            }
+
+            if (!$roleMatch) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
         }
 
         Auth::setUser($user);

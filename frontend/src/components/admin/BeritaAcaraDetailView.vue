@@ -2,11 +2,11 @@
 import Badge from '../common/Badge.vue'
 import type { BeritaAcara } from '../../types'
 
-defineProps<{
+const props = defineProps<{
   beritaAcara: BeritaAcara
 }>()
 
-const fields = [
+const legacyFields = [
   { label: 'Nama Pemohon', key: 'nama_pemohon' },
   { label: 'NIM', key: 'nim' },
   { label: 'Prodi/Fakultas/Instansi', key: 'prodi_fakultas_instansi' },
@@ -35,8 +35,20 @@ const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info
   rejected: { type: 'danger', label: 'Ditolak' },
 }
 
-function formatValue(val: any): string {
-  if (!val) return '-'
+function hasFormData(): boolean {
+  const fd = (props.beritaAcara as any).form_data
+  return fd && typeof fd === 'object' && Object.keys(fd).length > 0
+}
+
+function formatFieldKey(key: string): string {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatFieldValue(val: any): string {
+  if (val === null || val === undefined) return '-'
+  if (Array.isArray(val)) {
+    return val.map(v => typeof v === 'string' ? v.replace('Lainnya: ', '(Lainnya) ') : v).join(', ')
+  }
   if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
     try {
       const parsed = JSON.parse(val)
@@ -45,7 +57,7 @@ function formatValue(val: any): string {
       }
     } catch {}
   }
-  return val
+  return String(val)
 }
 </script>
 
@@ -66,10 +78,19 @@ function formatValue(val: any): string {
       </div>
     </div>
 
-    <table class="detail__table">
-      <tr v-for="f in fields" :key="f.key">
+    <!-- Dynamic form_data -->
+    <table v-if="hasFormData()" class="detail__table">
+      <tr v-for="(value, key) in (beritaAcara as any).form_data" :key="key">
+        <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
+        <td class="detail__td-value">{{ formatFieldValue(value) }}</td>
+      </tr>
+    </table>
+
+    <!-- Legacy hardcoded fields -->
+    <table v-else class="detail__table">
+      <tr v-for="f in legacyFields" :key="f.key">
         <td class="detail__td-label">{{ f.label }}</td>
-        <td class="detail__td-value">{{ formatValue((beritaAcara as any)[f.key]) }}</td>
+        <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>
       </tr>
     </table>
 

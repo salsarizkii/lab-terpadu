@@ -15,22 +15,35 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::get('/roles', [AuthController::class, 'listPublicRoles']);
 Route::get('/form-templates/{id}', [FormTemplateController::class, 'publicShow']);
+Route::get('/form-templates/type/{type}', [FormTemplateController::class, 'publicActiveByType']);
 
 Route::middleware('api.token')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    Route::middleware('api.token:user')->prefix('/user')->group(function () {
-        Route::apiResource('/berita-acara', BeritaAcaraController::class);
+    Route::middleware('api.token:user,berita_acara_create,berita_acara_riwayat_personal')->prefix('/user')->group(function () {
+        // Berita Acara — permission: berita_acara_create
+        Route::get('/berita-acara', [BeritaAcaraController::class, 'index']);
+        Route::post('/berita-acara', [BeritaAcaraController::class, 'store'])
+            ->middleware('permission:berita_acara_create');
+        Route::get('/berita-acara/{id}', [BeritaAcaraController::class, 'show']);
+        Route::put('/berita-acara/{id}', [BeritaAcaraController::class, 'update'])
+            ->middleware('permission:berita_acara_create');
+        Route::delete('/berita-acara/{id}', [BeritaAcaraController::class, 'destroy'])
+            ->middleware('permission:berita_acara_create');
+
+        // Payments
         Route::post('/payments', [PaymentController::class, 'store']);
         Route::post('/payments/{id}/discount', [PaymentController::class, 'requestDiscount']);
         Route::post('/payments/{id}/upload-proof', [PaymentController::class, 'uploadProof']);
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::get('/payments/{id}', [PaymentController::class, 'show']);
+
+        // Certificates
         Route::get('/certificates/{id}/download', [CertificateController::class, 'download']);
     });
 
-    Route::middleware('api.token:admin')->prefix('/admin')->group(function () {
+    Route::middleware('api.token:admin,berita_acara_view,sample_view,payment_view,pengujian_input,user_view,role_manage')->prefix('/admin')->group(function () {
         Route::get('/berita-acara', [AdminController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus']);
@@ -45,12 +58,15 @@ Route::middleware('api.token')->group(function () {
         Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields']);
     });
 
-    Route::middleware('api.token:analyst')->prefix('/analyst')->group(function () {
+    Route::middleware('api.token:analyst,pengujian_input,berita_acara_view,sample_view')->prefix('/analyst')->group(function () {
         Route::get('/berita-acara', [AnalystController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AnalystController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/samples/{sampleId}', [AnalystController::class, 'updateSample']);
         Route::put('/berita-acara/{id}/samples/{sampleId}/ready', [AnalystController::class, 'markSampleReady']);
-        Route::post('/berita-acara/{id}/pengujian', [AnalystController::class, 'storePengujian']);
+
+        // Pengujian (Rekap Analis) — permission: pengujian_input
+        Route::post('/berita-acara/{id}/pengujian', [AnalystController::class, 'storePengujian'])
+            ->middleware('permission:pengujian_input');
     });
 
     // Superadmin routes for role and user management

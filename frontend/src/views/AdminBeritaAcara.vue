@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
@@ -10,8 +11,12 @@ import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification
 import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
+import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara, User } from '../types'
 import { toast } from 'vue-sonner'
+
+const auth = useAuthStore()
+const router = useRouter()
 
 const items = ref<BeritaAcara[]>([])
 const analysts = ref<User[]>([])
@@ -93,7 +98,10 @@ async function handleAssign(analystId: number) {
   <AppLayout>
     <div>
       <div class="page-header">
-        <h1>Verifikasi Berita Acara</h1>
+        <h1>Berita Acara</h1>
+        <Button v-if="auth.hasPermission('berita_acara_create')" @click="router.push('/user/berita-acara/create')">
+          + Buat Berita Acara
+        </Button>
       </div>
 
       <Card>
@@ -158,7 +166,7 @@ async function handleAssign(analystId: number) {
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 24px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 .filter-bar { margin-bottom: 16px; }
 .form-select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; min-width: 200px; }

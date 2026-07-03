@@ -14,6 +14,13 @@ export const useAuthStore = defineStore('auth', () => {
   const isAnalyst = computed(() => user.value?.role === 'analyst')
   const isUser = computed(() => user.value?.role === 'user')
 
+  const userPermissions = computed(() => user.value?.permissions ?? [])
+
+  function hasPermission(permission: string): boolean {
+    if (isSuperAdmin.value) return true
+    return userPermissions.value.includes(permission)
+  }
+
   function setAuth(userData: User, tokenStr: string) {
     user.value = userData
     token.value = tokenStr
@@ -73,6 +80,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isAnalyst,
     isUser,
+    userPermissions,
+    hasPermission,
     login,
     register,
     logout,

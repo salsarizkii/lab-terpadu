@@ -43,6 +43,8 @@ class BeritaAcaraController extends Controller
             'status_pelanggan' => 'nullable|string',
             'status_berkas' => 'nullable|string',
             'status' => 'nullable|string|in:draft,pending',
+            'form_data' => 'nullable|array',
+            'form_template_id' => 'nullable|integer|exists:form_templates,id',
         ]);
 
         $validated['user_id'] = auth()->id();

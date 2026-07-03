@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Pause, Play, Pencil } from '@lucide/vue'
+import { Pause, Play, Pencil, Plus } from '@lucide/vue'
 import LoadingSpinner from './LoadingSpinner.vue'
+import Button from './Button.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { FormTemplate } from '../../types'
 import { toast } from 'vue-sonner'
+
+const props = defineProps<{
+  type?: string
+}>()
 
 const emit = defineEmits<{
   edit: [id: number]
@@ -12,11 +17,12 @@ const emit = defineEmits<{
 
 const templates = ref<FormTemplate[]>([])
 const loading = ref(true)
+const creating = ref(false)
 
 async function fetchTemplates() {
   loading.value = true
   try {
-    templates.value = await formTemplateApi.getTemplates()
+    templates.value = await formTemplateApi.getTemplates(props.type)
   } catch {
     toast.error('Gagal memuat data template')
   } finally {
@@ -36,6 +42,25 @@ async function toggleActive(tpl: FormTemplate) {
   }
 }
 
+async function createTemplate() {
+  if (!props.type) return
+  creating.value = true
+  try {
+    const name = props.type === 'berita_acara' ? 'Formulir Berita Acara Baru' : 'Formulir Rekap Analis Baru'
+    const tpl = await formTemplateApi.createTemplate({
+      name,
+      type: props.type,
+      description: `Template ${props.type === 'berita_acara' ? 'berita acara' : 'rekap analis'} baru`,
+    })
+    toast.success('Template berhasil dibuat')
+    emit('edit', tpl.id)
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal membuat template')
+  } finally {
+    creating.value = false
+  }
+}
+
 function typeLabel(type: string) {
   return type === 'berita_acara' ? 'Berita Acara' : 'Rekap Analis'
 }
@@ -43,7 +68,17 @@ function typeLabel(type: string) {
 
 <template>
   <div>
+    <div class="template-list-header">
+      <Button variant="primary" size="sm" :loading="creating" @click="createTemplate">
+        <Plus :size="16" /> Buat Template Baru
+      </Button>
+    </div>
+
     <LoadingSpinner v-if="loading" size="lg" />
+
+    <div v-else-if="templates.length === 0" class="template-empty">
+      <p>Belum ada template. Klik tombol di atas untuk membuat template baru.</p>
+    </div>
 
     <div v-else class="template-list">
       <div v-for="tpl in templates" :key="tpl.id" class="template-card">
@@ -60,7 +95,7 @@ function typeLabel(type: string) {
         <div class="template-card__footer">
           <span class="template-card__creator">{{ tpl.creator?.name || '-' }}</span>
           <div class="template-card__actions">
-            <button v-if="!tpl.is_default" class="t-action flex-center" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
+            <button class="t-action flex-center" @click="toggleActive(tpl)" :title="tpl.is_active ? 'Nonaktifkan' : 'Aktifkan'">
               <Pause v-if="tpl.is_active" :size="16" />
               <Play v-else :size="16" />
             </button>
@@ -75,6 +110,13 @@ function typeLabel(type: string) {
 </template>
 
 <style scoped>
+.template-list-header {
+  display: flex; justify-content: flex-end; margin-bottom: 16px;
+}
+.template-empty {
+  text-align: center; padding: 40px 20px; color: #94a3b8; background: #fff;
+  border: 1px dashed #e2e8f0; border-radius: 12px;
+}
 .template-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
 .template-card {
   background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;

@@ -15,9 +15,11 @@ class PermissionsSeeder extends Seeder
 
             // Berita Acara
             ['name' => 'berita_acara_view', 'display_name' => 'Melihat Berita Acara', 'group' => 'Berita Acara'],
-            ['name' => 'berita_acara_create', 'display_name' => 'Membuat Berita Acara', 'group' => 'Berita Acara'],
+            ['name' => 'berita_acara_create', 'display_name' => 'Buat Berita Acara', 'group' => 'Berita Acara'],
             ['name' => 'berita_acara_verify', 'display_name' => 'Verifikasi Berita Acara', 'group' => 'Berita Acara'],
             ['name' => 'berita_acara_assign', 'display_name' => 'Menugaskan Analis', 'group' => 'Berita Acara'],
+            ['name' => 'berita_acara_riwayat_personal', 'display_name' => 'Personal Riwayat Berita Acara', 'group' => 'Berita Acara'],
+            ['name' => 'berita_acara_riwayat_semua', 'display_name' => 'Riwayat Seluruh Berita Acara', 'group' => 'Berita Acara'],
 
             // Payment
             ['name' => 'payment_view', 'display_name' => 'Melihat Pembayaran', 'group' => 'Pembayaran'],
@@ -31,7 +33,9 @@ class PermissionsSeeder extends Seeder
             ['name' => 'sample_status', 'display_name' => 'Update Status Sampel', 'group' => 'Sampel'],
 
             // Pengujian
-            ['name' => 'pengujian_input', 'display_name' => 'Input Data Pengujian', 'group' => 'Pengujian'],
+            ['name' => 'pengujian_input', 'display_name' => 'Buat Rekap Analis', 'group' => 'Pengujian'],
+            ['name' => 'pengujian_riwayat_personal', 'display_name' => 'Personal Riwayat Rekap Analisis', 'group' => 'Pengujian'],
+            ['name' => 'pengujian_riwayat_semua', 'display_name' => 'Riwayat Seluruh Rekap Analisis', 'group' => 'Pengujian'],
 
             // Certificate
             ['name' => 'certificate_view', 'display_name' => 'Melihat Sertifikat', 'group' => 'Sertifikat'],
@@ -45,7 +49,6 @@ class PermissionsSeeder extends Seeder
             ['name' => 'role_manage', 'display_name' => 'Kelola Role', 'group' => 'Role'],
 
             // Form
-            ['name' => 'form_view', 'display_name' => 'Melihat Form', 'group' => 'Form'],
             ['name' => 'form_manage_berita_acara', 'display_name' => 'Kelola Form Berita Acara', 'group' => 'Form'],
             ['name' => 'form_manage_rekap_analis', 'display_name' => 'Kelola Form Rekap Analis', 'group' => 'Form'],
             ['name' => 'form_fill', 'display_name' => 'Mengisi Form', 'group' => 'Form'],

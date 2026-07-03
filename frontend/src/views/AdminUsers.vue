@@ -4,9 +4,8 @@ import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import Badge from '../components/common/Badge.vue'
 import LoadingSpinner from '../components/common/LoadingSpinner.vue'
-import { Search, Users as UsersIcon, Check, X, CheckCircle, XCircle } from '@lucide/vue'
+import { Search, Users as UsersIcon, CheckCircle, XCircle } from '@lucide/vue'
 import { adminApi } from '../api/admin'
 import { roleApi } from '../api/role'
 import type { User, Role } from '../types'
@@ -82,11 +81,6 @@ async function handleVerify() {
   }
 }
 
-function getVerifiedBadge(user: User) {
-  if (user.is_verified) return { variant: 'success' as const, text: 'Terverifikasi' }
-  return { variant: 'warning' as const, text: 'Menunggu Verifikasi' }
-}
-
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -132,7 +126,6 @@ function formatDate(dateStr: string) {
               <option value="false">Menunggu Verifikasi</option>
             </select>
             <Button variant="secondary" size="sm" @click="applyFilters">Cari</Button>
-            <Button variant="ghost" size="sm" @click="resetFilters">Reset</Button>
           </div>
         </div>
       </Card>
@@ -171,30 +164,20 @@ function formatDate(dateStr: string) {
                   <span class="role-tag">{{ user.role }}</span>
                 </td>
                 <td>
-                  <Badge :variant="getVerifiedBadge(user).variant">
-                    {{ getVerifiedBadge(user).text }}
-                  </Badge>
+                  <span class="status-text" :class="user.is_verified ? 'status--verified' : 'status--unverified'">
+                    {{ user.is_verified ? 'Terverifikasi' : 'Belum Terverifikasi' }}
+                  </span>
                 </td>
                 <td class="user-date">{{ formatDate(user.created_at) }}</td>
                 <td>
-                  <div class="action-btns">
-                    <button
-                      v-if="!user.is_verified && user.role !== 'superadmin'"
-                      class="action-btn action-btn--verify"
-                      @click="openVerifyModal(user, true)"
-                      title="Verifikasi akun"
-                    >
-                      <Check :size="16" />
-                    </button>
-                    <button
-                      v-if="user.is_verified && user.role !== 'superadmin'"
-                      class="action-btn action-btn--revoke"
-                      @click="openVerifyModal(user, false)"
-                      title="Cabut verifikasi"
-                    >
-                      <X :size="16" />
-                    </button>
-                  </div>
+                  <button
+                    v-if="user.role !== 'superadmin'"
+                    class="verify-btn"
+                    :class="user.is_verified ? 'verify-btn--verified' : 'verify-btn--unverified'"
+                    @click="openVerifyModal(user, !user.is_verified)"
+                  >
+                    {{ user.is_verified ? 'Terverifikasi' : 'Verifikasi' }}
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -409,38 +392,49 @@ function formatDate(dateStr: string) {
   text-transform: capitalize;
 }
 
-.action-btns {
-  display: flex;
-  gap: 4px;
-}
-
-.action-btn {
-  display: flex;
+.verify-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+  padding: 5px 14px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.action-btn--verify {
-  color: #059669;
+.status-text {
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.action-btn--verify:hover {
-  background: #ecfdf5;
+.status--verified {
+  color: #16a34a;
 }
 
-.action-btn--revoke {
-  color: #ef4444;
+.status--unverified {
+  color: #dc2626;
 }
 
-.action-btn--revoke:hover {
+.verify-btn--unverified {
   background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.verify-btn--unverified:hover {
+  background: #fee2e2;
+}
+
+.verify-btn--verified {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.verify-btn--verified:hover {
+  background: #dcfce7;
 }
 
 .verify-confirm {

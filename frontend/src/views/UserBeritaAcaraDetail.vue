@@ -44,6 +44,18 @@ const canPay = computed(() => item.value?.payment && item.value.payment.status =
 const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && item.value.payment.status === 'pending' && !item.value.payment.discount_request)
 const canDownloadCert = computed(() => item.value?.certificate)
 
+function formatFieldKey(key: string): string {
+  if (key.startsWith('field_')) return key
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatFieldValue(value: any): string {
+  if (value === null || value === undefined) return '-'
+  if (Array.isArray(value)) return value.join(', ')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
   if (!id || isNaN(id)) {
@@ -116,7 +128,15 @@ async function handleDownload(certificateId: number) {
         </div>
 
         <Card title="Detail Berita Acara">
-          <table class="detail-table">
+          <!-- Dynamic form_data from template -->
+          <table v-if="item.form_data && Object.keys(item.form_data).length" class="detail-table">
+            <tr v-for="(value, key) in item.form_data" :key="key">
+              <td class="label">{{ formatFieldKey(String(key)) }}</td>
+              <td>{{ formatFieldValue(value) }}</td>
+            </tr>
+          </table>
+          <!-- Legacy hardcoded fields -->
+          <table v-else class="detail-table">
             <tr><td class="label">Nama Pemohon</td><td>{{ item.nama_pemohon || '-' }}</td></tr>
             <tr><td class="label">NIM</td><td>{{ item.nim || '-' }}</td></tr>
             <tr><td class="label">Prodi/Fakultas/Instansi</td><td>{{ item.prodi_fakultas_instansi || '-' }}</td></tr>

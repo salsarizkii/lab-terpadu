@@ -26,6 +26,7 @@ export interface User {
   role: string
   phone?: string
   is_verified: boolean
+  permissions?: string[]
   created_at: string
 }
 
@@ -59,6 +60,8 @@ export interface BeritaAcara {
   status_berkas?: string
   biaya?: string
   diskon_diizinkan?: boolean
+  form_data?: Record<string, any>
+  form_template_id?: number
   user?: User
   analyst?: User
   revisions?: BeritaAcaraRevision[]
@@ -102,6 +105,12 @@ export interface Sample {
   test_result?: string
   status: 'pending' | 'processing' | 'ready' | 'taken'
   created_at: string
+  berita_acara?: {
+    id: number
+    analyst_id?: number
+    user?: User
+    analyst?: User
+  }
 }
 
 export interface Certificate {

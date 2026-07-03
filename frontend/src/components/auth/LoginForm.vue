@@ -9,6 +9,7 @@ defineProps<{
 
 const emit = defineEmits<{
   submit: [data: { email: string; password: string }]
+  'forgot-password': []
 }>()
 
 const email = ref('')
@@ -23,6 +24,9 @@ function handleSubmit() {
   <form class="auth-form" @submit.prevent="handleSubmit">
     <FormInput v-model="email" label="Email" type="email" placeholder="contoh@email.com" required />
     <FormInput v-model="password" label="Password" type="password" placeholder="Masukkan password" required />
+    <div class="form-options">
+      <a href="#" class="forgot-link" @click.prevent="$emit('forgot-password')">Lupa password?</a>
+    </div>
     <Button variant="primary" size="lg" block :loading="loading" type="submit">
       Masuk
     </Button>
@@ -33,5 +37,22 @@ function handleSubmit() {
 .auth-form {
   display: flex;
   flex-direction: column;
+}
+
+.form-options {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.forgot-link {
+  font-size: 13px;
+  color: #2d6a9f;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 </style>

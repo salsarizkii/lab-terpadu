@@ -32,6 +32,10 @@ async function handleLogin(data: { email: string; password: string }) {
     loading.value = false
   }
 }
+
+function handleForgotPassword() {
+  toast.info('Hubungi superadmin untuk reset password Anda.')
+}
 </script>
 
 <template>
@@ -41,7 +45,7 @@ async function handleLogin(data: { email: string; password: string }) {
         <h1>Lab Terpadu</h1>
         <p>Pemesanan Data Sampel Penelitian</p>
       </div>
-      <LoginForm @submit="handleLogin" :loading="loading" />
+      <LoginForm @submit="handleLogin" :loading="loading" @forgot-password="handleForgotPassword" />
       <p class="login-footer">
         Belum punya akun? <router-link to="/register">Daftar</router-link>
       </p>

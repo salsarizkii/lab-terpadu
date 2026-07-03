@@ -14,4 +14,9 @@ app.use(router)
 const auth = useAuthStore()
 auth.initFromStorage()
 
+// Refresh permissions dari backend setelah init dari storage
+if (auth.isAuthenticated) {
+  auth.fetchMe()
+}
+
 app.mount('#app')

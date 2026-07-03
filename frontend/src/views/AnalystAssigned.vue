@@ -9,9 +9,11 @@ import Modal from '../components/common/Modal.vue'
 import SampleDataForm from '../components/analyst/SampleDataForm.vue'
 import PengujianForm from '../components/analyst/PengujianForm.vue'
 import { analystApi } from '../api/analyst'
+import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
 import { toast } from 'vue-sonner'
 
+const auth = useAuthStore()
 const items = ref<BeritaAcara[]>([])
 const loading = ref(true)
 const selectedBa = ref<BeritaAcara | null>(null)
@@ -135,14 +137,14 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
                   <Badge :type="sampleStatusType[s.status]" :text="s.status" />
                 </div>
                 <div class="sample-actions">
-                  <Button size="sm" variant="outline" @click="openSampleForm(s, ba.id)">Input Data</Button>
-                  <Button v-if="s.status === 'processing'" size="sm" variant="success" @click="markReady(ba.id, s.id)">Siap Diambil</Button>
+                  <Button v-if="auth.hasPermission('sample_input')" size="sm" variant="outline" @click="openSampleForm(s, ba.id)">Input Data</Button>
+                  <Button v-if="auth.hasPermission('sample_status') && s.status === 'processing'" size="sm" variant="success" @click="markReady(ba.id, s.id)">Siap Diambil</Button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="pengujian-section">
+          <div v-if="auth.hasPermission('pengujian_input')" class="pengujian-section">
             <h4 class="section-title">Laporan Pengujian</h4>
             <div v-if="ba.pengujians && ba.pengujians.length" class="pengujian-info">
               <div class="pengujian-badge">Pengujian sudah dilaporkan</div>

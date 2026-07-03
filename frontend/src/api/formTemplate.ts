@@ -28,6 +28,11 @@ export const formTemplateApi = {
     return data
   },
 
+  async createTemplate(payload: { name: string; type: string; description?: string }): Promise<FormTemplate> {
+    const { data } = await api.post('/admin/form-templates', payload)
+    return data.data || data
+  },
+
   async syncFields(id: number, fields: SyncFieldsPayload): Promise<{ message: string; data: FormTemplate }> {
     const { data } = await api.put(`/admin/form-templates/${id}/fields`, fields)
     return data
@@ -36,5 +41,14 @@ export const formTemplateApi = {
   async getPublicTemplate(id: number): Promise<FormTemplate> {
     const { data } = await api.get<FormTemplate>(`/form-templates/${id}`)
     return data
+  },
+
+  async getPublicActiveByType(type: string): Promise<FormTemplate | null> {
+    try {
+      const { data } = await api.get<FormTemplate>(`/form-templates/type/${type}`)
+      return data
+    } catch {
+      return null
+    }
   },
 }

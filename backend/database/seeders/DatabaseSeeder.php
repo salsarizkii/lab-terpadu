@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -17,6 +18,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(PermissionsSeeder::class);
+        $this->call(FormTemplateSeeder::class);
 
         // Seed only superadmin role (admin/analyst/user must be created via UI)
         Role::firstOrCreate(
@@ -28,7 +30,7 @@ class DatabaseSeeder extends Seeder
         );
 
         // Seed user role for registration (auto-verified, no superadmin approval needed)
-        Role::firstOrCreate(
+        $userRole = Role::firstOrCreate(
             ['name' => 'user'],
             [
                 'description' => 'Pengguna biasa untuk pengajuan pengujian sampel',
@@ -36,6 +38,15 @@ class DatabaseSeeder extends Seeder
                 'requires_verification' => false,
             ]
         );
+
+        $userPermissions = Permission::whereIn('name', [
+            'berita_acara_create',
+            'berita_acara_riwayat_personal',
+            'berita_acara_view',
+            'pengujian_riwayat_personal',
+            'pengujian_input',
+        ])->get();
+        $userRole->permissions()->syncWithoutDetaching($userPermissions->pluck('id'));
 
         // Seed only 1 superadmin account
         User::firstOrCreate(

@@ -34,6 +34,8 @@ class User extends Authenticatable
         'api_token',
     ];
 
+    protected $appends = ['permissions'];
+
     protected function casts(): array
     {
         return [
@@ -48,6 +50,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'role', 'name');
     }
 
+    public function getPermissionsAttribute(): array
+    {
+        return $this->roleModel?->permissions?->pluck('name')->toArray() ?? [];
+    }
+
     public function beritaAcaras()
     {
         return $this->hasMany(BeritaAcara::class);
@@ -56,6 +63,12 @@ class User extends Authenticatable
     public function assignedBeritaAcaras()
     {
         return $this->hasMany(BeritaAcara::class, 'analyst_id');
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role === 'superadmin') return true;
+        return in_array($permission, $this->permissions);
     }
 }
 
