@@ -138,9 +138,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { instrumentPriceApi, type InstrumentPrice } from '@/api/instrumentPrice'
-import { useToast } from 'vue-sonner'
+import { toast } from 'vue-sonner'
 
-const toast = useToast()
 const loading = ref(true)
 const items = ref<InstrumentPrice[]>([])
 const search = ref('')

@@ -198,11 +198,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useToast } from 'vue-sonner'
+import { toast } from 'vue-sonner'
 import { formTemplateApi, type FormField } from '@/api/formTemplate'
 import { useRouter } from 'vue-router'
 
-const toast = useToast()
 const router = useRouter()
 
 const openVariablePanel = ref(true)

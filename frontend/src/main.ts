@@ -1,22 +1,22 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { pinia } from './stores/pinia'
 import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/authStore'
 import './assets/design-system.css'
 
 const app = createApp(App)
-const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
 
-const auth = useAuthStore()
+const auth = useAuthStore(pinia)
 auth.initFromStorage()
 
-// Refresh permissions dari backend setelah init dari storage
 if (auth.isAuthenticated) {
-  auth.fetchMe()
+  auth.fetchMe().finally(() => {
+    app.mount('#app')
+  })
+} else {
+  app.mount('#app')
 }
-
-app.mount('#app')

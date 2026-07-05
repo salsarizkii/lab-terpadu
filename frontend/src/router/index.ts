@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { pinia } from '../stores/pinia'
 import { useAuthStore } from '../stores/authStore'
 
 const routes = [
@@ -17,7 +18,7 @@ const routes = [
   {
     path: '/dashboard',
     redirect: () => {
-      const auth = useAuthStore()
+      const auth = useAuthStore(pinia)
       if (!auth.hasPermission('dashboard')) {
         // Fallback: arahkan ke halaman sesuai permission pertama yang dimiliki
         if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/admin/berita-acara'
@@ -157,7 +158,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const auth = useAuthStore()
+  const auth = useAuthStore(pinia)
 
   if (to.meta.auth && !auth.isAuthenticated) {
     return next('/login')

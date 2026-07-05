@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
-import { FlaskConical, LogOut, User, Lock, ChevronDown } from '@lucide/vue'
+import { FlaskConical, LogOut, User, Lock, ChevronDown, AlertTriangle } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import Modal from './Modal.vue'
 import Button from './Button.vue'
@@ -24,6 +24,8 @@ const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const passwordSaving = ref(false)
+
+const showLogoutModal = ref(false)
 
 function handleEditProfile() {
   profileName.value = auth.user?.name || ''
@@ -75,9 +77,14 @@ async function submitPassword() {
   }
 }
 
-async function handleLogout() {
-  closeDropdown()
-  await auth.logout()
+function handleLogout(close: () => void) {
+  close()
+  showLogoutModal.value = true
+}
+
+function confirmLogout() {
+  showLogoutModal.value = false
+  auth.clearAuth()
   router.push('/login')
 }
 </script>
@@ -119,7 +126,7 @@ async function handleLogout() {
           <DropdownItem :icon="User" @click="handleEditProfile(); close()">Edit Profile</DropdownItem>
           <DropdownItem :icon="Lock" @click="handleChangePassword(); close()">Ganti Password</DropdownItem>
           <DropdownDivider />
-          <DropdownItem :icon="LogOut" disabled>Keluar</DropdownItem>
+          <DropdownItem :icon="LogOut" @click="handleLogout(close)">Keluar</DropdownItem>
         </template>
       </Dropdown>
     </div>
@@ -173,6 +180,20 @@ async function handleLogout() {
       >
         Ubah Password
       </Button>
+    </template>
+  </Modal>
+
+  <!-- Logout Confirmation Modal -->
+  <Modal :show="showLogoutModal" title="Konfirmasi Keluar" size="sm" @close="showLogoutModal = false">
+    <div class="logout-confirm">
+      <div class="logout-confirm__icon">
+        <AlertTriangle :size="24" />
+      </div>
+      <p class="logout-confirm__text">Anda yakin akan keluar dari aplikasi?</p>
+    </div>
+    <template #footer>
+      <Button variant="secondary" @click="showLogoutModal = false">Batal</Button>
+      <Button variant="danger" @click="confirmLogout">Keluar</Button>
     </template>
   </Modal>
 </template>
@@ -338,5 +359,29 @@ async function handleLogout() {
 }
 .profile-form__input:focus {
   border-color: var(--color-accent, #2d6a9f);
+}
+
+.logout-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+.logout-confirm__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logout-confirm__text {
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+  text-align: center;
 }
 </style>

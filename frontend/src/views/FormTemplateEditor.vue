@@ -8,9 +8,10 @@ import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
 import KelolaHargaInstrumen from './KelolaHargaInstrumen.vue'
 import PerhitunganBiaya from './PerhitunganBiaya.vue'
+import { onErrorCaptured } from 'vue'
 import { formTemplateApi } from '../api/formTemplate'
 import { useAuthStore } from '../stores/authStore'
-import type { FormTemplate, FormField } from '../../types'
+import type { FormTemplate, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
