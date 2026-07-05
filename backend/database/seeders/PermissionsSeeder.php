@@ -49,6 +49,8 @@ class PermissionsSeeder extends Seeder
             // Form
             ['name' => 'form_manage_berita_acara', 'display_name' => 'Kelola Form Berita Acara', 'group' => 'Form'],
             ['name' => 'form_manage_rekap_analis', 'display_name' => 'Kelola Form Rekap Analis', 'group' => 'Form'],
+            ['name' => 'form_manage_perhitungan_biaya', 'display_name' => 'Kelola Form Perhitungan Biaya', 'group' => 'Form'],
+            ['name' => 'form_manage_kelola_harga_instrumen', 'display_name' => 'Kelola Form Harga Instrumen', 'group' => 'Form'],
         ];
 
         foreach ($permissions as $perm) {

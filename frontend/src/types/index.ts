@@ -142,7 +142,7 @@ export interface FormField {
 export interface FormTemplate {
   id: number
   name: string
-  type: 'berita_acara' | 'rekap_analis'
+  type: 'berita_acara' | 'rekap_analis' | 'perhitungan_biaya' | 'kelola_harga_instrumen'
   description?: string
   is_active: boolean
   is_default: boolean

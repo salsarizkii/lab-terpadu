@@ -41,9 +41,21 @@ export const analystApi = {
   async storeRekapAnalis(beritaAcaraId: number, payload: {
     rekap_analis_data: string
     rekap_analis_template_id?: number | null
+    biaya?: number | null
   }): Promise<BeritaAcara> {
     const { data } = await api.put(
       `/analyst/berita-acara/${beritaAcaraId}/rekap-analis`,
+      payload
+    )
+    return data.data || data
+  },
+
+  async requestDiscount(beritaAcaraId: number, payload: {
+    discount_request: number
+    discount_reason?: string
+  }): Promise<any> {
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/discount`,
       payload
     )
     return data.data || data

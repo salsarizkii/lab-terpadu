@@ -119,18 +119,58 @@ class AnalystController extends Controller
         $validated = $request->validate([
             'rekap_analis_data' => 'required|string',
             'rekap_analis_template_id' => 'nullable|integer|exists:form_templates,id',
+            'biaya' => 'nullable|numeric|min:0',
         ]);
 
         $data = json_decode($validated['rekap_analis_data'], true);
+        if (!is_array($data) || empty($data)) {
+            $data = (object) [];
+        }
 
-        $beritaAcara->update([
+        $updateData = [
             'rekap_analis_data' => $data,
             'rekap_analis_template_id' => $validated['rekap_analis_template_id'] ?? null,
-        ]);
+        ];
+
+        if (isset($validated['biaya'])) {
+            $updateData['biaya'] = $validated['biaya'];
+        }
+
+        $beritaAcara->update($updateData);
+
+        // Update all related samples status to 'taken'
+        Sample::where('berita_acara_id', $beritaAcara->id)
+            ->whereIn('status', ['processing', 'ready'])
+            ->update(['status' => 'taken']);
 
         return response()->json([
             'message' => 'Rekap analis saved successfully',
             'data' => $beritaAcara->fresh(),
+        ]);
+    }
+
+    public function requestDiscount(Request $request, $id)
+    {
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
+
+        $validated = $request->validate([
+            'discount_request' => 'required|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $payment = $beritaAcara->payment()->updateOrCreate(
+            ['berita_acara_id' => $beritaAcara->id],
+            [
+                'discount_request' => $validated['discount_request'],
+                'discount_reason' => $validated['discount_reason'] ?? null,
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Discount request submitted',
+            'data' => $payment,
         ]);
     }
 }

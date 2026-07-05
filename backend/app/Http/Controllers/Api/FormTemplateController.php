@@ -30,7 +30,7 @@ class FormTemplateController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:200',
-            'type' => 'required|string|in:berita_acara,rekap_analis',
+            'type' => 'required|string|in:berita_acara,rekap_analis,perhitungan_biaya,kelola_harga_instrumen',
             'description' => 'nullable|string|max:500',
         ]);
 

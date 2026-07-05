@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { ArrowLeft, Save, FileText, FlaskConical } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft, Save, FileText, FlaskConical, Calculator, Settings } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
+import KelolaHargaInstrumen from './KelolaHargaInstrumen.vue'
+import PerhitunganBiaya from './PerhitunganBiaya.vue'
 import { formTemplateApi } from '../api/formTemplate'
 import { useAuthStore } from '../stores/authStore'
 import type { FormTemplate, FormField } from '../../types'
@@ -13,8 +15,10 @@ import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 
-const view = ref<'cards' | 'editor'>('cards')
+type CardType = 'cards' | 'berita_acara' | 'rekap_analis' | 'perhitungan_biaya' | 'kelola_harga_instrumen'
+const view = ref<CardType>('cards')
 const currentTemplate = ref<FormTemplate | null>(null)
 const currentFields = ref<FormField[]>([])
 const loading = ref(false)
@@ -22,19 +26,38 @@ const saving = ref(false)
 
 onMounted(() => {
   const type = route.query.type as string
-  if (type === 'berita_acara' || type === 'rekap_analis') {
-    selectType(type)
+  if (type && ['berita_acara', 'rekap_analis', 'perhitungan_biaya', 'kelola_harga_instrumen'].includes(type)) {
+    selectType(type as CardType)
   }
 })
 
 const pageTitle = computed(() => {
-  if (view.value === 'editor' && currentTemplate.value) {
-    return currentTemplate.value.name
+  const titles: Record<CardType, string> = {
+    cards: 'Kelola Form',
+    berita_acara: currentTemplate.value?.name || 'Form Berita Acara',
+    rekap_analis: currentTemplate.value?.name || 'Form Rekap Analis',
+    perhitungan_biaya: 'Perhitungan Biaya',
+    kelola_harga_instrumen: 'Kelola Harga Instrumen',
   }
-  return 'Kelola Form'
+  return titles[view.value]
 })
 
-async function selectType(type: string) {
+const typeLabel = computed(() => {
+  const labels: Record<string, string> = {
+    berita_acara: 'Berita Acara',
+    rekap_analis: 'Rekap Analis',
+    perhitungan_biaya: 'Perhitungan Biaya',
+    kelola_harga_instrumen: 'Kelola Harga Instrumen',
+  }
+  return labels[currentTemplate.value?.type || ''] || currentTemplate.value?.type || ''
+})
+
+async function selectType(type: CardType) {
+  if (type === 'perhitungan_biaya' || type === 'kelola_harga_instrumen') {
+    view.value = type
+    return
+  }
+
   loading.value = true
   try {
     const template = await formTemplateApi.getPublicActiveByType(type)
@@ -50,7 +73,7 @@ async function selectType(type: string) {
       is_required: f.is_required,
       locked: f.locked,
     }))
-    view.value = 'editor'
+    view.value = type
   } catch {
     toast.error('Gagal memuat template')
   } finally {
@@ -122,19 +145,19 @@ async function saveFields() {
       <div class="ft-header">
         <div>
           <div class="ft-header__top">
-            <button v-if="view === 'editor'" class="ft-back" @click="goBack">
+            <button v-if="view !== 'cards'" class="ft-back" @click="goBack">
               <ArrowLeft :size="18" /> Kembali
             </button>
             <h1>{{ pageTitle }}</h1>
           </div>
-          <p v-if="view === 'cards'" class="ft-subtitle">Kelola template form untuk berita acara dan rekap data analis</p>
+          <p v-if="view === 'cards'" class="ft-subtitle">Kelola template form untuk berita acara, rekap data analis, dan pengaturan biaya</p>
         </div>
       </div>
 
       <SkeletonCard v-if="loading" :rows="4" />
 
       <template v-else>
-        <!-- View: 2 Cards -->
+        <!-- View: 4 Cards -->
         <div v-if="view === 'cards'" class="ft-cards">
           <div
             v-if="auth.hasPermission('form_manage_berita_acara')"
@@ -159,14 +182,38 @@ async function saveFields() {
             <h3 class="ft-card__title">Form Rekap Analis</h3>
             <p class="ft-card__desc">Kelola pertanyaan dan formulir untuk rekap data hasil analis</p>
           </div>
+
+          <div
+            v-if="auth.hasPermission('form_manage_perhitungan_biaya')"
+            class="ft-card"
+            @click="selectType('perhitungan_biaya')"
+          >
+            <div class="ft-card__icon ft-card__icon--orange">
+              <Calculator :size="28" />
+            </div>
+            <h3 class="ft-card__title">Perhitungan Biaya</h3>
+            <p class="ft-card__desc">Buat rumus perhitungan harga dari data form berita acara dan rekap analis</p>
+          </div>
+
+          <div
+            v-if="auth.hasPermission('form_manage_kelola_harga_instrumen')"
+            class="ft-card"
+            @click="selectType('kelola_harga_instrumen')"
+          >
+            <div class="ft-card__icon ft-card__icon--purple">
+              <Settings :size="28" />
+            </div>
+            <h3 class="ft-card__title">Kelola Harga Instrumen</h3>
+            <p class="ft-card__desc">Daftar dan harga instrumen analisis laboratorium</p>
+          </div>
         </div>
 
-        <!-- View: Form Builder -->
-        <div v-else-if="view === 'editor' && currentTemplate" class="editor-section">
+        <!-- View: Form Builder (Berita Acara / Rekap Analis) -->
+        <div v-else-if="(view === 'berita_acara' || view === 'rekap_analis') && currentTemplate" class="editor-section">
           <div class="editor-topbar">
             <div>
               <h2 class="editor-title">{{ currentTemplate.name }}</h2>
-              <p class="editor-meta">{{ currentTemplate.type === 'berita_acara' ? 'Berita Acara' : 'Rekap Analis' }} · {{ currentFields.length }} field</p>
+              <p class="editor-meta">{{ typeLabel }} · {{ currentFields.length }} field</p>
             </div>
           </div>
           <FormBuilder v-model:fields="currentFields" class="mb-4" />
@@ -179,6 +226,16 @@ async function saveFields() {
               <Save :size="16" /> Simpan Form
             </Button>
           </div>
+        </div>
+
+        <!-- View: Perhitungan Biaya -->
+        <div v-else-if="view === 'perhitungan_biaya'" class="editor-section">
+          <PerhitunganBiaya />
+        </div>
+
+        <!-- View: Kelola Harga Instrumen -->
+        <div v-else-if="view === 'kelola_harga_instrumen'" class="editor-section">
+          <KelolaHargaInstrumen />
         </div>
       </template>
     </div>
@@ -221,6 +278,8 @@ async function saveFields() {
 }
 .ft-card__icon--blue { background: #eff6ff; color: #2563eb; }
 .ft-card__icon--green { background: #ecfdf5; color: #059669; }
+.ft-card__icon--orange { background: #fff7ed; color: #ea580c; }
+.ft-card__icon--purple { background: #faf5ff; color: #9333ea; }
 .ft-card__title { font-size: 17px; font-weight: 600; color: #1e293b; margin: 0; }
 .ft-card__desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; }
 

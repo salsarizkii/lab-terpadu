@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BeritaAcaraController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\InstrumentPriceController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\FormTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +64,13 @@ Route::middleware('api.token')->group(function () {
 
         Route::apiResource('/form-templates', FormTemplateController::class);
         Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields']);
+
+        // Instrument Prices
+        Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);
+        Route::post('/instrument-prices', [InstrumentPriceController::class, 'store']);
+        Route::put('/instrument-prices/{id}', [InstrumentPriceController::class, 'update']);
+        Route::delete('/instrument-prices/{id}', [InstrumentPriceController::class, 'destroy']);
+        Route::put('/instrument-prices/bulk', [InstrumentPriceController::class, 'bulkUpdate']);
     });
 
     Route::middleware('api.token:analyst,sample_rekap,berita_acara_view,berita_acara_riwayat_semua,sample_view')->prefix('/analyst')->group(function () {
@@ -77,6 +85,10 @@ Route::middleware('api.token')->group(function () {
 
         // Rekap Analis — permission: sample_rekap
         Route::put('/berita-acara/{id}/rekap-analis', [AnalystController::class, 'storeRekapAnalis'])
+            ->middleware('permission:sample_rekap');
+
+        // Discount Request — permission: sample_rekap
+        Route::post('/berita-acara/{id}/discount', [AnalystController::class, 'requestDiscount'])
             ->middleware('permission:sample_rekap');
     });
 

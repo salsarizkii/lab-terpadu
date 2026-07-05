@@ -119,7 +119,7 @@ const routes = [
     path: '/admin/forms',
     name: 'FormTemplateEditor',
     component: () => import('../views/FormTemplateEditor.vue'),
-    meta: { auth: true, permission: 'form_manage_berita_acara', permissionOr: 'form_manage_rekap_analis' },
+    meta: { auth: true, permission: 'form_manage_berita_acara', permissionOr: 'form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen' },
   },
   {
     path: '/analyst/dashboard',

@@ -7,6 +7,7 @@ import type { BeritaAcara, FormField } from '../../types'
 const props = defineProps<{
   beritaAcara: BeritaAcara
   hideSections?: string[]
+  overrideStatus?: { type: string; label: string } | null
 }>()
 
 const templateFields = ref<FormField[]>([])
@@ -86,7 +87,10 @@ watch(() => props.beritaAcara, () => {
     <div class="detail__meta">
       <div class="detail__meta-item">
         <span class="detail__label">Status</span>
-        <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
+        <Badge
+          :type="overrideStatus?.type || statusMap[beritaAcara.status]?.type || 'default'"
+          :text="overrideStatus?.label || statusMap[beritaAcara.status]?.label || beritaAcara.status"
+        />
       </div>
       <div class="detail__meta-item">
         <span class="detail__label">Pemohon</span>

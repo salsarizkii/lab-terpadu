@@ -17,7 +17,7 @@ const activeTab = ref('all')
 const tabs = [
   { key: 'all', label: 'Semua' },
   { key: 'processing', label: 'Proses' },
-  { key: 'ready', label: 'Sudah Dikirim' },
+  { key: 'taken', label: 'Sudah Dikirim' },
 ]
 
 const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
@@ -29,15 +29,15 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
 const sampleStatusText: Record<string, string> = {
   pending: 'Menunggu',
   processing: 'Proses',
-  ready: 'Sudah Dikirim',
-  taken: 'Sudah Diambil',
+  ready: 'Siap Diambil',
+  taken: 'Sudah Dikirim',
 }
 
 function getSampleStatus(ba: BeritaAcara): string {
-  if (!ba.samples || ba.samples.length === 0) return 'pending'
-  if (ba.samples.every(s => s.status === 'ready' || s.status === 'taken')) return 'ready'
+  if (!ba.samples || ba.samples.length === 0) return 'processing'
+  if (ba.samples.every(s => s.status === 'taken')) return 'taken'
   if (ba.samples.some(s => s.status === 'processing')) return 'processing'
-  return 'pending'
+  return 'processing'
 }
 
 function getSampleNames(ba: BeritaAcara): string {

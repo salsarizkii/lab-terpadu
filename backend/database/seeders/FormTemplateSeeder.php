@@ -83,5 +83,60 @@ class FormTemplateSeeder extends Seeder
                 $ra->fields()->create($f);
             }
         }
+
+        // Default template untuk Perhitungan Biaya
+        $pb = FormTemplate::firstOrCreate(
+            ['type' => 'perhitungan_biaya'],
+            [
+                'name' => 'Formulir Perhitungan Biaya',
+                'description' => 'Formulir untuk perhitungan biaya pengujian dan analisis',
+                'is_active' => true,
+                'created_by' => $superadmin?->id ?? 1,
+            ]
+        );
+
+        if ($pb->fields()->count() === 0) {
+            $fields = [
+                ['label' => 'Informasi Pengujian', 'type' => 'heading', 'is_required' => false, 'sort_order' => 0],
+                ['label' => 'Nama Pengujian', 'type' => 'text', 'is_required' => true, 'sort_order' => 1],
+                ['label' => 'Jenis Sampel', 'type' => 'text', 'is_required' => false, 'sort_order' => 2],
+                ['label' => 'Jumlah Sampel', 'type' => 'number', 'is_required' => true, 'sort_order' => 3],
+                ['label' => 'Biaya Pengujian', 'type' => 'number', 'is_required' => true, 'sort_order' => 4],
+                ['label' => 'Diskon', 'type' => 'number', 'is_required' => false, 'sort_order' => 5],
+                ['label' => 'Total Biaya', 'type' => 'number', 'is_required' => true, 'sort_order' => 6],
+                ['label' => 'Keterangan', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 7],
+            ];
+
+            foreach ($fields as $f) {
+                $pb->fields()->create($f);
+            }
+        }
+
+        // Default template untuk Kelola Harga Instrumen
+        $hi = FormTemplate::firstOrCreate(
+            ['type' => 'kelola_harga_instrumen'],
+            [
+                'name' => 'Formulir Kelola Harga Instrumen',
+                'description' => 'Formulir untuk mengelola harga instrumen dan tarif pengujian',
+                'is_active' => true,
+                'created_by' => $superadmin?->id ?? 1,
+            ]
+        );
+
+        if ($hi->fields()->count() === 0) {
+            $fields = [
+                ['label' => 'Informasi Instrumen', 'type' => 'heading', 'is_required' => false, 'sort_order' => 0],
+                ['label' => 'Nama Instrumen', 'type' => 'text', 'is_required' => true, 'sort_order' => 1],
+                ['label' => 'Merk / Tipe', 'type' => 'text', 'is_required' => false, 'sort_order' => 2],
+                ['label' => 'Lokasi', 'type' => 'text', 'is_required' => false, 'sort_order' => 3],
+                ['label' => 'Harga Sewa per Jam', 'type' => 'number', 'is_required' => true, 'sort_order' => 4],
+                ['label' => 'Harga Sewa per Sampel', 'type' => 'number', 'is_required' => false, 'sort_order' => 5],
+                ['label' => 'Keterangan', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 6],
+            ];
+
+            foreach ($fields as $f) {
+                $hi->fields()->create($f);
+            }
+        }
     }
 }

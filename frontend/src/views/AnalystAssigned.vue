@@ -35,7 +35,32 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
   pending: 'default', processing: 'warning', ready: 'success', taken: 'info',
 }
 const sampleStatusText: Record<string, string> = {
-  pending: 'Menunggu', processing: 'Diproses', ready: 'Siap Diambil', taken: 'Sudah Diambil',
+  pending: 'Menunggu', processing: 'Proses', ready: 'Siap Diambil', taken: 'Sudah Dikirim',
+}
+
+function getSampleStatus(): string {
+  const ba = item.value as any
+  if (ba?.rekap_analis_data !== null && ba?.rekap_analis_data !== undefined) return 'taken'
+  if (!ba?.samples || ba.samples.length === 0) return 'processing'
+  if (ba.samples.every((s: any) => s.status === 'taken')) return 'taken'
+  if (ba.samples.every((s: any) => s.status === 'ready' || s.status === 'taken')) return 'ready'
+  return 'processing'
+}
+
+function getSampleBadgeType(): 'default' | 'warning' | 'success' | 'danger' | 'info' {
+  const status = getSampleStatus()
+  return sampleStatusType[status] || 'default'
+}
+
+function getSampleBadgeText(): string {
+  return sampleStatusText[getSampleStatus()] || '-'
+}
+
+function getSampleBadgeObj(): { type: string; label: string } {
+  return {
+    type: sampleStatusType[getSampleStatus()] || 'default',
+    label: sampleStatusText[getSampleStatus()] || '-',
+  }
 }
 
 onMounted(async () => {
@@ -106,7 +131,7 @@ async function handlePengujianSubmit(data: any) {
           <Button variant="outline" @click="router.push('/analyst/samples')">Kembali</Button>
           <h1>Detail Sampel</h1>
         </div>
-        <Badge v-if="item" :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
+        <Badge v-if="item" :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
       </div>
 
       <SkeletonDetail v-if="loading" />
@@ -115,7 +140,7 @@ async function handlePengujianSubmit(data: any) {
         <div class="detail-grid">
           <div class="detail-main">
             <Card title="Data Berita Acara">
-              <BeritaAcaraDetailView :berita-acara="item" :hide-sections="['verifikasi', 'pembayaran']" />
+              <BeritaAcaraDetailView :berita-acara="item" :hide-sections="['verifikasi', 'pembayaran']" :override-status="getSampleBadgeObj()" />
             </Card>
           </div>
 

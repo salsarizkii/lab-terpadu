@@ -64,8 +64,8 @@ const menuItems = computed(() => {
     items.push({ label: 'Sampel', path: samplePath, icon: FlaskConical })
   }
 
-  // Kelola Form
-  if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis')) {
+  // Kelola Form — muncul jika ada SATU PUN permission form_manage_*
+  if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis') || auth.hasPermission('form_manage_perhitungan_biaya') || auth.hasPermission('form_manage_kelola_harga_instrumen')) {
     items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
   }
 
