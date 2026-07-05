@@ -9,14 +9,15 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\InstrumentPriceController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\FormTemplateController;
+use App\Http\Controllers\Api\FormulaController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::get('/roles', [AuthController::class, 'listPublicRoles']);
-Route::get('/form-templates/{id}', [FormTemplateController::class, 'publicShow']);
 Route::get('/form-templates/type/{type}', [FormTemplateController::class, 'publicActiveByType']);
+Route::get('/form-templates/{id}', [FormTemplateController::class, 'publicShow']);
 
 Route::middleware('api.token')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -64,6 +65,9 @@ Route::middleware('api.token')->group(function () {
 
         Route::apiResource('/form-templates', FormTemplateController::class);
         Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields']);
+
+        // Formulas
+        Route::apiResource('/formulas', FormulaController::class);
 
         // Instrument Prices
         Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);

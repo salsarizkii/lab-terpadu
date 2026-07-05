@@ -96,6 +96,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // Instrument prices
+        $this->call(InstrumentPriceSeeder::class);
+
         // Form templates (needs superadmin user to exist)
         $this->call(FormTemplateSeeder::class);
     }

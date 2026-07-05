@@ -8,10 +8,20 @@ import DataTable from '../components/common/DataTable.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
+import FilterDropdown from '../components/common/FilterDropdown.vue'
 import FlowSteps from '../components/user/FlowSteps.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
+
+const statusOptions = [
+  { value: '', label: 'Semua Status' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending', label: 'Diajukan' },
+  { value: 'revision', label: 'Revisi' },
+  { value: 'approved', label: 'Disetujui' },
+  { value: 'rejected', label: 'Ditolak' },
+]
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -88,14 +98,11 @@ onMounted(async () => {
 
       <Card>
         <div class="filter-bar">
-          <select v-model="filterStatus" class="form-select">
-            <option value="">Semua Status</option>
-            <option value="draft">Draft</option>
-              <option value="pending">Diajukan</option>
-            <option value="revision">Revisi</option>
-            <option value="approved">Disetujui</option>
-            <option value="rejected">Ditolak</option>
-          </select>
+          <FilterDropdown
+            v-model="filterStatus"
+            :options="statusOptions"
+            placeholder="Semua Status"
+          />
         </div>
 
         <SkeletonTable v-if="loading" :cols="4" :rows="5" />
@@ -147,13 +154,6 @@ onMounted(async () => {
 }
 .filter-bar {
   margin-bottom: 16px;
-}
-.form-select {
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 14px;
-  min-width: 200px;
 }
 .action-cell {
   display: flex;

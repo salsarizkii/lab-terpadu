@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Save, FileText, FlaskConical, Calculator, Settings } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
-import KelolaHargaInstrumen from './KelolaHargaInstrumen.vue'
-import PerhitunganBiaya from './PerhitunganBiaya.vue'
-import { onErrorCaptured } from 'vue'
 import { formTemplateApi } from '../api/formTemplate'
 import { useAuthStore } from '../stores/authStore'
 import type { FormTemplate, FormField } from '../types'
 import { toast } from 'vue-sonner'
+
+const KelolaHargaInstrumen = defineAsyncComponent(() => import('./KelolaHargaInstrumen.vue'))
+const PerhitunganBiaya = defineAsyncComponent(() => import('./PerhitunganBiaya.vue'))
 
 const auth = useAuthStore()
 const route = useRoute()

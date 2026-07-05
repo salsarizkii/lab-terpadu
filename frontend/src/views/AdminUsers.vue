@@ -5,6 +5,7 @@ import Card from '../components/common/Card.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
+import FilterDropdown from '../components/common/FilterDropdown.vue'
 import Dropdown from '../components/common/Dropdown.vue'
 import DropdownItem from '../components/common/DropdownItem.vue'
 import { Search, Users as UsersIcon, ShieldCheck, ShieldOff, Ban } from '@lucide/vue'
@@ -20,6 +21,12 @@ const loading = ref(true)
 const searchQuery = ref('')
 const filterRole = ref('')
 const filterVerified = ref('')
+
+const verifiedOptions = [
+  { value: '', label: 'Semua Status' },
+  { value: 'true', label: 'Terverifikasi' },
+  { value: 'false', label: 'Diajukan Verifikasi' },
+]
 
 // Modal states
 const showModal = ref(false)
@@ -122,17 +129,16 @@ function formatDate(dateStr: string) {
             />
           </div>
           <div class="filter-selects">
-            <select v-model="filterRole" class="filter-select" @change="applyFilters">
-              <option value="">Semua Role</option>
-              <option v-for="role in roles" :key="role.name" :value="role.name">
-                {{ role.name }}
-              </option>
-            </select>
-            <select v-model="filterVerified" class="filter-select" @change="applyFilters">
-              <option value="">Semua Status</option>
-              <option value="true">Terverifikasi</option>
-              <option value="false">Diajukan Verifikasi</option>
-            </select>
+            <FilterDropdown
+              v-model="filterRole"
+              :options="[{ value: '', label: 'Semua Role' }, ...roles.map(r => ({ value: r.name, label: r.name }))]"
+              placeholder="Semua Role"
+            />
+            <FilterDropdown
+              v-model="filterVerified"
+              :options="verifiedOptions"
+              placeholder="Semua Status"
+            />
             <Button variant="secondary" size="sm" @click="applyFilters">Cari</Button>
           </div>
         </div>
@@ -298,27 +304,6 @@ function formatDate(dateStr: string) {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
-}
-
-.filter-select {
-  padding: 8px 32px 8px 12px;
-  border: 1.5px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: var(--font-primary, inherit);
-  color: var(--color-text, #1e293b);
-  background: var(--color-surface, #fff);
-  outline: none;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  min-width: 160px;
-}
-
-.filter-select:focus {
-  border-color: #2d6a9f;
 }
 
 .users-count {
