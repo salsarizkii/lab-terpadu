@@ -5,7 +5,7 @@ import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import DataTable from '../components/common/DataTable.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import FlowSteps from '../components/user/FlowSteps.vue'
@@ -33,6 +33,18 @@ const columns = [
   { key: 'action', label: 'Aksi' },
 ]
 
+function getJudul(row: BeritaAcara) {
+  if (row.judul_penelitian) return row.judul_penelitian
+  // Fallback: cari dari form_data
+  if (row.form_data) {
+    const values = Object.values(row.form_data)
+    for (const v of values) {
+      if (typeof v === 'string' && v.length > 5) return v
+    }
+  }
+  return '-'
+}
+
 const filtered = computed(() => {
   if (!filterStatus.value) return items.value
   return items.value.filter(i => i.status === filterStatus.value)
@@ -40,7 +52,7 @@ const filtered = computed(() => {
 
 const statusMap: Record<string, string> = {
   draft: 'Draft',
-  pending: 'Menunggu',
+  pending: 'Diajukan',
   revision: 'Revisi',
   approved: 'Disetujui',
   rejected: 'Ditolak',
@@ -79,16 +91,21 @@ onMounted(async () => {
           <select v-model="filterStatus" class="form-select">
             <option value="">Semua Status</option>
             <option value="draft">Draft</option>
-            <option value="pending">Menunggu</option>
+              <option value="pending">Diajukan</option>
             <option value="revision">Revisi</option>
             <option value="approved">Disetujui</option>
             <option value="rejected">Ditolak</option>
           </select>
         </div>
 
-        <LoadingSpinner v-if="loading" size="lg" />
+        <SkeletonTable v-if="loading" :cols="4" :rows="5" />
 
         <DataTable v-else :columns="columns" :data="filtered">
+          <template #cell-judul_penelitian="{ row }">
+            <span class="judul-link" @click.stop="router.push(`/user/berita-acara/${row.id}`)">
+              {{ getJudul(row) }}
+            </span>
+          </template>
           <template #cell-status="{ row }">
             <Badge :type="statusTypeMap[row.status]" :text="statusMap[row.status]" />
           </template>
@@ -97,12 +114,12 @@ onMounted(async () => {
           </template>
           <template #cell-action="{ row }">
             <div class="action-cell">
-              <Button size="sm" variant="outline" @click.stop="router.push(`/user/berita-acara/${row.id}`)">
-                Detail
-              </Button>
-              <Button size="sm" variant="ghost" @click.stop="openFlow(row)">
-                Alur
-              </Button>
+              <button class="action-icon" title="Detail" @click.stop="router.push(`/user/berita-acara/${row.id}`)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button class="action-icon" title="Alur" @click.stop="openFlow(row)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>
+              </button>
             </div>
           </template>
         </DataTable>
@@ -140,6 +157,35 @@ onMounted(async () => {
 }
 .action-cell {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+}
+
+.judul-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.judul-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action-icon:hover {
+  background: #f1f5f9;
+  color: #1e293b;
 }
 </style>

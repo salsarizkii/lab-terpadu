@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import Badge from '../common/Badge.vue'
-import type { BeritaAcara } from '../../types'
+import { formTemplateApi } from '../../api/formTemplate'
+import type { BeritaAcara, FormField } from '../../types'
 
 const props = defineProps<{
   beritaAcara: BeritaAcara
+  hideSections?: string[]
 }>()
+
+const templateFields = ref<FormField[]>([])
 
 const legacyFields = [
   { label: 'Nama Pemohon', key: 'nama_pemohon' },
@@ -29,7 +34,7 @@ const legacyFields = [
 
 const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'default'; label: string }> = {
   draft: { type: 'default', label: 'Draft' },
-  pending: { type: 'warning', label: 'Menunggu' },
+  pending: { type: 'warning', label: 'Diajukan' },
   revision: { type: 'danger', label: 'Revisi' },
   approved: { type: 'success', label: 'Disetujui' },
   rejected: { type: 'danger', label: 'Ditolak' },
@@ -41,7 +46,9 @@ function hasFormData(): boolean {
 }
 
 function formatFieldKey(key: string): string {
-  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const field = templateFields.value.find(f => `field_${f.id}` === key)
+  if (field) return field.label
+  return key.replace(/^field_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function formatFieldValue(val: any): string {
@@ -59,6 +66,19 @@ function formatFieldValue(val: any): string {
   }
   return String(val)
 }
+
+async function loadTemplate() {
+  const tplId = (props.beritaAcara as any).form_template_id
+  if (!tplId) return
+  try {
+    const tpl = await formTemplateApi.getPublicTemplate(tplId)
+    if (tpl?.fields) templateFields.value = tpl.fields
+  } catch {}
+}
+
+watch(() => props.beritaAcara, () => {
+  if (hasFormData()) loadTemplate()
+}, { immediate: true })
 </script>
 
 <template>
@@ -94,7 +114,7 @@ function formatFieldValue(val: any): string {
       </tr>
     </table>
 
-    <div v-if="beritaAcara.status === 'approved' || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected'" class="detail__section">
+    <div v-if="!props.hideSections?.includes('verifikasi') && (beritaAcara.status === 'approved' || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected')" class="detail__section">
       <div class="detail__section-title">Informasi Verifikasi</div>
       <table class="detail__table">
         <tr>
@@ -123,7 +143,7 @@ function formatFieldValue(val: any): string {
       </table>
     </div>
 
-    <div class="detail__section">
+    <div v-if="!props.hideSections?.includes('pembayaran')" class="detail__section">
       <div class="detail__section-title">Informasi Pembayaran</div>
       <table class="detail__table">
         <tr v-if="beritaAcara.biaya">
@@ -136,7 +156,7 @@ function formatFieldValue(val: any): string {
             <template v-if="beritaAcara.payment">
               <Badge
                 :type="beritaAcara.payment.status === 'approved' ? 'success' : beritaAcara.payment.status === 'rejected' ? 'danger' : 'warning'"
-                :text="beritaAcara.payment.status === 'approved' ? 'Lunas' : beritaAcara.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'"
+                :text="beritaAcara.payment.status === 'approved' ? 'Lunas' : beritaAcara.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'"
               />
             </template>
             <span v-else>Belum dibayar</span>

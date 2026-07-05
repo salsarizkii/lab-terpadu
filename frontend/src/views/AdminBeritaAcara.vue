@@ -4,93 +4,65 @@ import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Button from '../components/common/Button.vue'
-import Modal from '../components/common/Modal.vue'
-import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification.vue'
-import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
-import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
 import { useAuthStore } from '../stores/authStore'
-import type { BeritaAcara, User } from '../types'
+import type { BeritaAcara } from '../types'
 import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
 const router = useRouter()
 
 const items = ref<BeritaAcara[]>([])
-const analysts = ref<User[]>([])
 const loading = ref(true)
-const filterStatus = ref('')
-const selectedBa = ref<BeritaAcara | null>(null)
-const showVerifyModal = ref(false)
-const showDetailModal = ref(false)
-const showAssignModal = ref(false)
+const activeTab = ref('all')
+
+const tabs = [
+  { key: 'all', label: 'Semua' },
+  { key: 'pending', label: 'Diajukan' },
+  { key: 'revision', label: 'Revisi' },
+  { key: 'approved', label: 'Disetujui' },
+]
 
 const statusMap: Record<string, string> = {
-  draft: 'Draft', pending: 'Menunggu', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
+  draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
 }
 
 const filtered = computed(() => {
-  if (!filterStatus.value) return items.value
-  return items.value.filter(i => i.status === filterStatus.value)
+  if (activeTab.value === 'all') return items.value
+  return items.value.filter(i => i.status === activeTab.value)
 })
 
-onMounted(async () => {
+onMounted(fetchData)
+
+async function fetchData() {
+  loading.value = true
   try {
-    const [baRes, aRes] = await Promise.all([
-      adminApi.getBeritaAcara(),
-      adminApi.getAnalysts(),
-    ])
-    items.value = baRes
-    analysts.value = aRes
+    items.value = await adminApi.getBeritaAcara()
   } catch {
     toast.error('Gagal memuat data')
   } finally {
     loading.value = false
   }
-})
-
-function openVerify(item: BeritaAcara) {
-  selectedBa.value = item
-  showVerifyModal.value = true
 }
 
-function openDetail(item: BeritaAcara) {
-  selectedBa.value = item
-  showDetailModal.value = true
+function goToDetail(id: number) {
+  router.push(`/admin/berita-acara/${id}`)
 }
 
-function openAssign(item: BeritaAcara) {
-  selectedBa.value = item
-  showAssignModal.value = true
-}
-
-async function handleVerify(data: any) {
-  if (!selectedBa.value) return
-  try {
-    const updated = await adminApi.updateStatus(selectedBa.value.id, data)
-    const idx = items.value.findIndex(i => i.id === selectedBa.value!.id)
-    if (idx !== -1) items.value[idx] = updated
-    toast.success('Status Berita Acara diperbarui')
-    showVerifyModal.value = false
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
+function getJudul(item: BeritaAcara) {
+  if (item.judul_penelitian) return item.judul_penelitian
+  if (item.form_data) {
+    const values = Object.values(item.form_data)
+    for (const v of values) {
+      if (typeof v === 'string' && v.length > 5) return v
+    }
   }
-}
-
-async function handleAssign(analystId: number) {
-  if (!selectedBa.value) return
-  try {
-    await adminApi.assignAnalyst(selectedBa.value.id, analystId)
-    toast.success('Analis berhasil di-assign')
-    showAssignModal.value = false
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
-  }
+  return '-'
 }
 </script>
 
@@ -105,62 +77,62 @@ async function handleAssign(analystId: number) {
       </div>
 
       <Card>
-        <div class="filter-bar">
-          <select v-model="filterStatus" class="form-select">
-            <option value="">Semua Status</option>
-            <option value="pending">Menunggu</option>
-            <option value="revision">Revisi</option>
-            <option value="approved">Disetujui</option>
-            <option value="rejected">Ditolak</option>
-          </select>
+        <div class="tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="tab-btn"
+            :class="{ active: activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}
+          </button>
         </div>
 
-        <LoadingSpinner v-if="loading" size="lg" />
+        <div class="toolbar">
+          <span class="filter-count">{{ filtered.length }} data</span>
+          <div class="toolbar-actions">
+            <Button variant="ghost" size="sm" @click="fetchData">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              Muat Ulang
+            </Button>
+          </div>
+        </div>
+
+        <SkeletonTable v-if="loading" :cols="6" :rows="5" />
 
         <div v-else class="table-wrap">
           <table class="table">
             <thead>
               <tr>
-                <th>Judul</th>
+                <th class="th-nomor">No</th>
+                <th>Judul Penelitian</th>
                 <th>Pemohon</th>
                 <th>Status</th>
                 <th>Analis</th>
-                <th>Aksi</th>
+                <th class="th-aksi">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in filtered" :key="item.id">
-                <td>{{ item.judul_penelitian || '-' }}</td>
+              <tr v-for="(item, index) in filtered" :key="item.id">
+                <td class="td-nomor">{{ index + 1 }}</td>
+                <td class="td-judul">{{ getJudul(item) }}</td>
                 <td>{{ item.user?.name || '-' }}</td>
                 <td><Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" /></td>
-                <td>{{ item.analyst?.name || '-' }}</td>
-                <td class="actions">
-                  <Button size="sm" variant="ghost" @click="openDetail(item)">Detail</Button>
-                  <Button size="sm" @click="openVerify(item)">Verifikasi</Button>
-                  <Button size="sm" variant="outline" @click="openAssign(item)" :disabled="item.status !== 'approved' || item.payment?.status !== 'approved'">
-                    Assign
-                  </Button>
+                <td>{{ item.analysts?.length ? item.analysts.map(a => a.name).join(', ') : (item.analyst?.name || '-') }}</td>
+                <td class="td-aksi">
+                  <button class="eye-btn" @click="goToDetail(item.id)" title="Lihat Detail">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td colspan="5" class="empty-cell">Tidak ada data</td>
+                <td colspan="6" class="empty-cell">Tidak ada data</td>
               </tr>
             </tbody>
           </table>
         </div>
       </Card>
-
-      <Modal :show="showDetailModal" title="Detail Berita Acara" size="lg" @close="showDetailModal = false">
-        <BeritaAcaraDetailView v-if="selectedBa" :berita-acara="selectedBa" />
-      </Modal>
-
-      <Modal :show="showVerifyModal" title="Verifikasi Berita Acara" size="lg" @close="showVerifyModal = false">
-        <BeritaAcaraVerification v-if="selectedBa" :berita-acara="selectedBa" @submit="handleVerify" />
-      </Modal>
-
-      <Modal :show="showAssignModal" title="Assign Analis" @close="showAssignModal = false">
-        <AnalystAssignment v-if="selectedBa" :berita-acara-id="selectedBa.id" :analysts="analysts" @assign="handleAssign" />
-      </Modal>
     </div>
   </AppLayout>
 </template>
@@ -168,13 +140,34 @@ async function handleAssign(analystId: number) {
 <style scoped>
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
-.filter-bar { margin-bottom: 16px; }
-.form-select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; min-width: 200px; }
+
+.tabs {
+  display: flex; gap: 0; border-bottom: none; margin-bottom: 16px;
+  background: #f1f5f9; border-radius: 10px; padding: 4px;
+}
+.tab-btn {
+  flex: 1; padding: 10px 0; border: none; background: none; font-size: 14px; font-weight: 500;
+  color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; border-radius: 8px;
+}
+.tab-btn:hover { color: #1e293b; }
+.tab-btn.active { color: #1e293b; font-weight: 600; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.filter-count { font-size: 13px; color: #94a3b8; }
+.toolbar-actions { display: flex; gap: 8px; }
+
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+.table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
-.actions { display: flex; gap: 8px; }
+.th-nomor, .td-nomor { width: 50px; text-align: center; }
+.th-aksi, .td-aksi { width: 60px; text-align: center; }
+.td-judul { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 
+.eye-btn {
+  background: none; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px;
+  cursor: pointer; color: #64748b; transition: all 0.15s; display: inline-flex; align-items: center;
+}
+.eye-btn:hover { background: #f1f5f9; border-color: #e2e8f0; color: #1e293b; }
 </style>

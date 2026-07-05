@@ -98,8 +98,24 @@ class FormTemplateController extends Controller
             'fields.*.is_required' => 'sometimes|boolean',
         ], $messages);
 
+        // Get existing locked fields to preserve them
+        $lockedFields = $template->fields()->where('locked', true)->get();
+
         $template->fields()->delete();
 
+        // Re-create locked fields first
+        foreach ($lockedFields as $lockedField) {
+            $template->fields()->create([
+                'label' => $lockedField->label,
+                'type' => $lockedField->type,
+                'options' => $lockedField->options,
+                'is_required' => $lockedField->is_required,
+                'sort_order' => 0,
+                'locked' => true,
+            ]);
+        }
+
+        // Then create user fields
         foreach ($validated['fields'] as $index => $field) {
             $options = null;
             if (isset($field['options'])) {
@@ -119,7 +135,7 @@ class FormTemplateController extends Controller
                 'type' => $field['type'],
                 'options' => $options,
                 'is_required' => $field['is_required'] ?? false,
-                'sort_order' => $index,
+                'sort_order' => $index + $lockedFields->count(),
             ]);
         }
 

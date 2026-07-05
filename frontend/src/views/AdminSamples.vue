@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Button from '../components/common/Button.vue'
 import { adminApi } from '../api/admin'
 import { useAuthStore } from '../stores/authStore'
@@ -53,7 +53,7 @@ async function markTaken(id: number) {
       </div>
 
       <Card>
-        <LoadingSpinner v-if="loading" size="lg" />
+        <SkeletonTable v-if="loading" :cols="4" :rows="5" />
 
         <div v-else class="table-wrap">
           <table class="table">
@@ -73,7 +73,7 @@ async function markTaken(id: number) {
                 <td>
                   <div class="row-actions">
                     <Button
-                      v-if="auth.hasPermission('pengujian_input') && s.berita_acara?.analyst_id"
+                      v-if="auth.hasPermission('sample_rekap') && s.berita_acara?.analyst_id"
                       size="sm"
                       @click="router.push('/admin/forms?type=rekap_analis')"
                     >
@@ -82,7 +82,7 @@ async function markTaken(id: number) {
                     <Button v-if="s.status === 'ready'" size="sm" @click="markTaken(s.id)">Sudah Diambil</Button>
                     <span v-else-if="s.status === 'taken'" class="text-muted">Selesai</span>
                     <span v-else-if="s.status === 'processing'" class="text-muted">Diproses Analis</span>
-                    <span v-else class="text-muted">Menunggu</span>
+                    <span v-else class="text-muted">Diajukan</span>
                   </div>
                 </td>
               </tr>

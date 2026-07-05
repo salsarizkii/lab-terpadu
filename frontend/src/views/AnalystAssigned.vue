@@ -1,35 +1,52 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import SampleDataForm from '../components/analyst/SampleDataForm.vue'
 import PengujianForm from '../components/analyst/PengujianForm.vue'
+import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
+import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import { analystApi } from '../api/analyst'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
 import { toast } from 'vue-sonner'
 
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
-const items = ref<BeritaAcara[]>([])
+
+const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
-const selectedBa = ref<BeritaAcara | null>(null)
 const showSampleModal = ref(false)
 const selectedSample = ref<any>(null)
 const showPengujianModal = ref(false)
-const pengujianBa = ref<BeritaAcara | null>(null)
 
-function openPengujian(ba: BeritaAcara) {
-  pengujianBa.value = ba
-  showPengujianModal.value = true
+const statusMap: Record<string, string> = {
+  draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
+}
+const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
+  draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
+}
+const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
+  pending: 'default', processing: 'warning', ready: 'success', taken: 'info',
+}
+const sampleStatusText: Record<string, string> = {
+  pending: 'Menunggu', processing: 'Diproses', ready: 'Siap Diambil', taken: 'Sudah Diambil',
 }
 
 onMounted(async () => {
+  const id = Number(route.params.id)
+  if (!id || isNaN(id)) {
+    toast.error('ID tidak valid')
+    loading.value = false
+    return
+  }
   try {
-    items.value = await analystApi.getBeritaAcara()
+    item.value = await analystApi.getBeritaAcaraDetail(id)
   } catch {
     toast.error('Gagal memuat data')
   } finally {
@@ -37,27 +54,17 @@ onMounted(async () => {
   }
 })
 
-function openSampleForm(sample: any, baId: number) {
-  selectedSample.value = { ...sample, berita_acara_id: baId }
+function openSampleForm(sample: any) {
+  selectedSample.value = { ...sample, berita_acara_id: item.value!.id }
   showSampleModal.value = true
 }
 
 async function handleSampleUpdate(data: any) {
-  if (!selectedSample.value) return
+  if (!selectedSample.value || !item.value) return
   try {
-    await analystApi.updateSample(
-      selectedSample.value.berita_acara_id,
-      selectedSample.value.id,
-      data
-    )
-    if (data.status) {
-      const ba = items.value.find(i => i.id === selectedSample.value!.berita_acara_id)
-      if (ba) {
-        const s = ba.samples?.find(s => s.id === selectedSample.value!.id)
-        if (s) s.status = data.status
-        if (data.test_result !== undefined && s) s.test_result = data.test_result
-      }
-    }
+    await analystApi.updateSample(item.value.id, selectedSample.value.id, data)
+    const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
+    item.value = updated
     toast.success('Data sampel diperbarui')
     showSampleModal.value = false
   } catch (e: any) {
@@ -65,14 +72,12 @@ async function handleSampleUpdate(data: any) {
   }
 }
 
-async function markReady(baId: number, sampleId: number) {
+async function markReady(sampleId: number) {
+  if (!item.value) return
   try {
-    await analystApi.markSampleReady(baId, sampleId)
-    const ba = items.value.find(i => i.id === baId)
-    if (ba) {
-      const s = ba.samples?.find(s => s.id === sampleId)
-      if (s) s.status = 'ready'
-    }
+    await analystApi.markSampleReady(item.value.id, sampleId)
+    const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
+    item.value = updated
     toast.success('Sampel siap diambil')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
@@ -80,25 +85,16 @@ async function markReady(baId: number, sampleId: number) {
 }
 
 async function handlePengujianSubmit(data: any) {
-  if (!pengujianBa.value) return
+  if (!item.value) return
   try {
-    const result = await analystApi.storePengujian(pengujianBa.value.id, data)
-    const ba = items.value.find(i => i.id === pengujianBa.value!.id)
-    if (ba) {
-      ba.pengujians = [result]
-    }
+    await analystApi.storePengujian(item.value.id, data)
+    const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
+    item.value = updated
     toast.success('Laporan pengujian disimpan')
     showPengujianModal.value = false
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   }
-}
-
-const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
-  pending: 'default',
-  processing: 'warning',
-  ready: 'success',
-  taken: 'info',
 }
 </script>
 
@@ -106,62 +102,48 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
   <AppLayout>
     <div>
       <div class="page-header">
-        <h1>Tugas Saya</h1>
-      </div>
-      <LoadingSpinner v-if="loading" size="lg" />
-
-      <div v-else-if="items.length === 0" class="empty">
-        <Card>
-          <div class="empty-text">Belum ada tugas yang di-assign</div>
-        </Card>
+        <div class="page-header__left">
+          <Button variant="outline" @click="router.push('/analyst/samples')">Kembali</Button>
+          <h1>Detail Sampel</h1>
+        </div>
+        <Badge v-if="item" :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
       </div>
 
-      <div v-else class="task-list">
-        <Card v-for="ba in items" :key="ba.id" :title="ba.judul_penelitian || 'Berita Acara'">
-          <div class="task-header">
-            <div class="task-meta">
-              <span>Pemohon: {{ ba.user?.name || '-' }}</span>
-              <span> | </span>
-              <Badge :type="ba.status === 'approved' ? 'success' : 'warning'" :text="ba.status" />
-            </div>
+      <SkeletonDetail v-if="loading" />
+
+      <template v-else-if="item">
+        <div class="detail-grid">
+          <div class="detail-main">
+            <Card title="Data Berita Acara">
+              <BeritaAcaraDetailView :berita-acara="item" :hide-sections="['verifikasi', 'pembayaran']" />
+            </Card>
           </div>
 
-          <div class="samples-section">
-            <h4 class="section-title">Data Sampel</h4>
-            <div v-if="!ba.samples || ba.samples.length === 0" class="empty-text">Belum ada sampel</div>
-            <div v-else class="sample-card-list">
-              <div v-for="s in ba.samples" :key="s.id" class="sample-card">
-                <div class="sample-info">
-                  <div class="sample-name">{{ s.name }}</div>
-                  <div class="sample-detail">{{ s.quantity || '-' }} {{ s.unit || '' }}</div>
-                  <Badge :type="sampleStatusType[s.status]" :text="s.status" />
+          <div class="detail-sidebar">
+            <Card title="Laporan Pengujian">
+              <div v-if="item.pengujians && item.pengujians.length">
+                <div class="pengujian-done">Sudah dilaporkan</div>
+                <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="showPengujianModal = true">Edit Laporan</Button>
+              </div>
+              <div v-else>
+                <div v-if="item.samples && item.samples.length > 0 && item.samples.every(s => s.status === 'ready')">
+                  <p class="pengujian-desc">Semua sampel sudah siap.</p>
+                  <Button v-if="auth.hasPermission('sample_rekap')" block @click="showPengujianModal = true">Laporkan Pengujian</Button>
                 </div>
-                <div class="sample-actions">
-                  <Button v-if="auth.hasPermission('sample_input')" size="sm" variant="outline" @click="openSampleForm(s, ba.id)">Input Data</Button>
-                  <Button v-if="auth.hasPermission('sample_status') && s.status === 'processing'" size="sm" variant="success" @click="markReady(ba.id, s.id)">Siap Diambil</Button>
-                </div>
+                <div v-else class="pengujian-pending">Tunggu semua sampel siap.</div>
               </div>
-            </div>
-          </div>
 
-          <div v-if="auth.hasPermission('pengujian_input')" class="pengujian-section">
-            <h4 class="section-title">Laporan Pengujian</h4>
-            <div v-if="ba.pengujians && ba.pengujians.length" class="pengujian-info">
-              <div class="pengujian-badge">Pengujian sudah dilaporkan</div>
-              <Button size="sm" variant="ghost" @click="openPengujian(ba)">Edit Laporan</Button>
-            </div>
-            <div v-else>
-              <div v-if="ba.samples && ba.samples.length > 0 && ba.samples.every(s => s.status === 'ready')" class="pengujian-ready">
-                <p class="pengujian-desc">Semua sampel sudah siap. Laporkan hasil pengujian.</p>
-                <Button size="sm" @click="openPengujian(ba)">Laporkan Pengujian</Button>
-              </div>
-              <div v-else class="pengujian-pending">
-                <p class="pengujian-desc">Tunggu semua sampel siap sebelum melaporkan pengujian.</p>
-              </div>
-            </div>
+              <div class="sticky-divider" />
+
+              <div v-if="item.rekap_analis_data" class="rekap-done">Rekap sudah diisi</div>
+              <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                {{ item.rekap_analis_data ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
+              </Button>
+            </Card>
           </div>
-        </Card>
-      </div>
+        </div>
+      </template>
 
       <Modal :show="showSampleModal" title="Input Data Sampel" @close="showSampleModal = false">
         <SampleDataForm
@@ -174,9 +156,9 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
 
       <Modal :show="showPengujianModal" title="Laporan Pengujian" size="lg" @close="showPengujianModal = false">
         <PengujianForm
-          v-if="pengujianBa"
-          :berita-acara="pengujianBa"
-          :existing="pengujianBa.pengujians?.[0] || null"
+          v-if="item"
+          :berita-acara="item"
+          :existing="item.pengujians?.[0] || null"
           @submit="handlePengujianSubmit"
         />
       </Modal>
@@ -185,31 +167,17 @@ const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'dang
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 24px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.page-header__left { display: flex; align-items: center; gap: 12px; }
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
-.empty-text { text-align: center; padding: 40px; color: #94a3b8; }
-.task-list { display: flex; flex-direction: column; gap: 20px; }
-.task-header { margin-bottom: 16px; }
-.task-meta { font-size: 14px; color: #475569; }
-.section-title { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0 0 12px; }
-.sample-card-list { display: flex; flex-direction: column; gap: 12px; }
-.sample-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-.sample-info { display: flex; flex-direction: column; gap: 4px; }
-.sample-name { font-weight: 500; color: #1e293b; }
-.sample-detail { font-size: 13px; color: #64748b; }
-.sample-actions { display: flex; gap: 8px; }
-.pengujian-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
-.pengujian-ready { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.pengujian-pending { color: #94a3b8; font-size: 14px; }
-.pengujian-desc { margin: 0; font-size: 14px; color: #475569; }
-.pengujian-info { display: flex; align-items: center; gap: 12px; }
-.pengujian-badge { font-size: 13px; color: #16a34a; font-weight: 500; }
 
+.detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+.detail-sidebar { position: sticky; top: 24px; }
+@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+.sticky-divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
+
+.pengujian-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
+.pengujian-desc { margin: 0 0 12px; font-size: 14px; color: #475569; }
+.pengujian-pending { color: #94a3b8; font-size: 14px; }
+.rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
 </style>

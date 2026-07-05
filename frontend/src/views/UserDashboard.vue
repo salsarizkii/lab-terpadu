@@ -6,7 +6,7 @@ import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonStats from '../components/common/SkeletonStats.vue'
 import FlowSteps from '../components/user/FlowSteps.vue'
 import { PlusSquare } from '@lucide/vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
@@ -51,7 +51,7 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
         </Button>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonStats v-if="loading" />
 
       <template v-else>
         <div class="stats">

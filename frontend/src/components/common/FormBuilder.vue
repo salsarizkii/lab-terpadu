@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { GripVertical, Trash2, File as FileIcon, ChevronRight, CircleDot, CheckSquare, Plus, FileQuestion, Type, AlignLeft, Hash, Mail, Phone, Calendar, Clock, List, ChevronDown, Minus, Heading, Copy } from '@lucide/vue'
+import { GripVertical, Trash2, File as FileIcon, ChevronRight, CircleDot, CheckSquare, Plus, FileQuestion, Type, AlignLeft, Hash, Mail, Phone, Calendar, Clock, List, ChevronDown, Minus, Heading, Copy, Lock } from '@lucide/vue'
 import type { FormField, FormFieldOption } from '../../types'
 
 const props = defineProps<{
@@ -205,12 +205,12 @@ function onDrop(e: DragEvent, toIndex: number) {
       <div
         class="field-card"
         :class="[
-          { 'field-card--selected': selectedIndex === index, 'field-card--dragging': dragIndex === index },
+          { 'field-card--selected': selectedIndex === index, 'field-card--dragging': dragIndex === index, 'field-card--locked': field.locked },
           `field-card--${field.type}`
         ]"
-        draggable="true"
+        :draggable="!field.locked"
         @click="selectedIndex = index"
-        @dragstart="onDragStart($event, index)"
+        @dragstart="field.locked ? undefined : onDragStart($event, index)"
         @dragend="onDragEnd"
       >
         <div class="field-card__header">
@@ -245,14 +245,15 @@ function onDrop(e: DragEvent, toIndex: number) {
               <input
                 class="field-label-input"
                 :value="field.label"
+                :readonly="field.locked"
                 @input="updateField(index, { label: ($event.target as HTMLInputElement).value })"
-                placeholder="Pertanyaan..."
+                :placeholder="field.locked ? '' : 'Pertanyaan...'"
                 @click.stop
               />
             </template>
           </div>
 
-          <div class="field-card__actions">
+          <div class="field-card__actions" v-if="!field.locked">
             <button class="field-action-btn" @click.stop="addField('text', index)" title="Tambah pertanyaan setelah ini">
               <Plus :size="15" />
             </button>
@@ -262,6 +263,9 @@ function onDrop(e: DragEvent, toIndex: number) {
             <button class="field-action-btn" @click.stop="duplicateField(index)" title="Duplikasi">
               <Copy :size="15" />
             </button>
+          </div>
+          <div v-else class="field-card__locked-badge">
+            <Lock :size="13" /> Permanen
           </div>
         </div>
 
@@ -346,7 +350,7 @@ function onDrop(e: DragEvent, toIndex: number) {
           <hr class="field-divider-preview" />
         </div>
 
-        <div class="field-card__footer">
+        <div v-if="!field.locked" class="field-card__footer">
           <label class="field-toggle" @click.stop>
             <input type="checkbox" :checked="field.is_required" @change="updateField(index, { is_required: ($event.target as HTMLInputElement).checked })" />
             Wajib diisi
@@ -417,6 +421,9 @@ function onDrop(e: DragEvent, toIndex: number) {
 .field-card--selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); position: relative; z-index: 10; }
 .field-card--heading, .field-card--paragraph, .field-card--divider { border-style: dashed; background: #fafbfc; }
 .field-card--dragging { opacity: 0.4; }
+.field-card--locked { border-color: #e2e8f0; background: #fafbfc; }
+.field-card--locked .field-card__drag { cursor: default; color: #e2e8f0; }
+.field-card--locked .field-label-input { color: #1e293b; cursor: default; }
 
 .field-card__header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
 .field-card__drag {
@@ -436,6 +443,18 @@ function onDrop(e: DragEvent, toIndex: number) {
   transition: opacity 0.15s;
 }
 .field-card:hover .field-card__actions { opacity: 1; }
+
+.field-card__locked-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
 
 .field-action-btn {
   width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent;

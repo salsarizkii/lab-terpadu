@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonCard from '../components/common/SkeletonCard.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { certificateApi } from '../api/certificate'
@@ -42,7 +42,7 @@ async function handleDownload(certificateId: number) {
         <h1>Sertifikat</h1>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonCard v-if="loading" />
 
       <div v-else class="cert-list">
         <Card v-for="item in items" :key="item.id" :title="item.judul_penelitian || 'Berita Acara'">

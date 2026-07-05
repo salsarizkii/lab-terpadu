@@ -12,8 +12,10 @@ class AnalystController extends Controller
 {
     public function beritaAcaraIndex()
     {
-        $beritaAcaras = BeritaAcara::where('analyst_id', auth()->id())
-            ->with(['user', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
+        $beritaAcaras = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })
+            ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
             ->get();
 
         return response()->json($beritaAcaras);
@@ -21,8 +23,10 @@ class AnalystController extends Controller
 
     public function beritaAcaraShow($id)
     {
-        $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())
-            ->with(['user', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })
+            ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
             ->findOrFail($id);
 
         return response()->json($beritaAcara);
@@ -30,7 +34,9 @@ class AnalystController extends Controller
 
     public function updateSample(Request $request, $id, $sampleId)
     {
-        $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())->findOrFail($id);
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
 
         $sample = Sample::where('berita_acara_id', $beritaAcara->id)
             ->findOrFail($sampleId);
@@ -56,7 +62,9 @@ class AnalystController extends Controller
 
     public function markSampleReady($id, $sampleId)
     {
-        $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())->findOrFail($id);
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
 
         $sample = Sample::where('berita_acara_id', $beritaAcara->id)
             ->findOrFail($sampleId);
@@ -71,7 +79,9 @@ class AnalystController extends Controller
 
     public function storePengujian(Request $request, $id)
     {
-        $beritaAcara = BeritaAcara::where('analyst_id', auth()->id())->findOrFail($id);
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
 
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
@@ -97,6 +107,30 @@ class AnalystController extends Controller
         return response()->json([
             'message' => 'Pengujian saved successfully',
             'data' => $pengujian,
+        ]);
+    }
+
+    public function storeRekapAnalis(Request $request, $id)
+    {
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
+
+        $validated = $request->validate([
+            'rekap_analis_data' => 'required|string',
+            'rekap_analis_template_id' => 'nullable|integer|exists:form_templates,id',
+        ]);
+
+        $data = json_decode($validated['rekap_analis_data'], true);
+
+        $beritaAcara->update([
+            'rekap_analis_data' => $data,
+            'rekap_analis_template_id' => $validated['rekap_analis_template_id'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Rekap analis saved successfully',
+            'data' => $beritaAcara->fresh(),
         ]);
     }
 }

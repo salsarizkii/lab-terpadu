@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
+use App\Models\FormField;
 use Illuminate\Http\Request;
 
 class BeritaAcaraController extends Controller
@@ -43,11 +44,20 @@ class BeritaAcaraController extends Controller
             'status_pelanggan' => 'nullable|string',
             'status_berkas' => 'nullable|string',
             'status' => 'nullable|string|in:draft,pending',
-            'form_data' => 'nullable|array',
+            'form_data' => 'nullable|string',
             'form_template_id' => 'nullable|integer|exists:form_templates,id',
         ]);
 
         $validated['user_id'] = auth()->id();
+
+        if (isset($validated['form_data']) && is_string($validated['form_data'])) {
+            $validated['form_data'] = json_decode($validated['form_data'], true);
+        }
+
+        // Extract judul_penelitian from form_data if not set directly
+        if (empty($validated['judul_penelitian']) && !empty($validated['form_data']) && !empty($validated['form_template_id'])) {
+            $validated['judul_penelitian'] = $this->extractJudulPenelitian($validated['form_data'], $validated['form_template_id']);
+        }
 
         $beritaAcara = BeritaAcara::create($validated);
 
@@ -70,6 +80,8 @@ class BeritaAcaraController extends Controller
     {
         $beritaAcara = BeritaAcara::where('user_id', auth()->id())
             ->findOrFail($id);
+
+        $isRevision = $beritaAcara->status === 'revision';
 
         if (!in_array($beritaAcara->status, ['draft', 'pending', 'revision'])) {
             return response()->json([
@@ -100,13 +112,32 @@ class BeritaAcaraController extends Controller
             'masa_berlaku_akses' => 'nullable|string',
             'status_pelanggan' => 'nullable|string',
             'status_berkas' => 'nullable|string',
+            'form_data' => 'nullable|string',
+            'form_template_id' => 'nullable|integer|exists:form_templates,id',
         ]);
+
+        if (isset($validated['form_data']) && is_string($validated['form_data'])) {
+            $validated['form_data'] = json_decode($validated['form_data'], true);
+        }
+
+        // Extract judul_penelitian from form_data if not set directly
+        if (empty($validated['judul_penelitian']) && !empty($validated['form_data'])) {
+            $templateId = $validated['form_template_id'] ?? $beritaAcara->form_template_id;
+            if (!empty($templateId)) {
+                $validated['judul_penelitian'] = $this->extractJudulPenelitian($validated['form_data'], $templateId);
+            }
+        }
+
+        // Auto-change status from revision to pending when user submits revision
+        if ($isRevision) {
+            $validated['status'] = 'pending';
+        }
 
         $beritaAcara->update($validated);
 
         return response()->json([
             'message' => 'Berita acara updated successfully',
-            'data' => $beritaAcara,
+            'data' => $beritaAcara->fresh(),
         ]);
     }
 
@@ -124,5 +155,21 @@ class BeritaAcaraController extends Controller
         $beritaAcara->delete();
 
         return response()->json(['message' => 'Berita acara deleted successfully']);
+    }
+
+    /**
+     * Extract judul_penelitian value from form_data by finding the field labeled "Judul Penelitian".
+     */
+    private function extractJudulPenelitian(array $formData, int $templateId): ?string
+    {
+        $field = FormField::where('form_template_id', $templateId)
+            ->where('label', 'LIKE', '%Judul Penelitian%')
+            ->first();
+
+        if ($field && isset($formData["field_{$field->id}"])) {
+            return $formData["field_{$field->id}"];
+        }
+
+        return null;
     }
 }

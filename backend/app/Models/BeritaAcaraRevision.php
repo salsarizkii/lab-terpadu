@@ -9,8 +9,16 @@ class BeritaAcaraRevision extends Model
     protected $fillable = [
         'berita_acara_id',
         'note',
+        'previous_form_data',
         'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'previous_form_data' => 'array',
+        ];
+    }
 
     public function beritaAcara()
     {

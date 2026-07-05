@@ -71,9 +71,10 @@ function toggleCheckbox(f: FormField, i: number, option: string) {
   errors.value.delete(key)
 }
 
-function validate(): { valid: boolean; firstErrorField?: string } {
+function validate(): { valid: boolean; firstErrorField?: string; missingFields: string[] } {
   errors.value.clear()
   let firstError: string | undefined
+  const missingFields: string[] = []
 
   for (let i = 0; i < props.fields.length; i++) {
     const f = props.fields[i]
@@ -94,11 +95,12 @@ function validate(): { valid: boolean; firstErrorField?: string } {
 
     if (isEmpty) {
       errors.value.add(key)
+      missingFields.push(f.label)
       if (!firstError) firstError = fieldId(f, i)
     }
   }
 
-  return { valid: errors.value.size === 0, firstErrorField: firstError }
+  return { valid: errors.value.size === 0, firstErrorField: firstError, missingFields }
 }
 
 function hasError(f: FormField, i: number): boolean {

@@ -37,4 +37,15 @@ export const analystApi = {
     )
     return data.data || data
   },
+
+  async storeRekapAnalis(beritaAcaraId: number, payload: {
+    rekap_analis_data: string
+    rekap_analis_template_id?: number | null
+  }): Promise<BeritaAcara> {
+    const { data } = await api.put(
+      `/analyst/berita-acara/${beritaAcaraId}/rekap-analis`,
+      payload
+    )
+    return data.data || data
+  },
 }

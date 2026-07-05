@@ -6,7 +6,7 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import FormInput from '../components/common/FormInput.vue'
 import FormTextarea from '../components/common/FormTextarea.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Badge from '../components/common/Badge.vue'
 import { roleApi } from '../api/role'
 import type { Role, Permission } from '../types'
@@ -103,12 +103,17 @@ function openCreateModal() {
   showCreateModal.value = true
 }
 
-function openEditModal(role: Role) {
+async function openEditModal(role: Role) {
   editingRole.value = role
   formName.value = role.name
   formDescription.value = role.description || ''
   formRequiresVerification.value = role.requires_verification
-  formPermissionIds.value = (role.permissions || []).map(p => p.id)
+  // Re-fetch permissions to ensure we have current IDs
+  try {
+    allPermissions.value = await roleApi.getPermissions()
+  } catch {}
+  const validIds = new Set(allPermissions.value.map(p => p.id))
+  formPermissionIds.value = (role.permissions || []).map(p => p.id).filter(id => validIds.has(id))
   showEditModal.value = true
 }
 
@@ -188,7 +193,7 @@ async function deleteRole() {
         </Button>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonTable v-if="loading" :cols="3" :rows="5" />
 
       <div v-else class="roles-grid">
         <div v-for="role in roles" :key="role.id" class="role-item">

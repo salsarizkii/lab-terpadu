@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import PaymentConfirmation from '../components/admin/PaymentConfirmation.vue'
@@ -68,13 +68,13 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
         <div class="filter-bar">
           <select v-model="filterStatus" class="form-select">
             <option value="">Semua Status</option>
-            <option value="pending">Menunggu</option>
+              <option value="pending">Diajukan</option>
             <option value="approved">Disetujui</option>
             <option value="rejected">Ditolak</option>
           </select>
         </div>
 
-        <LoadingSpinner v-if="loading" size="lg" />
+        <SkeletonTable v-if="loading" :cols="7" :rows="5" />
 
         <div v-else class="table-wrap">
           <table class="table">
@@ -96,7 +96,7 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
                 <td>Rp {{ Number(p.amount).toLocaleString('id-ID') }}</td>
                 <td>{{ p.discount_request ? 'Rp ' + Number(p.discount_request).toLocaleString('id-ID') : '-' }}</td>
                 <td class="cell-reason">{{ p.discount_reason || '-' }}</td>
-                <td><Badge :type="statusTypeMap[p.status]" :text="p.status === 'approved' ? 'Lunas' : p.status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td>
+                <td><Badge :type="statusTypeMap[p.status]" :text="p.status === 'approved' ? 'Lunas' : p.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td>
                 <td>
                   <Button size="sm" @click="openConfirm(p)">Proses</Button>
                 </td>

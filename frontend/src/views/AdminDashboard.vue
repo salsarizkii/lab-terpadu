@@ -3,7 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonStats from '../components/common/SkeletonStats.vue'
+import SkeletonCard from '../components/common/SkeletonCard.vue'
 import { adminApi } from '../api/admin'
 import type { BeritaAcara } from '../types'
 
@@ -19,8 +20,6 @@ onMounted(async () => {
     loading.value = false
   }
 })
-
-
 </script>
 
 <template>
@@ -30,13 +29,13 @@ onMounted(async () => {
         <h1>Dashboard Admin</h1>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonStats v-if="loading" />
 
       <template v-else>
         <div class="stats">
           <Card class="stat-card">
             <div class="stat-value">{{ items.filter(i => i.status === 'pending').length }}</div>
-            <div class="stat-label">Menunggu Verifikasi</div>
+            <div class="stat-label">Diajukan</div>
           </Card>
           <Card class="stat-card">
             <div class="stat-value">{{ items.filter(i => i.status === 'approved').length }}</div>
@@ -52,8 +51,8 @@ onMounted(async () => {
           </Card>
         </div>
 
-        <Card title="Berita Acara Menunggu">
-          <div v-if="items.filter(i => i.status === 'pending').length === 0" class="empty">Tidak ada yang menunggu</div>
+        <Card title="Berita Acara Diajukan">
+          <div v-if="items.filter(i => i.status === 'pending').length === 0" class="empty">Tidak ada yang diajukan</div>
           <div v-else class="ba-mini-list">
             <div v-for="item in items.filter(i => i.status === 'pending').slice(0, 5)" :key="item.id" class="ba-mini-item" @click="router.push(`/admin/berita-acara`)" style="cursor:pointer">
               <span class="ba-mini-title">{{ item.judul_penelitian || 'Tanpa Judul' }}</span>

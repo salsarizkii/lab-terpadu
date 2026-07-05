@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import DynamicForm from '../common/DynamicForm.vue'
-import LoadingSpinner from '../common/LoadingSpinner.vue'
+import SkeletonCard from '../common/SkeletonCard.vue'
 import Button from '../common/Button.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { FormField } from '../../types'
@@ -47,16 +47,20 @@ function scrollToField(fieldId: string) {
   const el = document.getElementById(fieldId)
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el.focus?.()
   }
 }
 
 function handleSubmit() {
-  if (!dynamicFormRef.value) return
+  if (!dynamicFormRef.value) {
+    toast.error('Form belum siap')
+    return
+  }
 
   const result = dynamicFormRef.value.validate()
   if (!result.valid) {
-    toast.error('Masih ada pertanyaan wajib yang belum diisi')
+    const names = result.missingFields.slice(0, 3).join(', ')
+    const extra = result.missingFields.length > 3 ? ` dan ${result.missingFields.length - 3} lainnya` : ''
+    toast.error(`Wajib diisi: ${names}${extra}`)
     if (result.firstErrorField) {
       setTimeout(() => scrollToField(result.firstErrorField!), 100)
     }
@@ -72,14 +76,14 @@ function handleSubmit() {
 
 <template>
   <div class="ba-form">
-    <LoadingSpinner v-if="loadingTemplate" size="md" />
+    <SkeletonCard v-if="loadingTemplate" :rows="5" />
 
     <div v-else-if="templateFields.length === 0" class="ba-form__empty">
       <p>Belum ada form template aktif untuk berita acara.</p>
       <p class="ba-form__empty-hint">Hubungi admin untuk membuat form template.</p>
     </div>
 
-    <form v-else class="ba-form__form" @submit.prevent="handleSubmit">
+    <div v-else class="ba-form__form">
       <div class="ba-form__section">
         <h3 class="ba-form__section-title">Formulir Berita Acara</h3>
         <DynamicForm
@@ -91,11 +95,11 @@ function handleSubmit() {
       </div>
 
       <div class="ba-form__actions">
-        <Button type="submit" :disabled="loading">
+        <Button :disabled="loading" @click="handleSubmit">
           {{ loading ? 'Saving...' : 'Submit' }}
         </Button>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 

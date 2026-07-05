@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Pause, Play, Pencil, Plus } from '@lucide/vue'
-import LoadingSpinner from './LoadingSpinner.vue'
+import SkeletonCard from './SkeletonCard.vue'
 import Button from './Button.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { FormTemplate } from '../../types'
@@ -74,7 +74,7 @@ function typeLabel(type: string) {
       </Button>
     </div>
 
-    <LoadingSpinner v-if="loading" size="lg" />
+    <SkeletonCard v-if="loading" :rows="4" />
 
     <div v-else-if="templates.length === 0" class="template-empty">
       <p>Belum ada template. Klik tombol di atas untuk membuat template baru.</p>

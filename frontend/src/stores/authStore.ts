@@ -63,6 +63,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(data: { name: string; email: string; phone?: string }) {
+    const res = await authApi.updateProfile(data)
+    user.value = res.user
+    localStorage.setItem('user', JSON.stringify(res.user))
+    return res.message
+  }
+
+  async function changePassword(data: { current_password: string; password: string; password_confirmation: string }) {
+    const res = await authApi.changePassword(data)
+    return res.message
+  }
+
   function initFromStorage() {
     const savedToken = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
@@ -86,6 +98,8 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     fetchMe,
+    updateProfile,
+    changePassword,
     initFromStorage,
     setAuth,
     clearAuth,

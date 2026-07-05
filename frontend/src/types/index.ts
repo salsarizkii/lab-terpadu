@@ -62,8 +62,11 @@ export interface BeritaAcara {
   diskon_diizinkan?: boolean
   form_data?: Record<string, any>
   form_template_id?: number
+  rekap_analis_data?: Record<string, any>
+  rekap_analis_template_id?: number
   user?: User
   analyst?: User
+  analysts?: User[]
   revisions?: BeritaAcaraRevision[]
   payment?: Payment
   samples?: Sample[]
@@ -77,6 +80,7 @@ export interface BeritaAcaraRevision {
   id: number
   berita_acara_id: number
   note: string
+  previous_form_data?: Record<string, any>
   created_by: number
   creator?: User
   created_at: string
@@ -132,6 +136,7 @@ export interface FormField {
   options?: FormFieldOption[]
   is_required: boolean
   sort_order?: number
+  locked?: boolean
 }
 
 export interface FormTemplate {

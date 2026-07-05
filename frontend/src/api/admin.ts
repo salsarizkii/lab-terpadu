@@ -17,9 +17,9 @@ export const adminApi = {
     return data.data || data
   },
 
-  async assignAnalyst(id: number, analystId: number): Promise<BeritaAcara> {
+  async assignAnalyst(id: number, analystIds: number[]): Promise<BeritaAcara> {
     const { data } = await api.put(`/admin/berita-acara/${id}/assign-analyst`, {
-      analyst_id: analystId,
+      analyst_ids: analystIds,
     })
     return data.data || data
   },
@@ -56,6 +56,11 @@ export const adminApi = {
 
   async verifyUser(id: number, isVerified: boolean): Promise<{ message: string; data: User }> {
     const { data } = await api.put(`/admin/users/${id}/verify`, { is_verified: isVerified })
+    return data
+  },
+
+  async deactivateUser(id: number): Promise<{ message: string; data: User }> {
+    const { data } = await api.put(`/admin/users/${id}/deactivate`)
     return data
   },
 }

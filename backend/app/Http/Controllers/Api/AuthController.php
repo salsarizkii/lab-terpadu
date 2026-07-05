@@ -109,5 +109,42 @@ class AuthController extends Controller
         $user->load('roleModel.permissions');
         return response()->json($user);
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user->update($validated);
+        $user->load('roleModel.permissions');
+
+        return response()->json([
+            'message' => 'Profile berhasil diperbarui',
+            'user' => $user,
+        ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json(['message' => 'Password lama tidak sesuai'], 422);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        return response()->json(['message' => 'Password berhasil diubah']);
+    }
 }
 

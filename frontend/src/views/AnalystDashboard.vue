@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonStats from '../components/common/SkeletonStats.vue'
 import Button from '../components/common/Button.vue'
 import { analystApi } from '../api/analyst'
 import type { BeritaAcara } from '../types'
@@ -29,7 +29,7 @@ onMounted(async () => {
         <h1>Dashboard Analis</h1>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonStats v-if="loading" />
 
       <template v-else>
         <div class="stats">
@@ -49,7 +49,7 @@ onMounted(async () => {
 
         <div class="quick-actions">
           <Card title="Aksi Cepat">
-            <Button @click="router.push('/analyst/assigned')">
+            <Button @click="router.push('/analyst/samples')">
               Lihat Tugas Saya
             </Button>
           </Card>
@@ -58,7 +58,7 @@ onMounted(async () => {
         <Card title="Tugas Terbaru">
           <div v-if="items.length === 0" class="empty">Belum ada tugas</div>
           <div v-else class="task-list">
-            <div v-for="item in items.slice(0, 5)" :key="item.id" class="task-item" @click="router.push('/analyst/assigned')">
+            <div v-for="item in items.slice(0, 5)" :key="item.id" class="task-item" @click="router.push('/analyst/samples')">
               <div class="task-title">{{ item.judul_penelitian || 'Tanpa Judul' }}</div>
               <div class="task-user">{{ item.user?.name || '-' }}</div>
             </div>

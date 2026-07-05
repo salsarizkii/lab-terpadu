@@ -10,7 +10,8 @@ class FormTemplateSeeder extends Seeder
 {
     public function run(): void
     {
-        $superadmin = User::where('email', 'superadmin@lab.com')->first();
+        $superadmin = User::where('role', 'superadmin')->first();
+        if (!$superadmin) return;
 
         // Default template untuk Berita Acara
         $ba = FormTemplate::firstOrCreate(
@@ -19,7 +20,7 @@ class FormTemplateSeeder extends Seeder
                 'name' => 'Formulir Berita Acara',
                 'description' => 'Formulir standar untuk pengajuan berita acara pengujian sampel',
                 'is_active' => true,
-                'created_by' => $superadmin?->id ?? 1,
+                'created_by' => $superadmin?->id,
             ]
         );
 
@@ -34,7 +35,7 @@ class FormTemplateSeeder extends Seeder
                 ['label' => 'Email', 'type' => 'email', 'is_required' => false, 'sort_order' => 6],
                 ['label' => 'Alamat', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 7],
                 ['label' => 'Informasi Penelitian', 'type' => 'heading', 'is_required' => false, 'sort_order' => 8],
-                ['label' => 'Judul Penelitian', 'type' => 'textarea', 'is_required' => true, 'sort_order' => 9],
+                ['label' => 'Judul Penelitian', 'type' => 'textarea', 'is_required' => true, 'sort_order' => 9, 'locked' => true],
                 ['label' => 'Akses Lab', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 10],
                 ['label' => 'Bahan / Contoh Uji', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 11],
                 ['label' => 'Kemasan / Packing', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 12],

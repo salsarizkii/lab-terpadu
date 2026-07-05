@@ -36,6 +36,8 @@ class BeritaAcara extends Model
         'diskon_diizinkan',
         'form_data',
         'form_template_id',
+        'rekap_analis_data',
+        'rekap_analis_template_id',
     ];
 
     protected function casts(): array
@@ -44,6 +46,7 @@ class BeritaAcara extends Model
             'status' => 'string',
             'diskon_diizinkan' => 'boolean',
             'form_data' => 'array',
+            'rekap_analis_data' => 'array',
         ];
     }
 
@@ -55,6 +58,11 @@ class BeritaAcara extends Model
     public function analyst()
     {
         return $this->belongsTo(User::class, 'analyst_id');
+    }
+
+    public function analysts()
+    {
+        return $this->belongsToMany(User::class, 'berita_acara_analysts', 'berita_acara_id', 'user_id');
     }
 
     public function revisions()

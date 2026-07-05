@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { ArrowLeft, Save, FileText, FlaskConical } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Button from '../components/common/Button.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
 import { formTemplateApi } from '../api/formTemplate'
 import { useAuthStore } from '../stores/authStore'
@@ -48,6 +48,7 @@ async function selectType(type: string) {
       type: f.type,
       options: f.options,
       is_required: f.is_required,
+      locked: f.locked,
     }))
     view.value = 'editor'
   } catch {
@@ -130,7 +131,7 @@ async function saveFields() {
         </div>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonCard v-if="loading" :rows="4" />
 
       <template v-else>
         <!-- View: 2 Cards -->

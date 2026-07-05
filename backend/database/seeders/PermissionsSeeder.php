@@ -30,12 +30,10 @@ class PermissionsSeeder extends Seeder
             // Sample
             ['name' => 'sample_view', 'display_name' => 'Melihat Sampel', 'group' => 'Sampel'],
             ['name' => 'sample_input', 'display_name' => 'Input Data Sampel', 'group' => 'Sampel'],
+            ['name' => 'sample_rekap', 'display_name' => 'Buat Rekap Analis', 'group' => 'Sampel'],
             ['name' => 'sample_status', 'display_name' => 'Update Status Sampel', 'group' => 'Sampel'],
-
-            // Pengujian
-            ['name' => 'pengujian_input', 'display_name' => 'Buat Rekap Analis', 'group' => 'Pengujian'],
-            ['name' => 'pengujian_riwayat_personal', 'display_name' => 'Personal Riwayat Rekap Analisis', 'group' => 'Pengujian'],
-            ['name' => 'pengujian_riwayat_semua', 'display_name' => 'Riwayat Seluruh Rekap Analisis', 'group' => 'Pengujian'],
+            ['name' => 'sample_riwayat_personal', 'display_name' => 'Personal Riwayat Rekap Analisis', 'group' => 'Sampel'],
+            ['name' => 'sample_riwayat_semua', 'display_name' => 'Riwayat Seluruh Rekap Analisis', 'group' => 'Sampel'],
 
             // Certificate
             ['name' => 'certificate_view', 'display_name' => 'Melihat Sertifikat', 'group' => 'Sertifikat'],
@@ -51,7 +49,6 @@ class PermissionsSeeder extends Seeder
             // Form
             ['name' => 'form_manage_berita_acara', 'display_name' => 'Kelola Form Berita Acara', 'group' => 'Form'],
             ['name' => 'form_manage_rekap_analis', 'display_name' => 'Kelola Form Rekap Analis', 'group' => 'Form'],
-            ['name' => 'form_fill', 'display_name' => 'Mengisi Form', 'group' => 'Form'],
         ];
 
         foreach ($permissions as $perm) {

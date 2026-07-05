@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
+import SkeletonCard from '../components/common/SkeletonCard.vue'
 import { paymentApi } from '../api/payment'
 import type { Payment } from '../types'
 
@@ -33,7 +33,7 @@ onMounted(async () => {
         <h1>Riwayat Pembayaran</h1>
       </div>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonCard v-if="loading" />
 
       <div v-else class="payment-list">
         <Card v-for="p in payments" :key="p.id">

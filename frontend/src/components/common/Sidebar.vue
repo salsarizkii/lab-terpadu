@@ -10,8 +10,7 @@ import {
   ClipboardList,
   KeyRound,
   Users,
-  Award,
-  ClipboardCheck
+  Award
 } from '@lucide/vue'
 
 const auth = useAuthStore()
@@ -20,53 +19,68 @@ const route = useRoute()
 const menuItems = computed(() => {
   const items = []
 
-  // Dashboard — harus punya permission 'dashboard'
+  // Dashboard
   if (auth.hasPermission('dashboard')) {
     const dashboardPath = auth.isAdmin ? '/admin/dashboard' : auth.isAnalyst ? '/analyst/dashboard' : '/user/dashboard'
     items.push({ label: 'Dashboard', path: dashboardPath, icon: LayoutDashboard })
   }
 
-  // Menu berdasarkan permission saja (tanpa cek role string)
-  // Custom roles: lihat Berita Acara (admin view) jika ada permission terkait
-  if (auth.hasPermission('berita_acara_view') && !auth.isUser) {
-    items.push({ label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText })
+  // Berita Acara — muncul jika ada SATU PUN permission berita_acara_*
+  const hasBeritaAcara = auth.hasPermission('berita_acara_view') ||
+    auth.hasPermission('berita_acara_create') ||
+    auth.hasPermission('berita_acara_verify') ||
+    auth.hasPermission('berita_acara_assign') ||
+    auth.hasPermission('berita_acara_riwayat_personal') ||
+    auth.hasPermission('berita_acara_riwayat_semua')
+  if (hasBeritaAcara) {
+    // Path admin jika bisa lihat semua/verifikasi/assign, path user jika hanya create/riwayat personal
+    const path = (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign'))
+      ? '/admin/berita-acara'
+      : '/user/berita-acara'
+    items.push({ label: 'Berita Acara', path, icon: FileText })
   }
 
-  if (auth.hasPermission('berita_acara_create') && auth.isUser) {
-    items.push({ label: 'Pengajuan', path: '/user/berita-acara', icon: FileText })
+  // Pembayaran — muncul jika ada SATU PUN permission payment_*
+  const hasPayment = auth.hasPermission('payment_view') ||
+    auth.hasPermission('payment_upload') ||
+    auth.hasPermission('payment_confirm') ||
+    auth.hasPermission('payment_discount')
+  if (hasPayment) {
+    const path = (auth.hasPermission('payment_view') || auth.hasPermission('payment_confirm'))
+      ? '/admin/payments'
+      : '/user/payments'
+    items.push({ label: 'Pembayaran', path, icon: CreditCard })
   }
 
-  if (auth.hasPermission('payment_view') && !auth.isUser) {
-    items.push({ label: 'Pembayaran', path: '/admin/payments', icon: CreditCard })
+  // Sampel — muncul jika ada SATU PUN permission sample_*
+  const hasSample = auth.hasPermission('sample_view') ||
+    auth.hasPermission('sample_input') ||
+    auth.hasPermission('sample_rekap') ||
+    auth.hasPermission('sample_status') ||
+    auth.hasPermission('sample_riwayat_personal') ||
+    auth.hasPermission('sample_riwayat_semua')
+  if (hasSample) {
+    const samplePath = auth.isAnalyst ? '/analyst/samples' : '/admin/samples'
+    items.push({ label: 'Sampel', path: samplePath, icon: FlaskConical })
   }
 
-  if (auth.hasPermission('payment_upload') && auth.isUser) {
-    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
-  }
-
-  // Sampel: tampil jika ada sample_view ATAU pengujian_input
-  if (auth.hasPermission('sample_view') || auth.hasPermission('pengujian_input')) {
-    items.push({ label: 'Sampel', path: '/admin/samples', icon: FlaskConical })
-  }
-
-  if (auth.hasPermission('role_manage')) {
-    items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
-  }
-
-  if (auth.hasPermission('user_view')) {
-    items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
-  }
-
+  // Kelola Form
   if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis')) {
     items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
   }
 
-  // Tugas Saya: hanya untuk role analyst (bukan admin/superadmin/custom)
-  if (auth.hasPermission('berita_acara_view') && auth.isAnalyst) {
-    items.push({ label: 'Tugas Saya', path: '/analyst/assigned', icon: ClipboardCheck })
+  // Kelola Role
+  if (auth.hasPermission('role_manage')) {
+    items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
   }
 
-  if (auth.hasPermission('certificate_download') && auth.isUser) {
+  // Kelola Pengguna
+  if (auth.hasPermission('user_view')) {
+    items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
+  }
+
+  // Sertifikat
+  if (auth.hasPermission('certificate_download')) {
     items.push({ label: 'Sertifikat', path: '/user/certificates', icon: Award })
   }
 

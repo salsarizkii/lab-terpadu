@@ -14,7 +14,7 @@ class AdminController extends Controller
 {
     public function beritaAcaraIndex()
     {
-        $query = BeritaAcara::with(['user', 'analyst', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+        $query = BeritaAcara::with(['user', 'analyst', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
 
         // Jika hanya punya permission riwayat personal, filter milik sendiri
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
@@ -28,7 +28,7 @@ class AdminController extends Controller
 
     public function beritaAcaraShow($id)
     {
-        $beritaAcara = BeritaAcara::with(['user', 'analyst', 'revisions', 'payment', 'samples', 'certificate'])
+        $beritaAcara = BeritaAcara::with(['user', 'analyst', 'analysts', 'revisions', 'payment', 'samples', 'certificate'])
             ->findOrFail($id);
 
         return response()->json($beritaAcara);
@@ -39,34 +39,19 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:approved,revision,rejected',
             'note' => 'required_if:status,revision|string',
-            'biaya' => 'required_if:status,approved|numeric|min:0',
-            'diskon_diizinkan' => 'sometimes|boolean',
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
         $data = ['status' => $request->status];
 
-        if ($request->status === 'approved') {
-            $data['biaya'] = $request->biaya;
-            $data['diskon_diizinkan'] = $request->boolean('diskon_diizinkan');
-        }
-
         $beritaAcara->update($data);
-
-        if ($request->status === 'approved') {
-            if (!$beritaAcara->payment) {
-                Payment::create([
-                    'berita_acara_id' => $beritaAcara->id,
-                    'amount' => $request->biaya,
-                ]);
-            }
-        }
 
         if ($request->status === 'revision') {
             BeritaAcaraRevision::create([
                 'berita_acara_id' => $beritaAcara->id,
                 'note' => $request->note,
+                'previous_form_data' => $beritaAcara->form_data,
                 'created_by' => auth()->id(),
             ]);
         }
@@ -80,26 +65,23 @@ class AdminController extends Controller
     public function assignAnalyst(Request $request, $id)
     {
         $request->validate([
-            'analyst_id' => 'required|exists:users,id',
+            'analyst_ids' => 'required|array|min:1',
+            'analyst_ids.*' => 'exists:users,id',
         ]);
-
-        $analyst = User::where('id', $request->analyst_id)->where('role', 'analyst')->first();
-
-        if (!$analyst) {
-            return response()->json(['message' => 'Invalid analyst'], 422);
-        }
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
-        if (!$beritaAcara->payment || $beritaAcara->payment->status !== 'approved') {
-            return response()->json(['message' => 'Payment must be confirmed before assigning analyst'], 422);
+        $validAnalysts = User::whereIn('id', $request->analyst_ids)->where('role', 'analyst')->pluck('id');
+
+        if ($validAnalysts->isEmpty()) {
+            return response()->json(['message' => 'Tidak ada analis valid yang dipilih'], 422);
         }
 
-        $beritaAcara->update(['analyst_id' => $request->analyst_id]);
+        $beritaAcara->analysts()->sync($validAnalysts);
 
         return response()->json([
-            'message' => 'Analyst assigned successfully',
-            'data' => $beritaAcara->load('analyst'),
+            'message' => 'Analis berhasil di-assign',
+            'data' => $beritaAcara->load('analysts'),
         ]);
     }
 
@@ -134,10 +116,10 @@ class AdminController extends Controller
 
     public function sampleIndex()
     {
-        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst');
+        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.analysts');
 
         // Jika hanya punya permission riwayat personal, filter milik sendiri
-        if (!auth()->user()->hasPermission('pengujian_riwayat_semua')) {
+        if (!auth()->user()->hasPermission('sample_riwayat_semua')) {
             $query->whereHas('beritaAcara', function ($q) {
                 $q->where('user_id', auth()->id());
             });
@@ -224,6 +206,22 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => "Akun {$user->name} berhasil {$status}",
+            'data' => $user,
+        ]);
+    }
+
+    public function deactivateUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role === 'superadmin') {
+            return response()->json(['message' => 'Tidak dapat menonaktifkan akun superadmin'], 403);
+        }
+
+        $user->update(['is_verified' => false]);
+
+        return response()->json([
+            'message' => "Akun {$user->name} berhasil dinonaktifkan",
             'data' => $user,
         ]);
     }

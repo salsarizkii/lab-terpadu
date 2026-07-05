@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import LoadingSpinner from '../components/common/LoadingSpinner.vue'
-import { Search, Users as UsersIcon, CheckCircle, XCircle } from '@lucide/vue'
+import SkeletonTable from '../components/common/SkeletonTable.vue'
+import Dropdown from '../components/common/Dropdown.vue'
+import DropdownItem from '../components/common/DropdownItem.vue'
+import { Search, Users as UsersIcon, ShieldCheck, ShieldOff, Ban } from '@lucide/vue'
 import { adminApi } from '../api/admin'
 import { roleApi } from '../api/role'
 import type { User, Role } from '../types'
@@ -15,16 +17,15 @@ const users = ref<User[]>([])
 const roles = ref<Role[]>([])
 const loading = ref(true)
 
-// Filters
 const searchQuery = ref('')
 const filterRole = ref('')
 const filterVerified = ref('')
 
-// Verify modal
-const showVerifyModal = ref(false)
-const verifyingUser = ref<User | null>(null)
-const verifyAction = ref(true)
-const verifyLoading = ref(false)
+// Modal states
+const showModal = ref(false)
+const modalType = ref<'verify' | 'revoke' | 'deactivate'>('verify')
+const selectedUser = ref<User | null>(null)
+const modalLoading = ref(false)
 
 async function fetchData() {
   loading.value = true
@@ -49,9 +50,7 @@ async function fetchData() {
 
 onMounted(fetchData)
 
-function applyFilters() {
-  fetchData()
-}
+function applyFilters() { fetchData() }
 
 function resetFilters() {
   searchQuery.value = ''
@@ -60,33 +59,42 @@ function resetFilters() {
   fetchData()
 }
 
-function openVerifyModal(user: User, action: boolean) {
-  verifyingUser.value = user
-  verifyAction.value = action
-  showVerifyModal.value = true
+function openModal(user: User, type: 'verify' | 'revoke' | 'deactivate') {
+  selectedUser.value = user
+  modalType.value = type
+  showModal.value = true
 }
 
-async function handleVerify() {
-  if (!verifyingUser.value) return
-  verifyLoading.value = true
+async function handleConfirm() {
+  if (!selectedUser.value) return
+  modalLoading.value = true
   try {
-    const res = await adminApi.verifyUser(verifyingUser.value.id, verifyAction.value)
+    let res
+    if (modalType.value === 'verify') {
+      res = await adminApi.verifyUser(selectedUser.value.id, true)
+    } else if (modalType.value === 'revoke') {
+      res = await adminApi.verifyUser(selectedUser.value.id, false)
+    } else {
+      res = await adminApi.deactivateUser(selectedUser.value.id)
+    }
     toast.success(res.message)
-    showVerifyModal.value = false
+    showModal.value = false
     await fetchData()
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal memproses verifikasi')
+    toast.error(e.response?.data?.message || 'Gagal memproses')
   } finally {
-    verifyLoading.value = false
+    modalLoading.value = false
   }
 }
 
+const modalConfig = {
+  verify: { title: 'Verifikasi Akun', icon: ShieldCheck, iconColor: '#059669', btnVariant: 'primary' as const, btnText: 'Verifikasi' },
+  revoke: { title: 'Cabut Verifikasi', icon: ShieldOff, iconColor: '#dc2626', btnVariant: 'danger' as const, btnText: 'Cabut' },
+  deactivate: { title: 'Nonaktifkan Akun', icon: Ban, iconColor: '#dc2626', btnVariant: 'danger' as const, btnText: 'Nonaktifkan' },
+}
+
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 </script>
 
@@ -123,14 +131,14 @@ function formatDate(dateStr: string) {
             <select v-model="filterVerified" class="filter-select" @change="applyFilters">
               <option value="">Semua Status</option>
               <option value="true">Terverifikasi</option>
-              <option value="false">Menunggu Verifikasi</option>
+              <option value="false">Diajukan Verifikasi</option>
             </select>
             <Button variant="secondary" size="sm" @click="applyFilters">Cari</Button>
           </div>
         </div>
       </Card>
 
-      <LoadingSpinner v-if="loading" size="lg" />
+      <SkeletonTable v-if="loading" :cols="7" :rows="5" />
 
       <div v-else>
         <div class="users-count">
@@ -156,7 +164,7 @@ function formatDate(dateStr: string) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in users" :key="user.id">
+              <tr v-for="user in users" :key="user.id" :data-user-id="user.id">
                 <td class="user-name">{{ user.name }}</td>
                 <td class="user-email">{{ user.email }}</td>
                 <td>{{ user.phone || '-' }}</td>
@@ -170,14 +178,20 @@ function formatDate(dateStr: string) {
                 </td>
                 <td class="user-date">{{ formatDate(user.created_at) }}</td>
                 <td>
-                  <button
-                    v-if="user.role !== 'superadmin'"
-                    class="verify-btn"
-                    :class="user.is_verified ? 'verify-btn--verified' : 'verify-btn--unverified'"
-                    @click="openVerifyModal(user, !user.is_verified)"
-                  >
-                    {{ user.is_verified ? 'Terverifikasi' : 'Verifikasi' }}
-                  </button>
+                  <div v-if="user.role !== 'superadmin'" class="action-cell">
+                    <Dropdown teleport placement="bottom-end">
+                      <template #trigger="{ toggle }">
+                        <button class="dots-btn" @click="toggle">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                        </button>
+                      </template>
+                      <template #default="{ close }">
+                        <DropdownItem v-if="!user.is_verified" :icon="ShieldCheck" @click="openModal(user, 'verify'); close()">Verifikasi</DropdownItem>
+                        <DropdownItem v-if="user.is_verified" :icon="ShieldOff" @click="openModal(user, 'revoke'); close()">Cabut Verifikasi</DropdownItem>
+                        <DropdownItem v-if="user.is_verified" :icon="Ban" variant="danger" @click="openModal(user, 'deactivate'); close()">Nonaktifkan Akun</DropdownItem>
+                      </template>
+                    </Dropdown>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -185,28 +199,26 @@ function formatDate(dateStr: string) {
         </div>
       </div>
 
-      <!-- Verify/Revoke Modal -->
-      <Modal :show="showVerifyModal" :title="verifyAction ? 'Verifikasi Akun' : 'Cabut Verifikasi'" size="sm" @close="showVerifyModal = false">
+      <!-- Confirm Modal -->
+      <Modal :show="showModal" :title="modalConfig[modalType].title" size="sm" @close="showModal = false">
         <div class="verify-confirm">
           <div class="verify-icon">
-            <CheckCircle v-if="verifyAction" :size="48" color="#059669" />
-            <XCircle v-else :size="48" color="#ef4444" />
+            <component :is="modalConfig[modalType].icon" :size="48" :color="modalConfig[modalType].iconColor" />
           </div>
-          <p v-if="verifyAction">
-            Verifikasi akun <strong>{{ verifyingUser?.name }}</strong> sebagai <strong class="role-highlight">{{ verifyingUser?.role }}</strong>?
+          <p v-if="modalType === 'verify'">
+            Verifikasi akun <strong>{{ selectedUser?.name }}</strong> sebagai <strong class="role-highlight">{{ selectedUser?.role }}</strong>?
+          </p>
+          <p v-else-if="modalType === 'revoke'">
+            Cabut verifikasi akun <strong>{{ selectedUser?.name }}</strong>? Pengguna tidak akan bisa login.
           </p>
           <p v-else>
-            Cabut verifikasi akun <strong>{{ verifyingUser?.name }}</strong>? Pengguna tidak akan bisa login.
+            Nonaktifkan akun <strong>{{ selectedUser?.name }}</strong>? Pengguna tidak akan bisa login sampai diaktifkan kembali.
           </p>
         </div>
         <template #footer>
-          <Button variant="secondary" @click="showVerifyModal = false">Batal</Button>
-          <Button
-            :variant="verifyAction ? 'primary' : 'danger'"
-            @click="handleVerify"
-            :loading="verifyLoading"
-          >
-            {{ verifyAction ? 'Verifikasi' : 'Cabut' }}
+          <Button variant="secondary" @click="showModal = false">Batal</Button>
+          <Button :variant="modalConfig[modalType].btnVariant" @click="handleConfirm" :loading="modalLoading">
+            {{ modalConfig[modalType].btnText }}
           </Button>
         </template>
       </Modal>
@@ -392,18 +404,6 @@ function formatDate(dateStr: string) {
   text-transform: capitalize;
 }
 
-.verify-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 14px;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
 .status-text {
   font-size: 13px;
   font-weight: 500;
@@ -415,26 +415,6 @@ function formatDate(dateStr: string) {
 
 .status--unverified {
   color: #dc2626;
-}
-
-.verify-btn--unverified {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.verify-btn--unverified:hover {
-  background: #fee2e2;
-}
-
-.verify-btn--verified {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-}
-
-.verify-btn--verified:hover {
-  background: #dcfce7;
 }
 
 .verify-confirm {
@@ -456,5 +436,28 @@ function formatDate(dateStr: string) {
 .role-highlight {
   text-transform: capitalize;
   color: #2d6a9f;
+}
+
+.action-cell {
+  position: relative;
+}
+
+.dots-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s ease;
+}
+
+.dots-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 </style>
