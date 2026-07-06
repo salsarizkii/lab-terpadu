@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BeritaAcara;
 use App\Models\Formula;
+use App\Services\CostCalculationService;
 use Illuminate\Http\Request;
 
 class FormulaController extends Controller
@@ -70,5 +72,35 @@ class FormulaController extends Controller
         $formula->delete();
 
         return response()->json(['message' => 'Rumus berhasil dihapus']);
+    }
+
+    /**
+     * Calculate cost for a berita_acara using this formula.
+     * POST /admin/formulas/{id}/calculate
+     */
+    public function calculate(Request $request, $id)
+    {
+        $formula = Formula::findOrFail($id);
+
+        $validated = $request->validate([
+            'berita_acara_id' => 'required|exists:berita_acaras,id',
+        ]);
+
+        $beritaAcara = BeritaAcara::findOrFail($validated['berita_acara_id']);
+        $calcService = new CostCalculationService();
+
+        try {
+            $result = $calcService->calculate($beritaAcara, $formula);
+            return response()->json([
+                'biaya' => $result['biaya'],
+                'resolved_values' => $result['resolved_values'],
+                'expression' => $formula->expression,
+                'unit' => $formula->unit,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghitung biaya: ' . $e->getMessage(),
+            ], 422);
+        }
     }
 }

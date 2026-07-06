@@ -9,6 +9,7 @@ import Modal from '../components/common/Modal.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
 import { analystApi } from '../api/analyst'
+import { formulaApi, type Formula } from '../api/formula'
 import { formTemplateApi } from '../api/formTemplate'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
@@ -30,6 +31,12 @@ const showDiscountModal = ref(false)
 const discountAmount = ref<string>('')
 const discountReason = ref<string>('')
 const submittingDiscount = ref(false)
+
+const formulas = ref<Formula[]>([])
+const selectedFormulaId = ref<number | null>(null)
+const calculating = ref(false)
+const calculatedBiaya = ref<number | null>(null)
+const resolvedValues = ref<Record<string, number> | null>(null)
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
@@ -79,6 +86,10 @@ function formatFieldValue(val: any): string {
   return String(val)
 }
 
+function formatPrice(val: number) {
+  return new Intl.NumberFormat('id-ID').format(Math.round(val))
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
   if (!id || isNaN(id)) {
@@ -87,9 +98,17 @@ onMounted(async () => {
     return
   }
   try {
-    item.value = await analystApi.getBeritaAcaraDetail(id)
+    const [baData, formulasData] = await Promise.all([
+      analystApi.getBeritaAcaraDetail(id),
+      formulaApi.getAll().then(r => r.data || []).catch(() => []),
+    ])
+    item.value = baData
+    formulas.value = Array.isArray(formulasData) ? formulasData : []
     if (item.value?.biaya) {
       biaya.value = String(item.value.biaya)
+    }
+    if (item.value?.formula_id) {
+      selectedFormulaId.value = item.value.formula_id
     }
     if (item.value?.form_template_id) {
       await loadTemplate(item.value.form_template_id)
@@ -137,6 +156,30 @@ function scrollToField(fieldId: string) {
   }
 }
 
+async function handleCalculate() {
+  if (!selectedFormulaId.value || !item.value) {
+    toast.error('Pilih rumus terlebih dahulu')
+    return
+  }
+  calculating.value = true
+  calculatedBiaya.value = null
+  resolvedValues.value = null
+  try {
+    const result = await analystApi.calculateCost(item.value.id, {
+      formula_id: selectedFormulaId.value,
+      rekap_analis_data: JSON.stringify(formValues.value),
+    })
+    calculatedBiaya.value = result.biaya
+    resolvedValues.value = result.resolved_values
+    biaya.value = String(result.biaya)
+    toast.success(`Biaya dihitung: Rp ${formatPrice(result.biaya)}`)
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menghitung biaya')
+  } finally {
+    calculating.value = false
+  }
+}
+
 async function handleSubmit() {
   if (!dynamicFormRef.value || !item.value) {
     toast.error('Form belum siap')
@@ -160,6 +203,7 @@ async function handleSubmit() {
       rekap_analis_data: JSON.stringify(formValues.value),
       rekap_analis_template_id: templateIdVal.value,
       biaya: biaya.value ? Number(biaya.value) : null,
+      formula_id: selectedFormulaId.value,
     })
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
     item.value = updated
@@ -250,8 +294,36 @@ async function handleSubmitDiscount() {
             />
 
             <div class="biaya-section">
-              <label class="biaya-label">Biaya (Rp)</label>
-              <div class="biaya-row">
+              <label class="biaya-label">Perhitungan Biaya</label>
+              <div class="formula-select-row">
+                <div class="formula-select-wrap">
+                  <select v-model="selectedFormulaId" class="formula-select">
+                    <option :value="null">Pilih rumus...</option>
+                    <option v-for="f in formulas" :key="f.id" :value="f.id">
+                      {{ f.name }} ({{ f.unit || 'Rupiah' }})
+                    </option>
+                  </select>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  :disabled="calculating || !selectedFormulaId"
+                  @click="handleCalculate"
+                >
+                  {{ calculating ? 'Menghitung...' : 'Hitung Biaya' }}
+                </Button>
+              </div>
+              <div v-if="resolvedValues" class="resolved-values">
+                <div class="resolved-title">Nilai yang digunakan:</div>
+                <div class="resolved-grid">
+                  <div v-for="(val, key) in resolvedValues" :key="String(key)" class="resolved-item">
+                    <span class="resolved-key">{{ String(key) }}</span>
+                    <span class="resolved-val">{{ formatPrice(val) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="biaya-row" style="margin-top: 12px;">
+                <label class="biaya-sublabel">Biaya (Rp)</label>
                 <input
                   v-model="biaya"
                   type="number"
@@ -322,10 +394,23 @@ async function handleSubmitDiscount() {
 .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
 
 .biaya-section { margin-top: 24px; padding: 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; }
-.biaya-label { display: block; font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 8px; }
+.biaya-label { display: block; font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 12px; }
+.biaya-sublabel { font-size: 14px; font-weight: 500; color: #92400e; white-space: nowrap; }
 .biaya-row { display: flex; gap: 12px; align-items: center; }
 .biaya-input { flex: 1; max-width: 320px; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; transition: border-color 0.2s; }
 .biaya-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+.formula-select-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.formula-select-wrap { flex: 1; max-width: 400px; }
+.formula-select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #1e293b; background: white; outline: none; cursor: pointer; }
+.formula-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+.resolved-values { margin-top: 8px; padding: 10px 12px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; }
+.resolved-title { font-size: 12px; font-weight: 500; color: #64748b; margin-bottom: 6px; }
+.resolved-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.resolved-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; }
+.resolved-key { color: #64748b; }
+.resolved-val { font-weight: 600; color: #1e293b; }
 
 .discount-form { display: flex; flex-direction: column; gap: 16px; }
 .discount-field { display: flex; flex-direction: column; gap: 6px; }

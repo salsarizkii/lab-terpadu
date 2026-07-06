@@ -11,13 +11,15 @@ return new class extends Migration
         Schema::table('berita_acaras', function (Blueprint $table) {
             $table->decimal('biaya', 15, 2)->nullable()->after('status_berkas');
             $table->boolean('diskon_diizinkan')->default(false)->after('biaya');
+            $table->foreignId('formula_id')->nullable()->after('biaya')->constrained('formulas')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
         Schema::table('berita_acaras', function (Blueprint $table) {
-            $table->dropColumn(['biaya', 'diskon_diizinkan']);
+            $table->dropForeign(['formula_id']);
+            $table->dropColumn(['biaya', 'diskon_diizinkan', 'formula_id']);
         });
     }
 };

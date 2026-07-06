@@ -208,9 +208,9 @@ function rebuildTokensFromExpression(expression: string, vars: FormulaVariable[]
 
 async function loadLatestFormula() {
   try {
-    const { data } = await formulaApi.getAll()
-    const formulas = data
-    if (formulas.length > 0) {
+    const res = await formulaApi.getAll()
+    const formulas = res.data
+    if (Array.isArray(formulas) && formulas.length > 0) {
       const latest = formulas[0]
       currentFormulaId.value = latest.id
       formulaName.value = latest.name
@@ -218,8 +218,8 @@ async function loadLatestFormula() {
       formulaUnit.value = latest.unit || 'Rupiah'
       rebuildTokensFromExpression(latest.expression, latest.variables || [])
     }
-  } catch {
-    // silent
+  } catch (e: any) {
+    console.error('Gagal memuat rumus:', e)
   }
 }
 

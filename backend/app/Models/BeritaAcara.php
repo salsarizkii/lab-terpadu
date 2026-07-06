@@ -38,6 +38,7 @@ class BeritaAcara extends Model
         'form_template_id',
         'rekap_analis_data',
         'rekap_analis_template_id',
+        'formula_id',
     ];
 
     protected function casts(): array
@@ -88,5 +89,10 @@ class BeritaAcara extends Model
     public function pengujians()
     {
         return $this->hasMany(Pengujian::class);
+    }
+
+    public function formula()
+    {
+        return $this->belongsTo(Formula::class);
     }
 }

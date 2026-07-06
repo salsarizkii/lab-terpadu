@@ -68,6 +68,7 @@ Route::middleware('api.token')->group(function () {
 
         // Formulas
         Route::apiResource('/formulas', FormulaController::class);
+        Route::post('/formulas/{id}/calculate', [FormulaController::class, 'calculate']);
 
         // Instrument Prices
         Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);
@@ -94,6 +95,9 @@ Route::middleware('api.token')->group(function () {
         // Discount Request — permission: sample_rekap
         Route::post('/berita-acara/{id}/discount', [AnalystController::class, 'requestDiscount'])
             ->middleware('permission:sample_rekap');
+
+        // Calculate cost — permission: sample_rekap
+        Route::post('/berita-acara/{id}/calculate', [AnalystController::class, 'calculateCost']);
     });
 
     // Superadmin routes for role and user management

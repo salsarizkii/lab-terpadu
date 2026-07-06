@@ -22,6 +22,13 @@ export interface FormulaVariable {
   default_value: number | null
 }
 
+export interface CalculateResult {
+  biaya: number
+  resolved_values: Record<string, number>
+  expression: string
+  unit: string
+}
+
 export const formulaApi = {
   getAll() {
     return api.get<Formula[]>('/admin/formulas')
@@ -37,5 +44,8 @@ export const formulaApi = {
   },
   delete(id: number) {
     return api.delete(`/admin/formulas/${id}`)
+  },
+  calculate(id: number, beritaAcaraId: number) {
+    return api.post<CalculateResult>(`/admin/formulas/${id}/calculate`, { berita_acara_id: beritaAcaraId })
   },
 }

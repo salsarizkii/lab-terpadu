@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
+use App\Models\Formula;
 use App\Models\Pengujian;
 use App\Models\Sample;
+use App\Services\CostCalculationService;
 use Illuminate\Http\Request;
 
 class AnalystController extends Controller
@@ -120,6 +122,7 @@ class AnalystController extends Controller
             'rekap_analis_data' => 'required|string',
             'rekap_analis_template_id' => 'nullable|integer|exists:form_templates,id',
             'biaya' => 'nullable|numeric|min:0',
+            'formula_id' => 'nullable|integer|exists:formulas,id',
         ]);
 
         $data = json_decode($validated['rekap_analis_data'], true);
@@ -130,9 +133,27 @@ class AnalystController extends Controller
         $updateData = [
             'rekap_analis_data' => $data,
             'rekap_analis_template_id' => $validated['rekap_analis_template_id'] ?? null,
+            'formula_id' => $validated['formula_id'] ?? null,
         ];
 
-        if (isset($validated['biaya'])) {
+        // Auto-calculate biaya if formula_id is provided
+        if (!empty($validated['formula_id'])) {
+            $formula = Formula::findOrFail($validated['formula_id']);
+            $calcService = new CostCalculationService();
+
+            // First save rekap_analis_data so the calculation can use it
+            $beritaAcara->update($updateData);
+
+            try {
+                $result = $calcService->calculate($beritaAcara, $formula);
+                $updateData['biaya'] = $result['biaya'];
+            } catch (\Exception $e) {
+                // If calculation fails, fall back to manual biaya or null
+                if (isset($validated['biaya']) && $validated['biaya'] !== null) {
+                    $updateData['biaya'] = $validated['biaya'];
+                }
+            }
+        } elseif (isset($validated['biaya'])) {
             $updateData['biaya'] = $validated['biaya'];
         }
 
@@ -172,5 +193,47 @@ class AnalystController extends Controller
             'message' => 'Discount request submitted',
             'data' => $payment,
         ]);
+    }
+
+    /**
+     * Calculate cost for a berita_acara using a formula.
+     * POST /analyst/berita-acara/{id}/calculate
+     */
+    public function calculateCost(Request $request, $id)
+    {
+        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
+                $q->where('users.id', auth()->id());
+            })->findOrFail($id);
+
+        $validated = $request->validate([
+            'formula_id' => 'required|integer|exists:formulas,id',
+            'rekap_analis_data' => 'nullable|string',
+        ]);
+
+        $formula = Formula::findOrFail($validated['formula_id']);
+
+        // If rekap_analis_data is provided, temporarily set it for calculation
+        if (isset($validated['rekap_analis_data'])) {
+            $data = json_decode($validated['rekap_analis_data'], true);
+            if (is_array($data)) {
+                $beritaAcara->rekap_analis_data = $data;
+            }
+        }
+
+        $calcService = new CostCalculationService();
+
+        try {
+            $result = $calcService->calculate($beritaAcara, $formula);
+            return response()->json([
+                'biaya' => $result['biaya'],
+                'resolved_values' => $result['resolved_values'],
+                'expression' => $formula->expression,
+                'unit' => $formula->unit,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghitung biaya: ' . $e->getMessage(),
+            ], 422);
+        }
     }
 }

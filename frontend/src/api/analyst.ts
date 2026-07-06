@@ -1,5 +1,6 @@
 import api from './axios'
 import type { BeritaAcara, Sample } from '../types'
+import type { CalculateResult } from './formula'
 
 export const analystApi = {
   async getBeritaAcara(params?: Record<string, any>): Promise<BeritaAcara[]> {
@@ -42,12 +43,24 @@ export const analystApi = {
     rekap_analis_data: string
     rekap_analis_template_id?: number | null
     biaya?: number | null
+    formula_id?: number | null
   }): Promise<BeritaAcara> {
     const { data } = await api.put(
       `/analyst/berita-acara/${beritaAcaraId}/rekap-analis`,
       payload
     )
     return data.data || data
+  },
+
+  async calculateCost(beritaAcaraId: number, payload: {
+    formula_id: number
+    rekap_analis_data?: string
+  }): Promise<CalculateResult> {
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/calculate`,
+      payload
+    )
+    return data
   },
 
   async requestDiscount(beritaAcaraId: number, payload: {

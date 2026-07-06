@@ -60,6 +60,7 @@ export interface BeritaAcara {
   status_berkas?: string
   biaya?: string
   diskon_diizinkan?: boolean
+  formula_id?: number | null
   form_data?: Record<string, any>
   form_template_id?: number
   rekap_analis_data?: Record<string, any>
