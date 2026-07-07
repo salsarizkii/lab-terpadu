@@ -86,4 +86,15 @@ export const analystApi = {
     )
     return data.data || data
   },
+
+  async uploadPaymentProof(beritaAcaraId: number, file: File): Promise<any> {
+    const formData = new FormData()
+    formData.append('payment_proof', file)
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/upload-proof`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return data.data || data
+  },
 }

@@ -93,6 +93,7 @@ export interface Payment {
   amount: string
   discount_request?: string
   discount_reason?: string
+  discount_status?: 'pending' | 'approved' | 'rejected'
   discount_approved?: string
   status: 'pending' | 'approved' | 'rejected'
   payment_proof?: string

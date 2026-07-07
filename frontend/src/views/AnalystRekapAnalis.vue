@@ -5,7 +5,6 @@ import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
-import Modal from '../components/common/Modal.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
 import { analystApi } from '../api/analyst'
@@ -28,10 +27,7 @@ const loadingTemplate = ref(true)
 const formValues = ref<Record<string, any>>({})
 const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 const biaya = ref<string>('')
-const showDiscountModal = ref(false)
-const discountReason = ref('')
 const keterangan = ref('')
-const submittingDiscount = ref(false)
 
 const formulas = ref<Formula[]>([])
 
@@ -347,29 +343,6 @@ async function handleSubmit() {
     saving.value = false
   }
 }
-
-function openDiscountModal() {
-  discountReason.value = ''
-  showDiscountModal.value = true
-}
-
-async function handleSubmitDiscount() {
-  if (!item.value) return
-
-  submittingDiscount.value = true
-  try {
-    await analystApi.requestDiscount(item.value.id, {
-      discount_request: totalBiaya.value || 0,
-      discount_reason: discountReason.value || undefined,
-    })
-    toast.success('Ajukan diskon berhasil')
-    showDiscountModal.value = false
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal mengajukan diskon')
-  } finally {
-    submittingDiscount.value = false
-  }
-}
 </script>
 
 <template>
@@ -532,11 +505,6 @@ async function handleSubmitDiscount() {
                 <span class="total-label">Total Biaya</span>
                 <span class="total-value">Rp {{ formatPrice(totalBiaya) }}</span>
               </div>
-
-              <!-- Diskon -->
-              <div class="discount-row">
-                <Button variant="outline" size="sm" @click="openDiscountModal">Ajukan Diskon</Button>
-              </div>
             </div>
 
             <div class="form-actions">
@@ -548,30 +516,6 @@ async function handleSubmitDiscount() {
           </div>
         </Card>
       </template>
-
-      <Modal :show="showDiscountModal" title="Ajukan Diskon" @close="showDiscountModal = false">
-        <div class="discount-form">
-          <div class="discount-total-info">
-            <span class="discount-total-label">Total biaya yang diajukan:</span>
-            <span class="discount-total-value">Rp {{ formatPrice(totalBiaya) }}</span>
-          </div>
-          <div class="discount-field">
-            <label class="discount-label">Alasan Diskon</label>
-            <textarea
-              v-model="discountReason"
-              class="discount-textarea"
-              placeholder="Masukkan alasan pengajuan diskon..."
-              rows="4"
-            />
-          </div>
-          <div class="discount-actions">
-            <Button variant="outline" @click="showDiscountModal = false">Batal</Button>
-            <Button :disabled="submittingDiscount" @click="handleSubmitDiscount">
-              {{ submittingDiscount ? 'Mengirim...' : 'Kirim Pengajuan' }}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   </AppLayout>
 </template>
@@ -656,4 +600,10 @@ async function handleSubmitDiscount() {
 .discount-textarea { padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #1e293b; outline: none; resize: vertical; transition: border-color 0.2s; }
 .discount-textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .discount-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+
+.discount-table { width: 100%; border-collapse: collapse; }
+.discount-table tr { border-bottom: 1px solid #f1f5f9; }
+.discount-table tr:last-child { border-bottom: none; }
+.discount-td-label { padding: 8px 12px 8px 0; font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap; }
+.discount-td-value { padding: 8px 0; font-size: 13px; color: #1e293b; }
 </style>

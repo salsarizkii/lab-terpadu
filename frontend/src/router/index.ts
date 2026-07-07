@@ -69,6 +69,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/user/payments/:id',
+    name: 'UserPaymentDetail',
+    component: () => import('../views/UserPaymentDetail.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/user/certificates',
     name: 'UserCertificate',
     component: () => import('../views/UserCertificate.vue'),
@@ -96,7 +102,7 @@ const routes = [
     path: '/admin/payments',
     name: 'AdminPayments',
     component: () => import('../views/AdminPayments.vue'),
-    meta: { auth: true, permission: 'payment_view', permissionOr: 'payment_upload,payment_confirm,payment_discount' },
+    meta: { auth: true, permission: 'payment_riwayat_semua' },
   },
   {
     path: '/admin/samples',
@@ -121,6 +127,12 @@ const routes = [
     name: 'FormTemplateEditor',
     component: () => import('../views/FormTemplateEditor.vue'),
     meta: { auth: true, permission: 'form_manage_berita_acara', permissionOr: 'form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen' },
+  },
+  {
+    path: '/admin/discounts',
+    name: 'AdminDiscounts',
+    component: () => import('../views/AdminDiscounts.vue'),
+    meta: { auth: true, permission: 'discount_verifikasi' },
   },
   {
     path: '/analyst/dashboard',

@@ -34,6 +34,17 @@ export const adminApi = {
     return data.data || data
   },
 
+  async confirmDiscount(beritaAcaraId: number, payload: {
+    status: 'approved' | 'rejected'
+    discount_approved?: number
+  }): Promise<any> {
+    const { data } = await api.put(
+      `/admin/berita-acara/${beritaAcaraId}/confirm-discount`,
+      payload
+    )
+    return data.data || data
+  },
+
   async getSamples(params?: Record<string, any>): Promise<Sample[]> {
     const { data } = await api.get<Sample[]>('/admin/samples', { params })
     return data

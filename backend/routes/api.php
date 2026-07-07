@@ -25,7 +25,7 @@ Route::middleware('api.token')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::put('/auth/password', [AuthController::class, 'changePassword']);
 
-    Route::middleware('api.token:user,berita_acara_create,berita_acara_view,berita_acara_riwayat_personal,sample_rekap,sample_riwayat_personal,payment_upload')->prefix('/user')->group(function () {
+    Route::middleware('api.token:user,berita_acara_create,berita_acara_view,berita_acara_riwayat_personal,sample_rekap,sample_riwayat_personal,payment_riwayat_personal,discount_riwayat_personal')->prefix('/user')->group(function () {
         // Berita Acara — permission: berita_acara_create
         Route::get('/berita-acara', [BeritaAcaraController::class, 'index']);
         Route::post('/berita-acara', [BeritaAcaraController::class, 'store'])
@@ -47,7 +47,7 @@ Route::middleware('api.token')->group(function () {
         Route::get('/certificates/{id}/download', [CertificateController::class, 'download']);
     });
 
-    Route::middleware('api.token:admin,berita_acara_view,berita_acara_riwayat_semua,sample_view,sample_rekap,payment_view,user_view,role_manage')->prefix('/admin')->group(function () {
+    Route::middleware('api.token:admin,berita_acara_view,berita_acara_riwayat_semua,sample_view,sample_rekap,payment_riwayat_semua,user_view,role_manage')->prefix('/admin')->group(function () {
         Route::get('/berita-acara', [AdminController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus']);
@@ -57,6 +57,10 @@ Route::middleware('api.token')->group(function () {
         Route::get('/samples', [AdminController::class, 'sampleIndex']);
         Route::put('/samples/{id}/mark-taken', [AdminController::class, 'markSampleTaken']);
         Route::get('/analysts', [AdminController::class, 'getAnalysts']);
+
+        // Discount management
+        Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])
+            ->middleware('permission:discount_verifikasi');
 
         // User management
         Route::get('/users', [AdminController::class, 'getUsers']);
@@ -96,15 +100,19 @@ Route::middleware('api.token')->group(function () {
         Route::post('/berita-acara/{id}/discount', [AnalystController::class, 'requestDiscount'])
             ->middleware('permission:sample_rekap');
 
+        // Upload Payment Proof — permission: sample_rekap
+        Route::post('/berita-acara/{id}/upload-proof', [AnalystController::class, 'uploadProof'])
+            ->middleware('permission:sample_rekap');
+
         // Calculate cost — permission: sample_rekap
         Route::post('/berita-acara/{id}/calculate', [AnalystController::class, 'calculateCost']);
 
         // Formulas (read-only for analysts)
         Route::get('/formulas', [AnalystController::class, 'listFormulas']);
 
-        // Discount management — permission: discount_manage
+        // Discount management — permission: discount_verifikasi
         Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])
-            ->middleware('permission:discount_manage');
+            ->middleware('permission:discount_verifikasi');
     });
 
     // Superadmin routes for role and user management

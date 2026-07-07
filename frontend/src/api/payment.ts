@@ -9,7 +9,7 @@ export const paymentApi = {
     return data.data || data
   },
 
-  async requestDiscount(id: number, payload: { discount_request: string }): Promise<Payment> {
+  async requestDiscount(id: number, payload: { discount_request: string; discount_reason?: string }): Promise<Payment> {
     const { data } = await api.post(`/user/payments/${id}/discount`, payload)
     return data.data || data
   },

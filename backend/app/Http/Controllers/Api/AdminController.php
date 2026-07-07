@@ -104,6 +104,7 @@ class AdminController extends Controller
         $data = ['status' => $request->status];
         if ($request->has('discount_approved')) {
             $data['discount_approved'] = $request->discount_approved;
+            $data['discount_status'] = $request->status;
         }
 
         $payment->update($data);

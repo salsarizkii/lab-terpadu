@@ -10,7 +10,8 @@ import {
   ClipboardList,
   KeyRound,
   Users,
-  Award
+  Award,
+  BadgePercent
 } from '@lucide/vue'
 
 const auth = useAuthStore()
@@ -40,16 +41,12 @@ const menuItems = computed(() => {
     items.push({ label: 'Berita Acara', path, icon: FileText })
   }
 
-  // Pembayaran — muncul jika ada SATU PUN permission payment_*
-  const hasPayment = auth.hasPermission('payment_view') ||
-    auth.hasPermission('payment_upload') ||
-    auth.hasPermission('payment_confirm') ||
-    auth.hasPermission('payment_discount')
-  if (hasPayment) {
-    const path = (auth.hasPermission('payment_view') || auth.hasPermission('payment_confirm'))
-      ? '/admin/payments'
-      : '/user/payments'
-    items.push({ label: 'Pembayaran', path, icon: CreditCard })
+  // Pembayaran — muncul jika ada permission payment_riwayat_*
+  if (auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('payment_riwayat_personal')) {
+    const isAdmin = auth.hasPermission('payment_riwayat_semua')
+    const path = isAdmin ? '/admin/payments' : '/user/payments'
+    const label = isAdmin ? 'Riwayat Pembayaran' : 'Pembayaran'
+    items.push({ label, path, icon: CreditCard })
   }
 
   // Sampel — muncul jika ada SATU PUN permission sample_*
@@ -62,6 +59,14 @@ const menuItems = computed(() => {
   if (hasSample) {
     const samplePath = auth.isAnalyst ? '/analyst/samples' : '/admin/samples'
     items.push({ label: 'Sampel', path: samplePath, icon: FlaskConical })
+  }
+
+  // Ajuan Diskon — muncul jika ada permission discount_riwayat_*
+  if (auth.hasPermission('discount_riwayat_semua') || auth.hasPermission('discount_riwayat_personal')) {
+    const isAdmin = auth.hasPermission('discount_riwayat_semua')
+    const path = isAdmin ? '/admin/discounts' : '/user/payments'
+    const label = isAdmin ? 'Ajuan Diskon' : 'Diskon Saya'
+    items.push({ label, path, icon: BadgePercent })
   }
 
   // Kelola Form — muncul jika ada SATU PUN permission form_manage_*

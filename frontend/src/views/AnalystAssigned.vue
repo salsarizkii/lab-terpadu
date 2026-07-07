@@ -25,17 +25,14 @@ const showSampleModal = ref(false)
 const selectedSample = ref<any>(null)
 const showPengujianModal = ref(false)
 
-const isAssigned = computed(() => {
-  if (!item.value || !auth.user) return false
-  return item.value.analysts?.some(a => a.id === auth.user!.id) ?? false
+const showDiscountSidebar = computed(() => {
+  return !!item.value?.payment && !!item.value.payment.discount_request && (item.value.payment as any).discount_status === 'pending'
 })
 
-const statusMap: Record<string, string> = {
-  draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
-}
-const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
-  draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
-}
+const hasRekap = computed(() => {
+  return item.value?.rekap_analis_data !== null && item.value?.rekap_analis_data !== undefined
+})
+
 const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default', processing: 'warning', ready: 'success', taken: 'info',
 }
@@ -53,8 +50,7 @@ function getSampleStatus(): string {
 }
 
 function getSampleBadgeType(): 'default' | 'warning' | 'success' | 'danger' | 'info' {
-  const status = getSampleStatus()
-  return sampleStatusType[status] || 'default'
+  return sampleStatusType[getSampleStatus()] || 'default'
 }
 
 function getSampleBadgeText(): string {
@@ -176,7 +172,7 @@ async function handleRejectDiscount() {
       <SkeletonDetail v-if="loading" />
 
       <template v-else-if="item">
-        <div class="detail-grid">
+        <div class="detail-grid" :class="{ 'has-discount-sidebar': showDiscountSidebar }">
           <div class="detail-main">
             <Card title="Data Berita Acara">
               <BeritaAcaraDetailView :berita-acara="item" :hide-sections="['verifikasi', 'pembayaran']" :override-status="getSampleBadgeObj()" />
@@ -184,6 +180,7 @@ async function handleRejectDiscount() {
           </div>
 
           <div class="detail-sidebar">
+            <!-- Laporan Pengujian -->
             <Card title="Laporan Pengujian">
               <div v-if="item.pengujians && item.pengujians.length">
                 <div class="pengujian-done">Sudah dilaporkan</div>
@@ -199,48 +196,37 @@ async function handleRejectDiscount() {
 
               <div class="sticky-divider" />
 
-              <div v-if="item.rekap_analis_data" class="rekap-done">Rekap sudah diisi</div>
+              <div v-if="hasRekap" class="rekap-done">Rekap sudah diisi</div>
               <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                {{ item.rekap_analis_data ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
+                {{ hasRekap ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
               </Button>
             </Card>
+          </div>
 
-            <!-- Ajuan Diskon (hanya untuk yang punya akses discount_manage) -->
-            <template v-if="auth.hasPermission('discount_manage')">
-              <Card v-if="item.payment && (item.payment.discount_request || item.payment.discount_reason)" title="Ajuan Diskon" style="margin-top: 16px;">
-                <table class="discount-table">
-                  <tr>
-                    <td class="discount-td-label">Jumlah Diajukan</td>
-                    <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment.discount_request || 0)) }}</td>
-                  </tr>
-                  <tr v-if="item.payment.discount_reason">
-                    <td class="discount-td-label">Alasan</td>
-                    <td class="discount-td-value">{{ item.payment.discount_reason }}</td>
-                  </tr>
-                  <tr>
-                    <td class="discount-td-label">Status</td>
-                    <td class="discount-td-value">
-                      <Badge
-                        :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'"
-                        :text="item.payment.status === 'approved' ? 'Disetujui' : item.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'"
-                      />
-                    </td>
-                  </tr>
-                  <tr v-if="item.payment.discount_approved">
-                    <td class="discount-td-label">Disetujui</td>
-                    <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment.discount_approved || 0)) }}</td>
-                  </tr>
-                </table>
-                <div v-if="item.payment.status === 'pending'" class="discount-actions-row">
-                  <Button variant="outline" size="sm" @click="handleApproveDiscount">Setujui</Button>
-                  <Button variant="outline" size="sm" @click="handleRejectDiscount">Tolak</Button>
-                </div>
-              </Card>
-              <Card v-else title="Ajuan Diskon" style="margin-top: 16px;">
-                <div class="discount-empty">Belum ada pengajuan diskon</div>
-              </Card>
-            </template>
+          <!-- SIDEBAR: Ajuan Diskon (panel terpisah) -->
+          <div v-if="showDiscountSidebar" class="detail-discount-sidebar">
+            <Card title="Ajuan Diskon">
+              <table class="discount-table">
+                <tr>
+                  <td class="discount-td-label">Jumlah Diajukan</td>
+                  <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment?.discount_request || 0)) }}</td>
+                </tr>
+                <tr v-if="item.payment?.discount_reason">
+                  <td class="discount-td-label">Alasan</td>
+                  <td class="discount-td-value">{{ item.payment.discount_reason }}</td>
+                </tr>
+                <tr>
+                  <td class="discount-td-label">Status</td>
+                  <td class="discount-td-value">
+                    <Badge type="warning" text="Menunggu" />
+                  </td>
+                </tr>
+              </table>
+              <div v-if="auth.hasPermission('discount_manage')" class="discount-actions-row">
+                <Button variant="outline" size="sm" @click="handleApproveDiscount">Setujui</Button>
+                <Button variant="outline" size="sm" @click="handleRejectDiscount">Tolak</Button>
+              </div>
+            </Card>
           </div>
         </div>
       </template>
@@ -272,19 +258,21 @@ async function handleRejectDiscount() {
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 
 .detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+.detail-grid.has-discount-sidebar { grid-template-columns: 1fr 360px 320px; }
 .detail-sidebar { position: sticky; top: 24px; }
-@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+.detail-discount-sidebar { position: sticky; top: 24px; }
+@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } .detail-grid.has-discount-sidebar { grid-template-columns: 1fr; } }
 .sticky-divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
 
 .pengujian-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
 .rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
+.pengujian-desc { margin: 0 0 12px; font-size: 14px; color: #475569; }
+.pengujian-pending { color: #94a3b8; font-size: 14px; }
+
 .discount-table { width: 100%; border-collapse: collapse; }
 .discount-table tr { border-bottom: 1px solid #f1f5f9; }
 .discount-table tr:last-child { border-bottom: none; }
 .discount-td-label { padding: 8px 12px 8px 0; font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap; }
 .discount-td-value { padding: 8px 0; font-size: 13px; color: #1e293b; }
-.discount-empty { font-size: 13px; color: #94a3b8; font-style: italic; }
 .discount-actions-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
-.pengujian-desc { margin: 0 0 12px; font-size: 14px; color: #475569; }
-.pengujian-pending { color: #94a3b8; font-size: 14px; }
 </style>

@@ -43,7 +43,7 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
 
 const canEdit = computed(() => item.value && ['draft', 'pending', 'revision'].includes(item.value.status))
 const canPay = computed(() => item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
-const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && item.value.payment.status === 'pending' && !item.value.payment.discount_request)
+const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && (item.value.payment as any).discount_status !== 'pending')
 const canDownloadCert = computed(() => item.value?.certificate)
 const hasClickedPerbaiki = ref(false)
 const isRevision = computed(() => item.value?.status === 'revision')
@@ -251,6 +251,7 @@ function getRevisionDiff(rev: any) {
                 <tr><td class="label">Jumlah</td><td>Rp {{ Number(item.payment.amount).toLocaleString('id-ID') }}</td></tr>
                 <tr v-if="item.payment.discount_request"><td class="label">Diskon Diminta</td><td>Rp {{ Number(item.payment.discount_request).toLocaleString('id-ID') }}</td></tr>
                 <tr v-if="item.payment.discount_reason"><td class="label">Alasan Diskon</td><td>{{ item.payment.discount_reason }}</td></tr>
+                <tr v-if="item.payment.discount_status"><td class="label">Status Diskon</td><td><Badge :type="(item.payment as any).discount_status === 'approved' ? 'success' : (item.payment as any).discount_status === 'rejected' ? 'danger' : 'warning'" :text="(item.payment as any).discount_status === 'approved' ? 'Disetujui' : (item.payment as any).discount_status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td></tr>
                 <tr v-if="item.payment.discount_approved"><td class="label">Diskon Disetujui</td><td>Rp {{ Number(item.payment.discount_approved).toLocaleString('id-ID') }}</td></tr>
                 <tr v-if="item.payment.payment_proof"><td class="label">Bukti Pembayaran</td><td>Sudah diupload</td></tr>
                 <tr><td class="label">Status</td><td><Badge :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'" :text="item.payment.status === 'approved' ? 'Lunas' : item.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td></tr>

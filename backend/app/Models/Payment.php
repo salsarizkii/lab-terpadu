@@ -11,6 +11,7 @@ class Payment extends Model
         'amount',
         'discount_request',
         'discount_reason',
+        'discount_status',
         'discount_approved',
         'status',
         'payment_proof',

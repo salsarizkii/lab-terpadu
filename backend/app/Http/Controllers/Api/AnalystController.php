@@ -51,8 +51,8 @@ class AnalystController extends Controller
         ]);
 
         $payment->update([
-            'status' => $validated['status'],
-            'discount_approved' => $validated['discount_approved'] ?? null,
+            'discount_status' => $validated['status'],
+            'discount_approved' => $validated['status'] === 'approved' ? ($validated['discount_approved'] ?? null) : null,
         ]);
 
         return response()->json([
@@ -236,14 +236,41 @@ class AnalystController extends Controller
         $payment = $beritaAcara->payment()->updateOrCreate(
             ['berita_acara_id' => $beritaAcara->id],
             [
+                'amount' => $beritaAcara->biaya ?? $validated['discount_request'],
                 'discount_request' => $validated['discount_request'],
                 'discount_reason' => $validated['discount_reason'] ?? null,
+                'discount_status' => 'pending',
             ]
         );
 
         return response()->json([
             'message' => 'Discount request submitted',
             'data' => $payment,
+        ]);
+    }
+
+    public function uploadProof(Request $request, $id)
+    {
+        $request->validate([
+            'payment_proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ]);
+
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
+
+        $payment = $beritaAcara->payment()->updateOrCreate(
+            ['berita_acara_id' => $beritaAcara->id],
+            [
+                'amount' => $beritaAcara->biaya ?? 0,
+            ]
+        );
+
+        $payment->update([
+            'payment_proof' => $request->file('payment_proof')->store('payments', 'public'),
+        ]);
+
+        return response()->json([
+            'message' => 'Bukti pembayaran berhasil diupload',
+            'data' => $payment->fresh(),
         ]);
     }
 

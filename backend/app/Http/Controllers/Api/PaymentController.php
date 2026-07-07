@@ -97,6 +97,7 @@ class PaymentController extends Controller
         $payment->update([
             'discount_request' => $request->discount_request,
             'discount_reason' => $request->discount_reason,
+            'discount_status' => 'pending',
         ]);
 
         return response()->json([
