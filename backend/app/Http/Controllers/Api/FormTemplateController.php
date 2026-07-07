@@ -90,6 +90,7 @@ class FormTemplateController extends Controller
 
         $validated = $request->validate([
             'fields' => 'required|array',
+            'fields.*.id' => 'nullable|integer',
             'fields.*.label' => 'required|string|max:200',
             'fields.*.type' => 'required|in:text,textarea,number,select,checkbox,radio,date,time,email,phone,file,heading,paragraph,divider',
             'fields.*.options' => 'nullable|array',
@@ -99,27 +100,11 @@ class FormTemplateController extends Controller
             'fields.*.locked' => 'sometimes|boolean',
         ], $messages);
 
-        // Get existing locked fields to preserve them
-        $lockedFields = $template->fields()->where('locked', true)->get();
+        $existingFields = $template->fields()->get()->keyBy('id');
+        $incomingIds = [];
+        $processedIds = [];
 
-        $template->fields()->delete();
-
-        // Re-create locked fields first
-        foreach ($lockedFields as $lockedField) {
-            $template->fields()->create([
-                'label' => $lockedField->label,
-                'type' => $lockedField->type,
-                'options' => $lockedField->options,
-                'is_required' => $lockedField->is_required,
-                'sort_order' => 0,
-                'locked' => true,
-            ]);
-        }
-
-        // Then create user fields (skip locked ones - already re-created above)
         foreach ($validated['fields'] as $index => $field) {
-            if (!empty($field['locked'])) continue;
-
             $options = null;
             if (isset($field['options'])) {
                 $options = array_filter(
@@ -133,13 +118,38 @@ class FormTemplateController extends Controller
                 if (empty($options)) $options = null;
             }
 
-            $template->fields()->create([
-                'label' => $field['label'],
-                'type' => $field['type'],
-                'options' => $options,
-                'is_required' => $field['is_required'] ?? false,
-                'sort_order' => $index + $lockedFields->count(),
-            ]);
+            $fieldId = $field['id'] ?? null;
+
+            if ($fieldId && isset($existingFields[$fieldId])) {
+                // Update existing field
+                $existingFields[$fieldId]->update([
+                    'label' => $field['label'],
+                    'type' => $field['type'],
+                    'options' => $options,
+                    'is_required' => $field['is_required'] ?? false,
+                    'sort_order' => $index,
+                    'locked' => !empty($field['locked']),
+                ]);
+                $incomingIds[] = $fieldId;
+            } else {
+                // Create new field
+                $newField = $template->fields()->create([
+                    'label' => $field['label'],
+                    'type' => $field['type'],
+                    'options' => $options,
+                    'is_required' => $field['is_required'] ?? false,
+                    'sort_order' => $index,
+                    'locked' => !empty($field['locked']),
+                ]);
+                $incomingIds[] = $newField->id;
+            }
+        }
+
+        // Delete fields that are no longer in the incoming list (skip locked)
+        foreach ($existingFields as $existing) {
+            if (!in_array($existing->id, $incomingIds) && !$existing->locked) {
+                $existing->delete();
+            }
         }
 
         $template->load('fields');

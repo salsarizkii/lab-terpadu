@@ -74,6 +74,7 @@ async function selectType(type: CardType) {
     const instruments = Array.isArray(instrumentsRes) ? instrumentsRes : []
 
     let fields = (template.fields || []).map(f => ({
+      id: f.id,
       label: f.label,
       type: f.type,
       options: f.options,
@@ -141,6 +142,7 @@ async function saveFields() {
   try {
     await formTemplateApi.syncFields(currentTemplate.value.id, {
       fields: currentFields.value.map((f) => ({
+        id: f.id,
         label: f.label,
         type: f.type,
         options: f.options,

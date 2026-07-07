@@ -44,6 +44,8 @@ export const analystApi = {
     rekap_analis_template_id?: number | null
     biaya?: number | null
     formula_id?: number | null
+    custom_items?: Array<{ name: string; amount: number }>
+    keterangan?: string | null
   }): Promise<BeritaAcara> {
     const { data } = await api.put(
       `/analyst/berita-acara/${beritaAcaraId}/rekap-analis`,
@@ -69,6 +71,17 @@ export const analystApi = {
   }): Promise<any> {
     const { data } = await api.post(
       `/analyst/berita-acara/${beritaAcaraId}/discount`,
+      payload
+    )
+    return data.data || data
+  },
+
+  async confirmDiscount(beritaAcaraId: number, payload: {
+    status: 'approved' | 'rejected'
+    discount_approved?: number
+  }): Promise<any> {
+    const { data } = await api.put(
+      `/analyst/berita-acara/${beritaAcaraId}/confirm-discount`,
       payload
     )
     return data.data || data

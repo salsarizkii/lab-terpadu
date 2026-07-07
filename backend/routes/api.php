@@ -98,6 +98,13 @@ Route::middleware('api.token')->group(function () {
 
         // Calculate cost — permission: sample_rekap
         Route::post('/berita-acara/{id}/calculate', [AnalystController::class, 'calculateCost']);
+
+        // Formulas (read-only for analysts)
+        Route::get('/formulas', [AnalystController::class, 'listFormulas']);
+
+        // Discount management — permission: discount_manage
+        Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])
+            ->middleware('permission:discount_manage');
     });
 
     // Superadmin routes for role and user management

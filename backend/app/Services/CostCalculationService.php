@@ -20,24 +20,65 @@ class CostCalculationService
     {
         $values = [];
 
+        // Get selected instruments from "Metode/Instrumen" checkbox field
+        // Search in both form_data and rekap_analis_data
+        $selectedInstruments = [];
+        $formData = $beritaAcara->form_data ?? [];
+        $rekapData = $beritaAcara->rekap_analis_data ?? [];
+
+        // Find the checkbox field that contains instrument selections
+        // It stores an array like ["Analisis Sukrosa (Luff Shrool)", "XRF"]
+        foreach ([$formData, $rekapData] as $data) {
+            foreach ($data as $fieldKey => $fieldValue) {
+                if (is_array($fieldValue) && !empty($fieldValue)) {
+                    // Check if any value matches an instrument name
+                    foreach ($fieldValue as $v) {
+                        if (is_string($v) && InstrumentPrice::where('name', $v)->exists()) {
+                            $selectedInstruments = array_merge($selectedInstruments, $fieldValue);
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+        $selectedInstruments = array_unique($selectedInstruments);
+
+        // Index instruments by their order (0-based)
+        $instrumentPrices = [];
+        foreach ($selectedInstruments as $idx => $instrumentName) {
+            $price = InstrumentPrice::where('name', $instrumentName)->value('price_regular');
+            $instrumentPrices[$idx] = [
+                'name' => $instrumentName,
+                'price' => (float) ($price ?? 0),
+            ];
+        }
+
         foreach ($formula->variables as $var) {
             $key = $var['key'];
             $source = $var['source'] ?? 'berita_acara';
             $formFieldId = $var['form_field_id'] ?? null;
 
             if ($source === 'instrumen') {
-                // Instrument variables: resolve price from instrument_prices table
-                // The variable label like "Instrumen 1" maps to the first instrument_prices record
-                // If there's a specific instrument_id, use that; otherwise match by name
+                // Resolve instrument price from selected instruments
                 $instrumentId = $var['instrument_id'] ?? null;
+                $label = $var['label'] ?? $key;
+
                 if ($instrumentId) {
+                    // Specific instrument ID assigned
                     $price = InstrumentPrice::where('id', $instrumentId)->value('price_regular');
+                    $values[$key] = (float) ($price ?? 0);
                 } else {
-                    // Match by variable label against instrument_prices.name
-                    $label = $var['label'] ?? $key;
-                    $price = InstrumentPrice::where('name', $label)->value('price_regular');
+                    // Match by order: "Instrumen 1" → index 0, "Instrumen 2" → index 1, etc.
+                    $orderMatch = preg_match('/(\d+)$/', $label, $matches);
+                    if ($orderMatch) {
+                        $idx = (int) $matches[1] - 1; // 1-based to 0-based
+                        $values[$key] = $instrumentPrices[$idx]['price'] ?? 0;
+                    } else {
+                        // Try matching by name directly
+                        $price = InstrumentPrice::where('name', $label)->value('price_regular');
+                        $values[$key] = (float) ($price ?? 0);
+                    }
                 }
-                $values[$key] = (float) ($price ?? 0);
             } else {
                 // Form field variables: resolve from form_data or rekap_analis_data
                 $dataKey = 'field_' . $formFieldId;

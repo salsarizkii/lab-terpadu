@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Badge from '../common/Badge.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { BeritaAcara, FormField } from '../../types'
@@ -47,11 +47,22 @@ function hasFormData(): boolean {
 }
 
 function formatFieldKey(key: string): string {
-  // Try to find label from template
   const field = templateFields.value.find(f => `field_${f.id}` === key)
   if (field) return field.label
-  // Fallback: clean up key
   return key.replace(/^field_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function resolveFieldValue(field: FormField): any {
+  const fd = (props.beritaAcara as any).form_data
+  if (!fd) return undefined
+  // 1. Direct ID match
+  const byId = fd[`field_${field.id}`]
+  if (byId !== undefined) return byId
+  // 2. Match by label: find old form_data entry whose formatted key matches this field's label
+  for (const [key, val] of Object.entries(fd)) {
+    if (formatFieldKey(key) === field.label) return val
+  }
+  return undefined
 }
 
 function formatFieldValue(val: any): string {
@@ -69,6 +80,35 @@ function formatFieldValue(val: any): string {
   }
   return String(val)
 }
+
+const templateInputFields = computed(() => {
+  return templateFields.value.filter(f => f.type !== 'heading' && f.type !== 'paragraph' && f.type !== 'divider')
+})
+
+const matchedKeys = computed(() => {
+  const keys = new Set<string>()
+  if (!templateFields.value.length) return keys
+  for (const field of templateFields.value) {
+    keys.add(`field_${field.id}`)
+  }
+  const fd = (props.beritaAcara as any).form_data || {}
+  for (const key of Object.keys(fd)) {
+    if (formatFieldKey(key) && templateFields.value.some(f => f.label === formatFieldKey(key))) {
+      keys.add(key)
+    }
+  }
+  return keys
+})
+
+const extraFormData = computed(() => {
+  const fd = (props.beritaAcara as any).form_data
+  if (!fd) return {}
+  const result: Record<string, any> = {}
+  for (const [key, val] of Object.entries(fd)) {
+    if (!matchedKeys.value.has(key)) result[key] = val
+  }
+  return result
+})
 
 async function loadTemplate() {
   const tplId = (props.beritaAcara as any).form_template_id
@@ -115,16 +155,24 @@ watch(() => props.beritaAcara, () => {
       </div>
     </div>
 
-    <!-- Dynamic form_data -->
-    <table v-if="hasFormData()" class="detail__table">
-      <tr v-for="(value, key) in (beritaAcara as any).form_data" :key="key">
+    <!-- Template fields (latest version) -->
+    <table v-if="templateInputFields.length > 0" class="detail__table">
+      <tr v-for="field in templateInputFields" :key="field.id">
+        <td class="detail__td-label">{{ field.label }}</td>
+        <td class="detail__td-value">{{ formatFieldValue(resolveFieldValue(field)) }}</td>
+      </tr>
+    </table>
+
+    <!-- Extra form_data not matched to template (old submissions) -->
+    <table v-if="Object.keys(extraFormData).length > 0" class="detail__table">
+      <tr v-for="(value, key) in extraFormData" :key="key">
         <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
         <td class="detail__td-value">{{ formatFieldValue(value) }}</td>
       </tr>
     </table>
 
     <!-- Legacy hardcoded fields -->
-    <table v-else class="detail__table">
+    <table v-if="!hasFormData() && templateInputFields.length === 0" class="detail__table">
       <tr v-for="f in legacyFields" :key="f.key">
         <td class="detail__td-label">{{ f.label }}</td>
         <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>

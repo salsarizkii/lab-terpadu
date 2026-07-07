@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
@@ -24,6 +24,11 @@ const loading = ref(true)
 const showSampleModal = ref(false)
 const selectedSample = ref<any>(null)
 const showPengujianModal = ref(false)
+
+const isAssigned = computed(() => {
+  if (!item.value || !auth.user) return false
+  return item.value.analysts?.some(a => a.id === auth.user!.id) ?? false
+})
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
@@ -121,6 +126,40 @@ async function handlePengujianSubmit(data: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   }
 }
+
+function formatPrice(val: number) {
+  return new Intl.NumberFormat('id-ID').format(Math.round(val))
+}
+
+async function handleApproveDiscount() {
+  if (!item.value) return
+  try {
+    const discountAmount = Number(item.value.payment?.discount_request || 0)
+    await analystApi.confirmDiscount(item.value.id, {
+      status: 'approved',
+      discount_approved: discountAmount,
+    })
+    const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
+    item.value = updated
+    toast.success('Diskon disetujui')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menyetujui diskon')
+  }
+}
+
+async function handleRejectDiscount() {
+  if (!item.value) return
+  try {
+    await analystApi.confirmDiscount(item.value.id, {
+      status: 'rejected',
+    })
+    const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
+    item.value = updated
+    toast.success('Diskon ditolak')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menolak diskon')
+  }
+}
 </script>
 
 <template>
@@ -166,6 +205,42 @@ async function handlePengujianSubmit(data: any) {
                 {{ item.rekap_analis_data ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
               </Button>
             </Card>
+
+            <!-- Ajuan Diskon (hanya untuk yang punya akses discount_manage) -->
+            <template v-if="auth.hasPermission('discount_manage')">
+              <Card v-if="item.payment && (item.payment.discount_request || item.payment.discount_reason)" title="Ajuan Diskon" style="margin-top: 16px;">
+                <table class="discount-table">
+                  <tr>
+                    <td class="discount-td-label">Jumlah Diajukan</td>
+                    <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment.discount_request || 0)) }}</td>
+                  </tr>
+                  <tr v-if="item.payment.discount_reason">
+                    <td class="discount-td-label">Alasan</td>
+                    <td class="discount-td-value">{{ item.payment.discount_reason }}</td>
+                  </tr>
+                  <tr>
+                    <td class="discount-td-label">Status</td>
+                    <td class="discount-td-value">
+                      <Badge
+                        :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'"
+                        :text="item.payment.status === 'approved' ? 'Disetujui' : item.payment.status === 'rejected' ? 'Ditolak' : 'Menunggu'"
+                      />
+                    </td>
+                  </tr>
+                  <tr v-if="item.payment.discount_approved">
+                    <td class="discount-td-label">Disetujui</td>
+                    <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment.discount_approved || 0)) }}</td>
+                  </tr>
+                </table>
+                <div v-if="item.payment.status === 'pending'" class="discount-actions-row">
+                  <Button variant="outline" size="sm" @click="handleApproveDiscount">Setujui</Button>
+                  <Button variant="outline" size="sm" @click="handleRejectDiscount">Tolak</Button>
+                </div>
+              </Card>
+              <Card v-else title="Ajuan Diskon" style="margin-top: 16px;">
+                <div class="discount-empty">Belum ada pengajuan diskon</div>
+              </Card>
+            </template>
           </div>
         </div>
       </template>
@@ -202,7 +277,14 @@ async function handlePengujianSubmit(data: any) {
 .sticky-divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
 
 .pengujian-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
+.rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
+.discount-table { width: 100%; border-collapse: collapse; }
+.discount-table tr { border-bottom: 1px solid #f1f5f9; }
+.discount-table tr:last-child { border-bottom: none; }
+.discount-td-label { padding: 8px 12px 8px 0; font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap; }
+.discount-td-value { padding: 8px 0; font-size: 13px; color: #1e293b; }
+.discount-empty { font-size: 13px; color: #94a3b8; font-style: italic; }
+.discount-actions-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
 .pengujian-desc { margin: 0 0 12px; font-size: 14px; color: #475569; }
 .pengujian-pending { color: #94a3b8; font-size: 14px; }
-.rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
 </style>

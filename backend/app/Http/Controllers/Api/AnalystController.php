@@ -12,33 +12,76 @@ use Illuminate\Http\Request;
 
 class AnalystController extends Controller
 {
-    public function beritaAcaraIndex()
+    private function findBeritaAcaraForUser($id, $withRelations = true)
     {
-        $beritaAcaras = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })
-            ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
+        $user = auth()->user();
+        $query = BeritaAcara::query();
+        if ($withRelations) {
+            $query->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+        }
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
+            $query->whereHas('analysts', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+        return $query->findOrFail($id);
+    }
+
+    public function listFormulas()
+    {
+        $formulas = Formula::with('creator:id,name')
+            ->orderByDesc('created_at')
             ->get();
 
-        return response()->json($beritaAcaras);
+        return response()->json($formulas);
+    }
+
+    public function confirmDiscount(Request $request, $id)
+    {
+        $beritaAcara = BeritaAcara::findOrFail($id);
+        $payment = $beritaAcara->payment;
+
+        if (!$payment) {
+            return response()->json(['message' => 'Pembayaran tidak ditemukan'], 404);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'discount_approved' => 'nullable|numeric|min:0',
+        ]);
+
+        $payment->update([
+            'status' => $validated['status'],
+            'discount_approved' => $validated['discount_approved'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Diskon berhasil ' . ($validated['status'] === 'approved' ? 'disetujui' : 'ditolak'),
+            'data' => $payment->fresh(),
+        ]);
+    }
+
+    public function beritaAcaraIndex()
+    {
+        $user = auth()->user();
+        $query = BeritaAcara::query()
+            ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
+            $query->whereHas('analysts', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+        return response()->json($query->get());
     }
 
     public function beritaAcaraShow($id)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })
-            ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
-            ->findOrFail($id);
-
-        return response()->json($beritaAcara);
+        return response()->json($this->findBeritaAcaraForUser($id));
     }
 
     public function updateSample(Request $request, $id, $sampleId)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
 
         $sample = Sample::where('berita_acara_id', $beritaAcara->id)
             ->findOrFail($sampleId);
@@ -64,9 +107,7 @@ class AnalystController extends Controller
 
     public function markSampleReady($id, $sampleId)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
 
         $sample = Sample::where('berita_acara_id', $beritaAcara->id)
             ->findOrFail($sampleId);
@@ -81,9 +122,7 @@ class AnalystController extends Controller
 
     public function storePengujian(Request $request, $id)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
 
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
@@ -114,15 +153,17 @@ class AnalystController extends Controller
 
     public function storeRekapAnalis(Request $request, $id)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
 
         $validated = $request->validate([
             'rekap_analis_data' => 'required|string',
             'rekap_analis_template_id' => 'nullable|integer|exists:form_templates,id',
             'biaya' => 'nullable|numeric|min:0',
             'formula_id' => 'nullable|integer|exists:formulas,id',
+            'custom_items' => 'nullable|array',
+            'custom_items.*.name' => 'required|string|max:200',
+            'custom_items.*.amount' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string|max:1000',
         ]);
 
         $data = json_decode($validated['rekap_analis_data'], true);
@@ -130,10 +171,16 @@ class AnalystController extends Controller
             $data = (object) [];
         }
 
+        // Filter out empty custom items
+        $customItems = array_filter($validated['custom_items'] ?? [], fn($i) => !empty($i['name']) && ($i['amount'] ?? 0) > 0);
+        $customItems = array_values($customItems);
+
         $updateData = [
             'rekap_analis_data' => $data,
             'rekap_analis_template_id' => $validated['rekap_analis_template_id'] ?? null,
             'formula_id' => $validated['formula_id'] ?? null,
+            'custom_items' => !empty($customItems) ? $customItems : null,
+            'keterangan' => $validated['keterangan'] ?? null,
         ];
 
         // Auto-calculate biaya if formula_id is provided
@@ -172,9 +219,14 @@ class AnalystController extends Controller
 
     public function requestDiscount(Request $request, $id)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $user = auth()->user();
+        $query = BeritaAcara::query();
+        if (!in_array($user->role, ['superadmin', 'admin'])) {
+            $query->whereHas('analysts', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        }
+        $beritaAcara = $query->findOrFail($id);
 
         $validated = $request->validate([
             'discount_request' => 'required|numeric|min:0',
@@ -201,9 +253,7 @@ class AnalystController extends Controller
      */
     public function calculateCost(Request $request, $id)
     {
-        $beritaAcara = BeritaAcara::whereHas('analysts', function ($q) {
-                $q->where('users.id', auth()->id());
-            })->findOrFail($id);
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
 
         $validated = $request->validate([
             'formula_id' => 'required|integer|exists:formulas,id',

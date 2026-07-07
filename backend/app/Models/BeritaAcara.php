@@ -26,6 +26,7 @@ class BeritaAcara extends Model
         'kode_nama_sampel',
         'keterangan_sampel',
         'keterangan_tambahan',
+        'keterangan',
         'pengukuran_per_sampel',
         'sisa_sampel',
         'upload_akses',
@@ -39,6 +40,7 @@ class BeritaAcara extends Model
         'rekap_analis_data',
         'rekap_analis_template_id',
         'formula_id',
+        'custom_items',
     ];
 
     protected function casts(): array
@@ -48,6 +50,7 @@ class BeritaAcara extends Model
             'diskon_diizinkan' => 'boolean',
             'form_data' => 'array',
             'rekap_analis_data' => 'array',
+            'custom_items' => 'array',
         ];
     }
 
