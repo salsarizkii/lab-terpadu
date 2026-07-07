@@ -8,6 +8,7 @@ import DynamicForm from '../components/common/DynamicForm.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { formTemplateApi } from '../api/formTemplate'
+import { instrumentPriceApi } from '../api/instrumentPrice'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
@@ -44,9 +45,25 @@ onMounted(async () => {
 
     if (baData.form_template_id) {
       try {
-        const tpl = await formTemplateApi.getPublicTemplate(baData.form_template_id)
+        const [tpl, instrumentsRes] = await Promise.all([
+          formTemplateApi.getPublicTemplate(baData.form_template_id),
+          instrumentPriceApi.getAll().then(r => r.data || []).catch(() => []),
+        ])
         if (tpl?.fields) {
-          templateFields.value = tpl.fields
+          const instruments = Array.isArray(instrumentsRes) ? instrumentsRes : []
+          templateFields.value = tpl.fields.map(f => {
+            const isMetode = f.label.toLowerCase().includes('metode') && f.label.toLowerCase().includes('instrumen')
+            if (isMetode) {
+              return {
+                ...f,
+                type: 'checkbox' as const,
+                options: instruments.length > 0
+                  ? instruments.map(i => ({ label: i.name, is_other: false }))
+                  : f.options,
+              }
+            }
+            return f
+          })
           templateId.value = tpl.id
         }
       } catch {}

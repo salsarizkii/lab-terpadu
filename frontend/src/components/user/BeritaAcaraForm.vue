@@ -4,6 +4,7 @@ import DynamicForm from '../common/DynamicForm.vue'
 import SkeletonCard from '../common/SkeletonCard.vue'
 import Button from '../common/Button.vue'
 import { formTemplateApi } from '../../api/formTemplate'
+import { instrumentPriceApi } from '../../api/instrumentPrice'
 import type { FormField } from '../../types'
 import { toast } from 'vue-sonner'
 
@@ -27,9 +28,25 @@ const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 
 onMounted(async () => {
   try {
-    const template = await formTemplateApi.getPublicActiveByType('berita_acara')
+    const [template, instrumentsRes] = await Promise.all([
+      formTemplateApi.getPublicActiveByType('berita_acara'),
+      instrumentPriceApi.getAll().then(r => r.data || []).catch(() => []),
+    ])
     if (template && template.fields) {
-      templateFields.value = template.fields
+      const instruments = Array.isArray(instrumentsRes) ? instrumentsRes : []
+      templateFields.value = template.fields.map(f => {
+        const isMetode = f.label.toLowerCase().includes('metode') && f.label.toLowerCase().includes('instrumen')
+        if (isMetode) {
+          return {
+            ...f,
+            type: 'checkbox' as const,
+            options: instruments.length > 0
+              ? instruments.map(i => ({ label: i.name, is_other: false }))
+              : f.options,
+          }
+        }
+        return f
+      })
       templateId.value = template.id
     }
   } catch {

@@ -208,9 +208,9 @@ function onDrop(e: DragEvent, toIndex: number) {
           { 'field-card--selected': selectedIndex === index, 'field-card--dragging': dragIndex === index, 'field-card--locked': field.locked },
           `field-card--${field.type}`
         ]"
-        :draggable="!field.locked"
+        draggable="true"
         @click="selectedIndex = index"
-        @dragstart="field.locked ? undefined : onDragStart($event, index)"
+        @dragstart="onDragStart($event, index)"
         @dragend="onDragEnd"
       >
         <div class="field-card__header">
@@ -422,7 +422,6 @@ function onDrop(e: DragEvent, toIndex: number) {
 .field-card--heading, .field-card--paragraph, .field-card--divider { border-style: dashed; background: #fafbfc; }
 .field-card--dragging { opacity: 0.4; }
 .field-card--locked { border-color: #e2e8f0; background: #fafbfc; }
-.field-card--locked .field-card__drag { cursor: default; color: #e2e8f0; }
 .field-card--locked .field-label-input { color: #1e293b; cursor: default; }
 
 .field-card__header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }

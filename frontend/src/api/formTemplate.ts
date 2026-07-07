@@ -7,6 +7,7 @@ export interface SyncFieldsPayload {
     type: string
     options?: FormFieldOption[]
     is_required?: boolean
+    locked?: boolean
   }[]
 }
 

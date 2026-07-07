@@ -96,6 +96,7 @@ class FormTemplateController extends Controller
             'fields.*.options.*.label' => 'nullable|string|max:200',
             'fields.*.options.*.is_other' => 'sometimes|boolean',
             'fields.*.is_required' => 'sometimes|boolean',
+            'fields.*.locked' => 'sometimes|boolean',
         ], $messages);
 
         // Get existing locked fields to preserve them
@@ -115,8 +116,10 @@ class FormTemplateController extends Controller
             ]);
         }
 
-        // Then create user fields
+        // Then create user fields (skip locked ones - already re-created above)
         foreach ($validated['fields'] as $index => $field) {
+            if (!empty($field['locked'])) continue;
+
             $options = null;
             if (isset($field['options'])) {
                 $options = array_filter(

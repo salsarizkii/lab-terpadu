@@ -7,6 +7,7 @@ import Button from '../components/common/Button.vue'
 import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
 import { formTemplateApi } from '../api/formTemplate'
+import { instrumentPriceApi } from '../api/instrumentPrice'
 import { useAuthStore } from '../stores/authStore'
 import type { FormTemplate, FormField } from '../types'
 import { toast } from 'vue-sonner'
@@ -61,19 +62,41 @@ async function selectType(type: CardType) {
 
   loading.value = true
   try {
-    const template = await formTemplateApi.getPublicActiveByType(type)
+    const [template, instrumentsRes] = await Promise.all([
+      formTemplateApi.getPublicActiveByType(type),
+      instrumentPriceApi.getAll().then(r => r.data || []).catch(() => []),
+    ])
     if (!template) {
       toast.error('Template tidak ditemukan atau belum aktif')
       return
     }
     currentTemplate.value = template
-    currentFields.value = (template.fields || []).map(f => ({
+    const instruments = Array.isArray(instrumentsRes) ? instrumentsRes : []
+
+    let fields = (template.fields || []).map(f => ({
       label: f.label,
       type: f.type,
       options: f.options,
       is_required: f.is_required,
       locked: f.locked,
     }))
+
+    const lockedMetode = fields.find(f => f.label === 'Metode/Instrumen' && f.locked)
+    if (!lockedMetode && type === 'berita_acara') {
+      fields = fields.filter(f => f.label !== 'Metode/Instrumen')
+      const metodeField: FormField = {
+        label: 'Metode/Instrumen',
+        type: 'checkbox',
+        options: instruments.length > 0
+          ? instruments.map(i => ({ label: i.name, is_other: false }))
+          : [{ label: 'Pilih instrumen...', is_other: false }],
+        is_required: false,
+        locked: true,
+      }
+      fields.push(metodeField)
+    }
+
+    currentFields.value = fields
     view.value = type
   } catch {
     toast.error('Gagal memuat template')
@@ -122,6 +145,7 @@ async function saveFields() {
         type: f.type,
         options: f.options,
         is_required: f.is_required,
+        locked: f.locked || false,
       })),
     })
     toast.success('Form berhasil disimpan')

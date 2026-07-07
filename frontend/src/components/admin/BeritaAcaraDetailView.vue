@@ -47,8 +47,10 @@ function hasFormData(): boolean {
 }
 
 function formatFieldKey(key: string): string {
+  // Try to find label from template
   const field = templateFields.value.find(f => `field_${f.id}` === key)
   if (field) return field.label
+  // Fallback: clean up key
   return key.replace(/^field_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
@@ -78,7 +80,7 @@ async function loadTemplate() {
 }
 
 watch(() => props.beritaAcara, () => {
-  if (hasFormData()) loadTemplate()
+  loadTemplate()
 }, { immediate: true })
 </script>
 
@@ -99,6 +101,17 @@ watch(() => props.beritaAcara, () => {
       <div class="detail__meta-item">
         <span class="detail__label">Diajukan</span>
         <span>{{ new Date(beritaAcara.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+      </div>
+      <div class="detail__meta-item">
+        <span class="detail__label">Analis Ditugaskan</span>
+        <template v-if="beritaAcara.analysts && beritaAcara.analysts.length > 0">
+          <div class="analyst-list">
+            <span v-for="(a, i) in beritaAcara.analysts" :key="a.id" class="analyst-chip">
+              {{ a.name }}<span v-if="i < beritaAcara.analysts!.length - 1">, </span>
+            </span>
+          </div>
+        </template>
+        <span v-else class="text-muted">Belum ada</span>
       </div>
     </div>
 
@@ -211,6 +224,20 @@ watch(() => props.beritaAcara, () => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+.text-muted {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.analyst-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.analyst-chip {
+  font-size: 13px;
+  color: var(--color-text);
 }
 .detail__table {
   width: 100%;
