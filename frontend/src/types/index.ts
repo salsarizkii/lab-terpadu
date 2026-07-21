@@ -95,6 +95,9 @@ export interface Payment {
   discount_reason?: string
   discount_status?: 'pending' | 'approved' | 'rejected'
   discount_approved?: string
+  discount_type?: string
+  discount_percent?: number
+  discount_nominal?: number
   status: 'pending' | 'approved' | 'rejected'
   payment_proof?: string
   berita_acara?: BeritaAcara

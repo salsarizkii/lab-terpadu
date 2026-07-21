@@ -51,6 +51,11 @@ class PermissionsSeeder extends Seeder
             ['name' => 'form_manage_rekap_analis', 'display_name' => 'Kelola Form Rekap Analis', 'group' => 'Form'],
             ['name' => 'form_manage_perhitungan_biaya', 'display_name' => 'Kelola Form Perhitungan Biaya', 'group' => 'Form'],
             ['name' => 'form_manage_kelola_harga_instrumen', 'display_name' => 'Kelola Form Harga Instrumen', 'group' => 'Form'],
+
+            // Discount
+            ['name' => 'discount_verifikasi', 'display_name' => 'Verifikasi Diskon', 'group' => 'Diskon'],
+            ['name' => 'discount_riwayat_semua', 'display_name' => 'Riwayat Seluruh Diskon', 'group' => 'Diskon'],
+            ['name' => 'discount_riwayat_personal', 'display_name' => 'Personal Riwayat Diskon', 'group' => 'Diskon'],
         ];
 
         foreach ($permissions as $perm) {

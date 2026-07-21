@@ -13,6 +13,9 @@ class Payment extends Model
         'discount_reason',
         'discount_status',
         'discount_approved',
+        'discount_type',
+        'discount_percent',
+        'discount_nominal',
         'status',
         'payment_proof',
     ];

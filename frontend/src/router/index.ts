@@ -108,7 +108,7 @@ const routes = [
     path: '/admin/samples',
     name: 'AdminSamples',
     component: () => import('../views/AdminSamples.vue'),
-    meta: { auth: true, permission: 'sample_view', permissionOr: 'sample_rekap,sample_riwayat_personal,sample_riwayat_semua,sample_input,sample_status' },
+    meta: { auth: true, permission: 'sample_view', permissionOr: 'sample_rekap,sample_riwayat_personal,sample_riwayat_semua' },
   },
   {
     path: '/admin/roles',

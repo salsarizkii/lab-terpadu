@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BeritaAcaraController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\InstrumentPriceController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\FormTemplateController;
@@ -61,6 +62,12 @@ Route::middleware('api.token')->group(function () {
         // Discount management
         Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])
             ->middleware('permission:discount_verifikasi');
+
+        // Manual discount assignment
+        Route::get('/discounts', [DiscountController::class, 'index']);
+        Route::post('/discounts', [DiscountController::class, 'store']);
+        Route::put('/discounts/{id}', [DiscountController::class, 'update']);
+        Route::delete('/discounts/{id}', [DiscountController::class, 'destroy']);
 
         // User management
         Route::get('/users', [AdminController::class, 'getUsers']);

@@ -74,5 +74,34 @@ export const adminApi = {
     const { data } = await api.put(`/admin/users/${id}/deactivate`)
     return data
   },
+
+  async getDiscounts(): Promise<any[]> {
+    const { data } = await api.get('/admin/discounts')
+    return data
+  },
+
+  async assignDiscount(payload: {
+    berita_acara_id: number
+    discount_percent?: number
+    discount_nominal?: number
+    discount_reason?: string
+  }): Promise<any> {
+    const { data } = await api.post('/admin/discounts', payload)
+    return data
+  },
+
+  async updateDiscount(id: number, payload: {
+    discount_percent?: number
+    discount_nominal?: number
+    discount_reason?: string
+  }): Promise<any> {
+    const { data } = await api.put(`/admin/discounts/${id}`, payload)
+    return data
+  },
+
+  async deleteDiscount(id: number): Promise<any> {
+    const { data } = await api.delete(`/admin/discounts/${id}`)
+    return data
+  },
 }
 

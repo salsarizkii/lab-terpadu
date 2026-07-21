@@ -51,9 +51,7 @@ const menuItems = computed(() => {
 
   // Sampel — muncul jika ada SATU PUN permission sample_*
   const hasSample = auth.hasPermission('sample_view') ||
-    auth.hasPermission('sample_input') ||
     auth.hasPermission('sample_rekap') ||
-    auth.hasPermission('sample_status') ||
     auth.hasPermission('sample_riwayat_personal') ||
     auth.hasPermission('sample_riwayat_semua')
   if (hasSample) {

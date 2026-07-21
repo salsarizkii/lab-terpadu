@@ -7,6 +7,7 @@ import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
+import FormSelect from '../components/common/FormSelect.vue'
 import { analystApi } from '../api/analyst'
 import { formulaApi, type Formula } from '../api/formula'
 import { formTemplateApi } from '../api/formTemplate'
@@ -30,6 +31,24 @@ const biaya = ref<string>('')
 const keterangan = ref('')
 
 const formulas = ref<Formula[]>([])
+
+const formulaOptions = computed(() => [
+  { value: '', label: 'Pilih rumus...' },
+  { value: '-1', label: 'Isi Manual' },
+  ...formulas.value.map(f => ({ value: String(f.id), label: `${f.name} (${f.unit || 'Rupiah'})` })),
+])
+
+function getFormulaSelectValue(row: FormulaRow): string {
+  if (row.formulaId === null) return ''
+  return String(row.formulaId)
+}
+
+function onFormulaSelectValue(row: FormulaRow, val: string) {
+  if (val === '') row.formulaId = null
+  else if (val === '-1') row.formulaId = -1
+  else row.formulaId = Number(val)
+  onFormulaSelect(row)
+}
 
 interface FormulaRow {
   id: number
@@ -401,13 +420,11 @@ async function handleSubmit() {
                 <div class="formula-row-header">
                   <span class="formula-row-num">{{ idx + 1 }}</span>
                   <div class="formula-row-selects">
-                    <select v-model="row.formulaId" class="formula-select" @change="onFormulaSelect(row)">
-                      <option :value="null">Pilih rumus...</option>
-                      <option :value="-1">Isi Manual</option>
-                      <option v-for="f in formulas" :key="f.id" :value="f.id">
-                        {{ f.name }} ({{ f.unit || 'Rupiah' }})
-                      </option>
-                    </select>
+                    <FormSelect
+                      :model-value="getFormulaSelectValue(row)"
+                      :options="formulaOptions"
+                      @update:model-value="onFormulaSelectValue(row, $event)"
+                    />
                   </div>
                   <button class="formula-row-remove" @click="removeFormulaRow(idx)" title="Hapus">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -546,8 +563,6 @@ async function handleSubmit() {
 .formula-row-header { display: flex; gap: 8px; align-items: center; }
 .formula-row-num { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: #e0e7ff; color: #4338ca; border-radius: 50%; font-size: 12px; font-weight: 600; flex-shrink: 0; }
 .formula-row-selects { flex: 1; display: flex; gap: 8px; }
-.formula-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #1e293b; background: white; outline: none; cursor: pointer; }
-.formula-select:focus { border-color: #3b82f6; }
 .formula-row-remove { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; background: transparent; color: #94a3b8; cursor: pointer; border-radius: 4px; flex-shrink: 0; }
 .formula-row-remove:hover { background: #fee2e2; color: #dc2626; }
 .formula-row-actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
