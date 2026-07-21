@@ -188,10 +188,9 @@ const sampleStatusText: Record<string, string> = {
 
 function getSampleStatus(): string {
   const ba = item.value as any
-  if (ba?.rekap_analis_data !== null && ba?.rekap_analis_data !== undefined) return 'taken'
   if (!ba?.samples || ba.samples.length === 0) return 'processing'
   if (ba.samples.every((s: any) => s.status === 'taken')) return 'taken'
-  if (ba.samples.every((s: any) => s.status === 'ready' || s.status === 'taken')) return 'ready'
+  if (ba.samples.some((s: any) => s.status === 'processing')) return 'processing'
   return 'processing'
 }
 

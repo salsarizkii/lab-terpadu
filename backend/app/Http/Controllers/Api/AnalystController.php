@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\Formula;
+use App\Models\Payment;
 use App\Models\Pengujian;
 use App\Models\Sample;
 use App\Services\CostCalculationService;
@@ -211,9 +212,19 @@ class AnalystController extends Controller
             ->whereIn('status', ['processing', 'ready'])
             ->update(['status' => 'taken']);
 
+        // Auto-create payment if biaya exists and no payment yet
+        $beritaAcara->refresh();
+        if ($beritaAcara->biaya && $beritaAcara->biaya > 0 && !$beritaAcara->payment) {
+            Payment::create([
+                'berita_acara_id' => $beritaAcara->id,
+                'amount' => $beritaAcara->biaya,
+                'status' => 'pending',
+            ]);
+        }
+
         return response()->json([
             'message' => 'Rekap analis saved successfully',
-            'data' => $beritaAcara->fresh(),
+            'data' => $beritaAcara->fresh()->load('payment'),
         ]);
     }
 

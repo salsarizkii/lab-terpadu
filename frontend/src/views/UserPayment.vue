@@ -18,6 +18,25 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
   rejected: 'danger',
 }
 
+const statusTextMap: Record<string, string> = {
+  pending: 'Diajukan',
+  approved: 'Lunas',
+  rejected: 'Ditolak',
+}
+
+function getJudul(p: Payment) {
+  const ba = p.berita_acara as any
+  if (!ba) return '-'
+  if (ba.judul_penelitian) return ba.judul_penelitian
+  if (ba.form_data) {
+    const values = Object.values(ba.form_data)
+    for (const v of values) {
+      if (typeof v === 'string' && v.length > 5) return v
+    }
+  }
+  return '-'
+}
+
 onMounted(async () => {
   try {
     payments.value = await paymentApi.getList()
@@ -41,14 +60,14 @@ onMounted(async () => {
         <Card v-for="p in payments" :key="p.id" class="payment-card" @click="router.push(`/user/payments/${p.id}`)">
           <div class="payment-item">
             <div>
+              <div class="payment-title">{{ getJudul(p) }}</div>
               <div class="payment-amount">Rp {{ Number(p.amount).toLocaleString('id-ID') }}</div>
               <div class="payment-meta">
                   <span v-if="p.discount_request">Diskon diminta: Rp {{ Number(p.discount_request).toLocaleString('id-ID') }}</span>
-                  <span v-if="p.discount_reason">Alasan: {{ p.discount_reason }}</span>
                   <span v-if="p.discount_approved">Diskon disetujui: Rp {{ Number(p.discount_approved).toLocaleString('id-ID') }}</span>
               </div>
             </div>
-            <Badge :type="statusTypeMap[p.status]" :text="p.status" />
+            <Badge :type="statusTypeMap[p.status]" :text="statusTextMap[p.status] || p.status" />
           </div>
         </Card>
         <div v-if="payments.length === 0" class="empty">Belum ada pembayaran</div>
@@ -64,6 +83,7 @@ onMounted(async () => {
 .payment-card { cursor: pointer; transition: border-color 0.2s; }
 .payment-card:hover { border-color: var(--color-accent); }
 .payment-item { display: flex; justify-content: space-between; align-items: center; }
+.payment-title { font-size: 14px; font-weight: 500; color: #1e293b; margin-bottom: 4px; }
 .payment-amount { font-size: 18px; font-weight: 600; color: #1e293b; }
 .payment-meta { font-size: 13px; color: #64748b; margin-top: 4px; }
 .empty { text-align: center; padding: 60px; color: #94a3b8; }
