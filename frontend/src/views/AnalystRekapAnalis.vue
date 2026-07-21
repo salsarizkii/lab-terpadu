@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
+import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
@@ -45,6 +46,7 @@ function onFormulaSelectValue(row: FormulaRow, val: string) {
   if (val === '-1') row.formulaId = -1
   else row.formulaId = Number(val)
   onFormulaSelect(row)
+  autoCalculateAll()
 }
 
 interface FormulaRow {
@@ -74,6 +76,7 @@ function addFormulaRow() {
 }
 function removeFormulaRow(index: number) {
   formulaRows.value.splice(index, 1)
+  autoCalculateAll()
 }
 
 function parseFormulaExpression(expr: string, vars: FormulaVariable[]) {
@@ -132,11 +135,21 @@ function onFormulaSelect(row: FormulaRow) {
   row.manualNote = ''
 }
 
-async function handleCalculateRow(row: FormulaRow) {
+let calculateTimer: any = null
+
+function autoCalculateAll() {
+  if (calculateTimer) clearTimeout(calculateTimer)
+  calculateTimer = setTimeout(async () => {
+    const formulaOnly = formulaRows.value.filter(r => r.formulaId && r.formulaId !== -1)
+    for (const row of formulaOnly) {
+      await handleCalculateRowSilent(row)
+    }
+  }, 200)
+}
+
+async function handleCalculateRowSilent(row: FormulaRow) {
   if (!row.formulaId || !item.value || row.formulaId === -1) return
   row.calculating = true
-  row.biaya = null
-  row.resolvedValues = null
   try {
     const result = await analystApi.calculateCost(item.value.id, {
       formula_id: row.formulaId,
@@ -144,26 +157,11 @@ async function handleCalculateRow(row: FormulaRow) {
     })
     row.biaya = result.biaya
     row.resolvedValues = result.resolved_values
-    toast.success(`Biaya dihitung: Rp ${formatPrice(result.biaya)}`)
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal menghitung biaya')
+  } catch {
+    // Silent catch during auto calculate
   } finally {
     row.calculating = false
   }
-}
-
-async function handleCalculateAll() {
-  const formulaOnly = formulaRows.value.filter(r => r.formulaId && r.formulaId !== -1)
-  if (formulaOnly.length === 0) {
-    toast.error('Tidak ada rumus untuk dihitung')
-    return
-  }
-  for (const row of formulaOnly) {
-    if (!row.calculating) {
-      await handleCalculateRow(row)
-    }
-  }
-  toast.success('Semua rumus selesai dihitung')
 }
 
 const totalFormulaBiaya = computed(() => formulaRows.value.reduce((s, r) => s + (r.biaya || 0), 0))
@@ -310,6 +308,7 @@ function getInitialData(): Record<string, any> {
 
 function handleValuesUpdate(values: Record<string, any>) {
   formValues.value = values
+  autoCalculateAll()
 }
 
 function scrollToField(fieldId: string) {
@@ -345,8 +344,11 @@ async function handleSubmit() {
       biaya: totalBiaya.value || null,
       formula_id: firstFormula?.formulaId || null,
       custom_items: formulaRows.value
-        .filter(r => (!r.formulaId || r.formulaId === -1) && r.biaya)
-        .map(r => ({ name: r.manualNote || r.formula?.name || 'Biaya tambahan', amount: r.biaya || 0 })),
+        .filter(r => r.biaya && r.biaya > 0)
+        .map(r => ({
+          name: r.formulaId && r.formulaId !== -1 ? (r.formula?.name || 'Rumus') : (r.manualNote || 'Biaya tambahan'),
+          amount: r.biaya || 0,
+        })),
       keterangan: keterangan.value || null,
     })
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
@@ -364,13 +366,14 @@ async function handleSubmit() {
 <template>
   <AppLayout>
     <div>
-      <div class="page-header">
-        <div class="page-header__left">
-          <Button variant="outline" @click="router.push(`/analyst/samples/${route.params.id}`)">Kembali</Button>
-          <h1>Rekap Analis</h1>
-        </div>
+      <PageHeader
+        title="Rekap Analis"
+        subtitle="Formulir pengisian hasil rekap analisis dan perhitungan biaya otomatis"
+        show-back
+        :back-to="`/analyst/samples/${route.params.id}`"
+      >
         <Badge v-if="item" :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
-      </div>
+      </PageHeader>
 
       <SkeletonDetail v-if="loading" />
 
@@ -469,17 +472,10 @@ async function handleSubmit() {
                   </div>
                 </div>
 
-                <!-- Calculate button -->
+                <!-- Automatic Formula Result Display -->
                 <div v-if="row.formulaId && row.formulaId !== -1" class="formula-row-actions">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="row.calculating"
-                    @click="handleCalculateRow(row)"
-                  >
-                    {{ row.calculating ? 'Menghitung...' : 'Hitung' }}
-                  </Button>
-                  <span v-if="row.biaya" class="formula-row-result">Rp {{ formatPrice(row.biaya) }}</span>
+                  <span v-if="row.calculating" class="calculating-text">Menghitung...</span>
+                  <span v-else-if="row.biaya !== null" class="formula-row-result">Rp {{ formatPrice(row.biaya) }}</span>
                 </div>
 
                 <!-- Manual result -->
@@ -490,17 +486,6 @@ async function handleSubmit() {
 
               <!-- Add formula button -->
               <Button variant="outline" size="sm" class="add-formula-btn" @click="addFormulaRow">+ Tambah</Button>
-
-              <!-- Hitung Semua -->
-              <div v-if="formulaRows.filter(r => r.formulaId && r.formulaId !== -1).length > 0" class="hitung-semua-row">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  @click="handleCalculateAll"
-                >
-                  Hitung Semua Rumus
-                </Button>
-              </div>
 
               <!-- Keterangan -->
               <div class="keterangan-section">
@@ -563,6 +548,7 @@ async function handleSubmit() {
 .formula-row-remove:hover { background: #fee2e2; color: #dc2626; }
 .formula-row-actions { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
 .formula-row-result { font-size: 14px; font-weight: 600; color: #166534; }
+.calculating-text { font-size: 12px; color: #2563eb; font-style: italic; }
 
 .manual-section { display: flex; gap: 8px; margin-top: 8px; }
 .manual-note-input { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; color: #1e293b; outline: none; }

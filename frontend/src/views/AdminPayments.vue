@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
+import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
@@ -68,9 +69,10 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
 <template>
   <AppLayout>
     <div>
-      <div class="page-header">
-        <h1>Konfirmasi Pembayaran</h1>
-      </div>
+      <PageHeader
+        title="Konfirmasi Pembayaran"
+        subtitle="Verifikasi bukti transfer dan kelola persetujuan pembayaran laboratorium"
+      />
 
       <Card>
         <div class="filter-bar">
@@ -126,15 +128,12 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 24px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 .filter-bar { margin-bottom: 16px; }
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
-.table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+.table th { text-align: left; padding: 14px 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+.table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .cell-reason { max-width: 200px; white-space: normal; word-break: break-word; font-size: 13px; }
 .no-proof { font-size: 12px; color: #94a3b8; }
-
 </style>

@@ -57,9 +57,16 @@ class PaymentController extends Controller
 
     public function show($id)
     {
-        $payment = Payment::whereHas('beritaAcara', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->with('beritaAcara.formula')->findOrFail($id);
+        $user = auth()->user();
+        $query = Payment::query();
+
+        if ($user && $user->role !== 'superadmin' && $user->role !== 'admin' && $user->role !== 'analyst') {
+            $query->whereHas('beritaAcara', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+
+        $payment = $query->with('beritaAcara.formula')->findOrFail($id);
 
         return response()->json($payment);
     }

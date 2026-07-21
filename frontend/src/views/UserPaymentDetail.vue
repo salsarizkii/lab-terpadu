@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
+import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
@@ -14,6 +15,8 @@ import {
   FileText,
   FileImage,
   X,
+  XCircle,
+  Clock,
   AlertTriangle,
   CheckCircle2,
   Trash2,
@@ -58,14 +61,31 @@ const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
 const discountStatus = computed(() => (payment.value as any)?.discount_status)
 
+const parsedCustomItems = computed(() => {
+  const ba = payment.value?.berita_acara
+  if (!ba || !ba.custom_items) return []
+  if (Array.isArray(ba.custom_items)) return ba.custom_items
+  if (typeof ba.custom_items === 'string') {
+    try {
+      const parsed = JSON.parse(ba.custom_items)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+})
+
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'warning',
   approved: 'success',
   rejected: 'danger',
 }
 
-function formatPrice(val: number) {
-  return new Intl.NumberFormat('id-ID').format(Math.round(val))
+function formatPrice(val: any) {
+  const num = Number(val)
+  if (isNaN(num) || num === null || num === undefined) return '0'
+  return new Intl.NumberFormat('id-ID').format(Math.round(num))
 }
 
 function formatFileSize(bytes: number): string {
@@ -258,13 +278,14 @@ async function handleUploadProof() {
 <template>
   <AppLayout>
     <div>
-      <div class="page-header">
-        <div class="page-header__left">
-          <Button variant="outline" @click="router.push('/user/payments')">Kembali</Button>
-          <h1>Detail Pembayaran</h1>
-        </div>
+      <PageHeader
+        title="Detail Pembayaran"
+        subtitle="Rincian tagihan, bukti transfer, dan status pembayaran sampel"
+        show-back
+        back-to="/user/payments"
+      >
         <Badge v-if="payment" :type="statusTypeMap[payment.status]" :text="payment.status === 'approved' ? 'Lunas' : payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'" />
-      </div>
+      </PageHeader>
 
       <SkeletonDetail v-if="loading" />
 
@@ -277,23 +298,30 @@ async function handleUploadProof() {
                   <td class="label" style="vertical-align: top; padding-top: 14px;">Jumlah</td>
                   <td>
                     <div v-if="payment.berita_acara" class="jumlah-breakdown">
-                      <div v-if="payment.berita_acara.formula" class="jumlah-item">
-                        <span class="jumlah-item-label">Rumus:</span>
-                        <span class="jumlah-item-name">{{ payment.berita_acara.formula.name }}</span>
-                        <span class="jumlah-item-val">Rp {{ formatPrice(Number(payment.berita_acara.biaya || payment.amount || 0)) }}</span>
-                      </div>
-                      <div v-if="payment.berita_acara.custom_items && payment.berita_acara.custom_items.length" class="jumlah-items">
-                        <div v-for="(ci, idx) in payment.berita_acara.custom_items" :key="idx" class="jumlah-item">
-                          <span class="jumlah-item-label">{{ ci.name || 'Biaya' }}</span>
-                          <span class="jumlah-item-val">Rp {{ formatPrice(Number(ci.amount || 0)) }}</span>
+                      <template v-if="parsedCustomItems && parsedCustomItems.length">
+                        <div class="jumlah-items">
+                          <div v-for="(ci, idx) in parsedCustomItems" :key="idx" class="jumlah-item">
+                            <span class="jumlah-item-label">{{ ci.name || 'Biaya' }}:</span>
+                            <span class="jumlah-item-val">Rp {{ formatPrice(ci.amount) }}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div v-if="!payment.berita_acara.formula && (!payment.berita_acara.custom_items || !payment.berita_acara.custom_items.length)" class="jumlah-total">
-                        Rp {{ formatPrice(Number(payment.amount || 0)) }}
-                      </div>
+                      </template>
+                      <template v-else-if="payment.berita_acara.formula">
+                        <div class="jumlah-item">
+                          <span class="jumlah-item-label">Rumus:</span>
+                          <span class="jumlah-item-name">{{ payment.berita_acara.formula.name }}</span>
+                          <span class="jumlah-item-val">Rp {{ formatPrice(Number(payment.berita_acara.biaya || payment.amount || 0)) }}</span>
+                        </div>
+                      </template>
+                      <template v-else>
+                        <div class="jumlah-total">
+                          Rp {{ formatPrice(Number(payment.amount || 0)) }}
+                        </div>
+                      </template>
+
                       <div class="jumlah-divider" />
                       <div class="jumlah-total">
-                        <span>Total</span>
+                        <span>Total Biaya</span>
                         <strong>Rp {{ formatPrice(Number(payment.berita_acara.biaya || payment.amount || 0)) }}</strong>
                       </div>
                       <div v-if="payment.berita_acara.keterangan" class="jumlah-ket">
@@ -355,15 +383,38 @@ async function handleUploadProof() {
 
           <div class="detail-sidebar">
             <Card title="Aksi Pembayaran">
+              <!-- Upload proof button -->
               <Button v-if="!payment.payment_proof || payment.status === 'rejected'" block variant="primary" @click="openUploadModal" style="margin-bottom: 10px;">
                 <UploadCloud :size="18" style="margin-right: 6px;" />
                 {{ payment.status === 'rejected' ? 'Upload Ulang Bukti Pembayaran' : 'Upload Bukti Pembayaran' }}
               </Button>
-              <Button v-if="payment.status !== 'approved' && discountStatus !== 'approved'" block variant="outline" @click="openDiscountModal">
-                Ajukan Diskon
+
+              <!-- Discount request button -->
+              <Button
+                v-if="payment.status !== 'approved' && (!payment.discount_request || discountStatus === 'rejected')"
+                block
+                variant="outline"
+                @click="openDiscountModal"
+              >
+                {{ discountStatus === 'rejected' ? 'Ajukan Diskon Lagi' : 'Ajukan Diskon' }}
               </Button>
-              <div v-if="payment.payment_proof && payment.status === 'approved'" class="no-action-text">
-                Semua aksi pembayaran telah selesai.
+
+              <!-- Proof uploaded, pending verification -->
+              <div v-if="payment.payment_proof && payment.status === 'pending'" class="status-card-box pending-box">
+                <div class="status-card-header">
+                  <Clock :size="18" class="icon-warning" />
+                  <span>Menunggu Verifikasi Admin</span>
+                </div>
+                <p class="status-card-desc">Bukti pembayaran Anda telah terunggah dan sedang diverifikasi oleh admin.</p>
+              </div>
+
+              <!-- Payment approved -->
+              <div v-if="payment.status === 'approved'" class="status-card-box success-box">
+                <div class="status-card-header">
+                  <CheckCircle2 :size="18" class="icon-success" />
+                  <span>Pembayaran Lunas</span>
+                </div>
+                <p class="status-card-desc">Pembayaran Anda telah diverifikasi dan disetujui.</p>
               </div>
             </Card>
           </div>
@@ -595,13 +646,9 @@ async function handleUploadProof() {
 </template>
 
 <style scoped>
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.page-header__left { display: flex; align-items: center; gap: 12px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
-
-.detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
-.detail-sidebar { position: sticky; top: 24px; }
-@media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } }
+.detail-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+.detail-sidebar { position: sticky; top: 88px; }
+@media (max-width: 1024px) { .detail-grid { grid-template-columns: 1fr; } }
 
 .detail-table { width: 100%; border-collapse: collapse; }
 .detail-table tr { border-bottom: 1px solid #f1f5f9; }
@@ -689,6 +736,37 @@ async function handleUploadProof() {
   color: #b91c1c;
   font-weight: 500;
 }
+.status-card-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pending-box {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+}
+.success-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.status-card-desc {
+  font-size: 12px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.45;
+}
+.icon-warning { color: #d97706; }
 .icon-success { color: #16a34a; }
 .btn-view-proof {
   display: inline-flex;

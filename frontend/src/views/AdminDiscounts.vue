@@ -7,6 +7,7 @@ import Button from '../components/common/Button.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
 import { adminApi } from '../api/admin'
 import { toast } from 'vue-sonner'
+import { History, Check, X } from '@lucide/vue'
 
 interface DiscountRequest {
   id: number
@@ -70,10 +71,23 @@ const isReadonly = computed(() => selectedItem.value?.discount_status !== 'pendi
 
 function openModal(item: DiscountRequest) {
   selectedItem.value = item
-  discountPercent.value = ''
+  const biaya = Number(item.biaya) || 1
+  const approved = Number(item.discount_approved) || 0
+  const req = Number(item.discount_request) || 0
+
+  if (approved > 0) {
+    const pct = Math.round((approved / biaya) * 100 * 100) / 100
+    discountPercent.value = String(pct)
+  } else if (req > 0) {
+    const pct = Math.round((req / biaya) * 100 * 100) / 100
+    discountPercent.value = String(pct)
+  } else {
+    discountPercent.value = ''
+  }
+
   discountNominal.value = ''
-  adminNote.value = ''
-  discountAction.value = 'approve'
+  adminNote.value = item.discount_reason || ''
+  discountAction.value = item.discount_status === 'rejected' ? 'reject' : 'approve'
   discountMode.value = 'percent'
   showModal.value = true
 }
@@ -86,6 +100,10 @@ function closeModal() {
 
 async function loadHistory() {
   if (!selectedItem.value) return
+  if (showHistory.value) {
+    showHistory.value = false
+    return
+  }
   loadingHistory.value = true
   try {
     historyItems.value = await adminApi.getDiscountHistory(selectedItem.value.id)
@@ -304,8 +322,9 @@ onMounted(loadData)
 
               <div class="divider" />
 
-              <Button variant="outline" size="sm" @click="loadHistory" :disabled="loadingHistory" style="width: 100%;">
-                {{ loadingHistory ? 'Memuat...' : 'Riwayat Pengajuan Diskon' }}
+              <Button variant="outline" class="btn-history-toggle" @click="loadHistory" :disabled="loadingHistory">
+                <History :size="16" style="margin-right: 6px;" />
+                <span>{{ loadingHistory ? 'Memuat...' : 'Riwayat Pengajuan Diskon' }}</span>
               </Button>
 
               <div v-if="showHistory && historyItems.length" class="history-list">
@@ -338,14 +357,13 @@ onMounted(loadData)
                   </div>
                 </div>
               </div>
+              <div v-else-if="showHistory && !historyItems.length" class="history-empty">
+                Belum ada catatan riwayat pengajuan diskon.
+              </div>
 
               <div class="divider" />
 
-              <!-- Readonly: sudah diproses -->
-              <div v-if="isReadonly" class="readonly-info"></div>
-
-              <!-- Pilihan Terima / Tolak (hanya pending) -->
-              <template v-if="!isReadonly">
+              <!-- Pilihan Terima / Tolak -->
               <div class="action-toggle">
                 <button
                   class="action-toggle-btn"
@@ -427,19 +445,13 @@ onMounted(loadData)
                   <textarea v-model="adminNote" class="form-textarea" rows="3" placeholder="Alasan menolak ajuan diskon ini..." />
                 </div>
               </div>
-              </template>
             </template>
           </div>
           <div class="popup-footer">
-            <template v-if="isReadonly">
-              <Button variant="outline" @click="closeModal">Tutup</Button>
-            </template>
-            <template v-else>
-              <Button variant="outline" @click="closeModal">Batal</Button>
-              <Button :disabled="saving || submitDisabled" @click="handleSubmit">
-                {{ saving ? 'Menyimpan...' : discountAction === 'approve' ? 'Terima Ajuan' : 'Tolak Ajuan' }}
-              </Button>
-            </template>
+            <Button variant="outline" @click="closeModal">Batal</Button>
+            <Button :disabled="saving || submitDisabled" @click="handleSubmit">
+              {{ saving ? 'Menyimpan...' : discountAction === 'approve' ? 'Terima Ajuan' : 'Tolak Ajuan' }}
+            </Button>
           </div>
         </div>
       </div>
@@ -516,27 +528,61 @@ onMounted(loadData)
 .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
 .history-item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
 .history-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-.history-action { display: flex; align-items: center; }
-.history-date { font-size: 11px; color: #94a3b8; }
-.history-item-body { display: flex; flex-direction: column; gap: 2px; }
-.history-row { display: flex; justify-content: space-between; font-size: 12px; color: #475569; }
-.history-row span:first-child { color: #94a3b8; }
+.history-empty {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+.btn-history-toggle {
+  width: 100%;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+}
 
 .action-toggle {
-  display: flex; gap: 0; border-radius: 10px;
-  border: 1.5px solid #e2e8f0; margin-bottom: 8px;
+  display: flex;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  margin: 12px 0;
+  gap: 4px;
 }
 .action-toggle-btn {
-  flex: 1; padding: 12px 16px; border: none; background: #f8fafc;
-  font-size: 14px; font-weight: 500; color: #475569; cursor: pointer;
-  transition: all 0.15s; font-family: inherit;
+  flex: 1;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.action-toggle-btn:first-child { border-radius: 10px 0 0 10px; }
-.action-toggle-btn:last-child { border-radius: 0 10px 10px 0; }
 .action-toggle-btn.active {
-  background: #2563eb; color: #fff; font-weight: 600;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
-.action-toggle-btn:not(.active):hover { background: #f1f5f9; color: #1e293b; }
+.action-toggle-btn:not(.active):hover {
+  color: #1e293b;
+}
 
 .required { color: #dc2626; }
 

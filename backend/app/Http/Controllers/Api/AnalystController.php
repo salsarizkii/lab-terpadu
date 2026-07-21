@@ -185,25 +185,21 @@ class AnalystController extends Controller
             'keterangan' => $validated['keterangan'] ?? null,
         ];
 
-        // Auto-calculate biaya if formula_id is provided
-        if (!empty($validated['formula_id'])) {
-            $formula = Formula::findOrFail($validated['formula_id']);
-            $calcService = new CostCalculationService();
-
-            // First save rekap_analis_data so the calculation can use it
-            $beritaAcara->update($updateData);
-
-            try {
-                $result = $calcService->calculate($beritaAcara, $formula);
-                $updateData['biaya'] = $result['biaya'];
-            } catch (\Exception $e) {
-                // If calculation fails, fall back to manual biaya or null
-                if (isset($validated['biaya']) && $validated['biaya'] !== null) {
-                    $updateData['biaya'] = $validated['biaya'];
+        // Use total biaya provided by frontend if present, otherwise calculate via formula
+        if (isset($validated['biaya']) && $validated['biaya'] !== null) {
+            $updateData['biaya'] = $validated['biaya'];
+        } elseif (!empty($validated['formula_id'])) {
+            $formula = Formula::find($validated['formula_id']);
+            if ($formula) {
+                $calcService = new CostCalculationService();
+                $beritaAcara->update($updateData);
+                try {
+                    $result = $calcService->calculate($beritaAcara, $formula);
+                    $updateData['biaya'] = $result['biaya'];
+                } catch (\Exception $e) {
+                    // ignore
                 }
             }
-        } elseif (isset($validated['biaya'])) {
-            $updateData['biaya'] = $validated['biaya'];
         }
 
         $beritaAcara->update($updateData);
@@ -213,14 +209,20 @@ class AnalystController extends Controller
             ->whereIn('status', ['processing', 'ready'])
             ->update(['status' => 'taken']);
 
-        // Auto-create payment if biaya exists and no payment yet
+        // Create or update payment amount
         $beritaAcara->refresh();
-        if ($beritaAcara->biaya && $beritaAcara->biaya > 0 && !$beritaAcara->payment) {
-            Payment::create([
-                'berita_acara_id' => $beritaAcara->id,
-                'amount' => $beritaAcara->biaya,
-                'status' => 'pending',
-            ]);
+        if ($beritaAcara->biaya && $beritaAcara->biaya > 0) {
+            if ($beritaAcara->payment) {
+                $beritaAcara->payment->update([
+                    'amount' => $beritaAcara->biaya,
+                ]);
+            } else {
+                Payment::create([
+                    'berita_acara_id' => $beritaAcara->id,
+                    'amount' => $beritaAcara->biaya,
+                    'status' => 'pending',
+                ]);
+            }
         }
 
         return response()->json([

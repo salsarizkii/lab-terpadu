@@ -2,11 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
+import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
+import Button from '../components/common/Button.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
 import { paymentApi } from '../api/payment'
 import type { Payment } from '../types'
+import { Eye } from '@lucide/vue'
 
 const router = useRouter()
 const payments = ref<Payment[]>([])
@@ -63,9 +66,10 @@ onMounted(async () => {
 <template>
   <AppLayout>
     <div>
-      <div class="page-header">
-        <h1>Riwayat Pembayaran</h1>
-      </div>
+      <PageHeader
+        title="Riwayat Pembayaran"
+        subtitle="Kelola dan pantau status tagihan pengujian laboratorium Anda"
+      />
 
       <Card>
         <SkeletonTable v-if="loading" :cols="6" :rows="5" />
@@ -78,7 +82,7 @@ onMounted(async () => {
                 <th>Judul Penelitian</th>
                 <th>Jumlah</th>
                 <th>Diskon</th>
-                <th>Status</th>
+                <th>Status Tagihan</th>
                 <th>Status Diskon</th>
                 <th class="th-aksi">Aksi</th>
               </tr>
@@ -101,9 +105,14 @@ onMounted(async () => {
                   <span v-else class="td-empty">-</span>
                 </td>
                 <td class="td-aksi">
-                  <button class="eye-btn" @click="router.push(`/user/payments/${p.id}`)" title="Lihat Detail">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    @click="router.push(`/user/payments/${p.id}`)"
+                  >
+                    <Eye :size="15" style="margin-right: 4px;" />
+                    <span>Detail</span>
+                  </Button>
                 </td>
               </tr>
               <tr v-if="payments.length === 0">
@@ -118,32 +127,22 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 24px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
-
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
-  text-align: left; padding: 12px; background: #f8fafc;
+  text-align: left; padding: 14px 12px; background: #f8fafc;
   color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0;
   white-space: nowrap;
 }
 .table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
-.th-no, .td-no { width: 40px; text-align: center; color: #94a3b8; }
-.td-title { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.th-no, .td-no { width: 44px; text-align: center; color: #94a3b8; }
+.td-title { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .td-amount { font-weight: 600; color: #1e293b; white-space: nowrap; }
 .td-discount { white-space: nowrap; }
-.discount-val { font-weight: 500; color: #16a34a; }
+.discount-val { font-weight: 600; color: #16a34a; }
 .discount-pending { font-size: 12px; color: #d97706; }
 .td-empty { color: #94a3b8; font-size: 13px; }
 
-.th-aksi, .td-aksi { width: 50px; text-align: center; }
-.eye-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  background: #fff; color: #64748b; cursor: pointer; transition: all 0.15s;
-}
-.eye-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #1e293b; }
-
+.th-aksi, .td-aksi { width: 100px; text-align: center; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 </style>

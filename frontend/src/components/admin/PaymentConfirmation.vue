@@ -64,6 +64,10 @@ const totalAwal = computed(() => Number(props.payment.amount || 0))
 const diskonNominal = computed(() => Number(props.payment.discount_approved || 0))
 const totalAkhir = computed(() => Math.max(0, totalAwal.value - diskonNominal.value))
 
+const isReadonlyMode = computed(() => {
+  return props.payment.status === 'approved' || props.payment.status === 'rejected'
+})
+
 function handleApprove() {
   showRejectField.value = false
   rejectionError.value = ''
@@ -128,6 +132,12 @@ function handleReject() {
         <span>Rincian & Pencocokan Pembayaran</span>
       </div>
       <div class="reconciliation-body">
+        <div v-if="(payment as any).berita_acara?.custom_items && (payment as any).berita_acara.custom_items.length" class="rec-items-list">
+          <div v-for="(ci, idx) in (payment as any).berita_acara.custom_items" :key="idx" class="reconciliation-row rec-item-sub">
+            <span class="rec-sub-label">• {{ ci.name || 'Biaya' }}:</span>
+            <span class="rec-sub-val">Rp {{ formatPrice(ci.amount || 0) }}</span>
+          </div>
+        </div>
         <div class="reconciliation-row">
           <span class="rec-label">Total Harga (Biaya Awal):</span>
           <span class="rec-val">Rp {{ formatPrice(totalAwal) }}</span>
@@ -213,50 +223,52 @@ function handleReject() {
       <div class="keterangan-text">{{ payment.rejection_reason }}</div>
     </div>
 
-    <!-- Field Alasan Penolakan Pembayaran (Wajib Jika Ditolak & Status Pending) -->
-    <div v-if="showRejectField && payment.status === 'pending'" class="reject-reason-box">
-      <label class="reject-label">
-        <AlertCircle :size="16" class="icon-danger" />
-        <span>Alasan Penolakan Pembayaran <span class="required-tag">*Wajib Isi</span></span>
-      </label>
-      <textarea
-        v-model="rejectionReason"
-        class="reject-textarea"
-        :class="{ 'reject-textarea--error': !!rejectionError }"
-        placeholder="Tuliskan alasan penolakan (Contoh: Nominal transfer kurang / Resi tidak terbaca / Nama rekening tidak sesuai)"
-        rows="3"
-      />
-      <span v-if="rejectionError" class="error-hint">{{ rejectionError }}</span>
-    </div>
-
-    <!-- 5. Action Buttons: Detail Mode (Tutup) vs Pending Mode (Approve/Reject) -->
-    <div v-if="payment.status !== 'pending'" class="confirm-actions">
+    <!-- 5. Action Buttons: Detail Mode (Tutup saja) vs Pending Mode (Approve & Reject) -->
+    <div v-if="isReadonlyMode" class="confirm-actions">
       <Button variant="outline" @click="emit('close')">Tutup</Button>
     </div>
 
-    <div v-else class="confirm-actions">
-      <Button
-        variant="outline"
-        class="btn-reject"
-        :disabled="!!submittingStatus"
-        @click="handleReject"
-      >
-        <RefreshCw v-if="submittingStatus === 'rejected'" class="spinner" :size="16" />
-        <XCircle v-else :size="16" />
-        <span>{{ showRejectField ? 'Konfirmasi Penolakan' : 'Tolak Pembayaran' }}</span>
-      </Button>
+    <template v-else>
+      <!-- Field Alasan Penolakan Pembayaran (Wajib Jika Ditolak & Status Pending) -->
+      <div v-if="showRejectField" class="reject-reason-box">
+        <label class="reject-label">
+          <AlertCircle :size="16" class="icon-danger" />
+          <span>Alasan Penolakan Pembayaran <span class="required-tag">*Wajib Isi</span></span>
+        </label>
+        <textarea
+          v-model="rejectionReason"
+          class="reject-textarea"
+          :class="{ 'reject-textarea--error': !!rejectionError }"
+          placeholder="Tuliskan alasan penolakan (Contoh: Nominal transfer kurang / Resi tidak terbaca / Nama rekening tidak sesuai)"
+          rows="3"
+        />
+        <span v-if="rejectionError" class="error-hint">{{ rejectionError }}</span>
+      </div>
 
-      <Button
-        variant="primary"
-        class="btn-approve"
-        :disabled="!!submittingStatus"
-        @click="handleApprove"
-      >
-        <RefreshCw v-if="submittingStatus === 'approved'" class="spinner" :size="16" />
-        <CheckCircle2 v-else :size="16" />
-        <span>Terima & Konfirmasi</span>
-      </Button>
-    </div>
+      <div class="confirm-actions">
+        <Button
+          variant="outline"
+          class="btn-reject"
+          :disabled="!!submittingStatus"
+          @click="handleReject"
+        >
+          <RefreshCw v-if="submittingStatus === 'rejected'" class="spinner" :size="16" />
+          <XCircle v-else :size="16" />
+          <span>{{ showRejectField ? 'Konfirmasi Penolakan' : 'Tolak Pembayaran' }}</span>
+        </Button>
+
+        <Button
+          variant="primary"
+          class="btn-approve"
+          :disabled="!!submittingStatus"
+          @click="handleApprove"
+        >
+          <RefreshCw v-if="submittingStatus === 'approved'" class="spinner" :size="16" />
+          <CheckCircle2 v-else :size="16" />
+          <span>Terima & Konfirmasi</span>
+        </Button>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -345,8 +357,28 @@ function handleReject() {
 .reconciliation-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
+
+.rec-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #cbd5e1;
+}
+.rec-item-sub {
+  font-size: 13px;
+}
+.rec-sub-label {
+  color: #475569;
+}
+.rec-sub-val {
+  font-weight: 600;
+  color: #334155;
+}
+
 .reconciliation-row {
   display: flex;
   justify-content: space-between;

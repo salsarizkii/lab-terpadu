@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '../../stores/authStore'
 import { useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import {
   LayoutDashboard,
   FileText,
@@ -17,78 +17,45 @@ import {
 const auth = useAuthStore()
 const route = useRoute()
 
+onMounted(() => {
+  if (!auth.user) {
+    auth.initFromStorage()
+  }
+})
+
 const menuItems = computed(() => {
-  const items = []
+  const items: Array<{ label: string; path: string; icon: any }> = []
 
-  // Dashboard
-  if (auth.hasPermission('dashboard')) {
-    const dashboardPath = auth.isAdmin ? '/admin/dashboard' : auth.isAnalyst ? '/analyst/dashboard' : '/user/dashboard'
-    items.push({ label: 'Dashboard', path: dashboardPath, icon: LayoutDashboard })
-  }
-
-  // Berita Acara — muncul jika ada SATU PUN permission berita_acara_*
-  const hasBeritaAcara = auth.hasPermission('berita_acara_view') ||
-    auth.hasPermission('berita_acara_create') ||
-    auth.hasPermission('berita_acara_verify') ||
-    auth.hasPermission('berita_acara_assign') ||
-    auth.hasPermission('berita_acara_riwayat_personal') ||
-    auth.hasPermission('berita_acara_riwayat_semua')
-  if (hasBeritaAcara) {
-    // Path admin jika bisa lihat semua/verifikasi/assign, path user jika hanya create/riwayat personal
-    const path = (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign'))
-      ? '/admin/berita-acara'
-      : '/user/berita-acara'
-    items.push({ label: 'Berita Acara', path, icon: FileText })
-  }
-
-  // Pembayaran — muncul jika ada payment permissions
-  if (auth.hasPermission('payment_confirm') || auth.hasPermission('payment_view')) {
-    const isAdmin = auth.hasPermission('payment_confirm')
-    const path = isAdmin ? '/admin/payments' : '/user/payments'
-    const label = isAdmin ? 'Riwayat Pembayaran' : 'Pembayaran'
-    items.push({ label, path, icon: CreditCard })
-  }
-
-  // Sampel — muncul jika ada SATU PUN permission sample_*
-  const hasSample = auth.hasPermission('sample_view') ||
-    auth.hasPermission('sample_rekap') ||
-    auth.hasPermission('sample_riwayat_personal') ||
-    auth.hasPermission('sample_riwayat_semua')
-  if (hasSample) {
-    const samplePath = auth.isAnalyst ? '/analyst/samples' : '/admin/samples'
-    items.push({ label: 'Sampel', path: samplePath, icon: FlaskConical })
-  }
-
-  // Ajuan Diskon — muncul jika ada permission discount_riwayat_*
-  if (auth.hasPermission('discount_riwayat_semua') || auth.hasPermission('discount_riwayat_personal')) {
-    const isAdmin = auth.hasPermission('discount_riwayat_semua')
-    const path = isAdmin ? '/admin/discounts' : '/user/payments'
-    const label = isAdmin ? 'Ajuan Diskon' : 'Diskon Saya'
-    items.push({ label, path, icon: BadgePercent })
-  }
-
-  // Kelola Form — muncul jika ada SATU PUN permission form_manage_*
-  if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis') || auth.hasPermission('form_manage_perhitungan_biaya') || auth.hasPermission('form_manage_kelola_harga_instrumen')) {
+  if (auth.isSuperAdmin || auth.isAdmin) {
+    items.push({ label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard })
+    items.push({ label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText })
+    items.push({ label: 'Riwayat Pembayaran', path: '/admin/payments', icon: CreditCard })
+    items.push({ label: 'Sampel', path: '/admin/samples', icon: FlaskConical })
+    items.push({ label: 'Ajuan Diskon', path: '/admin/discounts', icon: BadgePercent })
     items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
-  }
-
-  // Kelola Role
-  if (auth.hasPermission('role_manage')) {
     items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
-  }
-
-  // Kelola Pengguna
-  if (auth.hasPermission('user_view')) {
     items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
-  }
-
-  // Sertifikat
-  if (auth.hasPermission('certificate_download')) {
+  } else if (auth.isAnalyst) {
+    items.push({ label: 'Dashboard', path: '/analyst/dashboard', icon: LayoutDashboard })
+    items.push({ label: 'Tugas Sampel', path: '/analyst/samples', icon: FlaskConical })
+    items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
+    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
+  } else {
+    // Default User Menu
+    items.push({ label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard })
+    items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
+    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
     items.push({ label: 'Sertifikat', path: '/user/certificates', icon: Award })
   }
 
   return items
 })
+
+function isItemActive(path: string): boolean {
+  if (route.path === path) return true
+  if (path !== '/' && path !== '/dashboard' && route.path.startsWith(path)) return true
+  return false
+}
 </script>
 
 <template>
@@ -99,7 +66,7 @@ const menuItems = computed(() => {
         :key="item.path"
         :to="item.path"
         class="sidebar__item"
-        active-class="sidebar__item--active"
+        :class="{ 'sidebar__item--active': isItemActive(item.path) }"
       >
         <component :is="item.icon" class="sidebar__icon" :size="20" />
         <span class="sidebar__label">{{ item.label }}</span>
@@ -114,8 +81,8 @@ const menuItems = computed(() => {
 <style scoped>
 .sidebar {
   width: 240px;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: var(--color-surface, #ffffff);
+  border-right: 1px solid var(--color-border, #e2e8f0);
   height: calc(100vh - 64px);
   position: fixed;
   top: 64px;
@@ -125,12 +92,14 @@ const menuItems = computed(() => {
   flex-direction: column;
   justify-content: space-between;
   transition: width 0.3s ease;
+  z-index: 100;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.04);
 }
 .sidebar__nav {
   display: flex;
   flex-direction: column;
   padding: 12px;
-  gap: 2px;
+  gap: 4px;
 }
 .sidebar__item {
   display: flex;
@@ -138,48 +107,44 @@ const menuItems = computed(() => {
   gap: 12px;
   padding: 10px 14px;
   font-size: 14px;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary, #475569);
   text-decoration: none;
-  border-radius: var(--radius-sm);
-  transition: var(--transition);
-  font-weight: 400;
-}
-.sidebar__item:hover {
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-.sidebar__item--active {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  border-radius: var(--radius-sm, 8px);
+  transition: all 0.15s ease;
   font-weight: 500;
 }
-.sidebar__item--active .sidebar__icon {
-  color: var(--color-accent);
+.sidebar__item:hover {
+  background: var(--color-bg, #f8fafc);
+  color: var(--color-text, #0f172a);
+}
+.sidebar__item--active {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
 }
 .sidebar__icon {
   flex-shrink: 0;
-  color: var(--color-text-muted);
+  color: #64748b;
 }
 .sidebar__item:hover .sidebar__icon {
-  color: var(--color-text-secondary);
+  color: #1e293b;
 }
 .sidebar__item--active .sidebar__icon {
-  color: var(--color-accent);
+  color: #1d4ed8 !important;
 }
 .sidebar__label {
   line-height: 1;
 }
 .sidebar__footer {
   padding: 16px 20px;
-  border-top: 1px solid var(--color-border-light);
+  border-top: 1px solid var(--color-border-light, #f1f5f9);
 }
 .sidebar__version {
   font-size: 11px;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #94a3b8);
   letter-spacing: 0.5px;
 }
 
-/* Make sidebar more responsive on smaller screens */
 @media (max-width: 768px) {
   .sidebar {
     width: 70px;

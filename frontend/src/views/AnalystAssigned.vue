@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
+import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
@@ -161,16 +162,17 @@ async function handleRejectDiscount() {
 <template>
   <AppLayout>
     <div>
-      <div class="page-header">
-        <div class="page-header__left">
-          <Button variant="outline" @click="router.push('/analyst/samples')">Kembali</Button>
-          <h1>Detail Sampel</h1>
-        </div>
+      <PageHeader
+        title="Detail Sampel"
+        subtitle="Kelola laporan pengujian sampel dan rekap analis"
+        show-back
+        back-to="/analyst/samples"
+      >
         <div v-if="item" class="page-header__status">
           <span class="status-label">Status Sampel</span>
           <Badge :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
         </div>
-      </div>
+      </PageHeader>
 
       <SkeletonDetail v-if="loading" />
 
@@ -201,8 +203,8 @@ async function handleRejectDiscount() {
 
               <div v-if="hasRekap" class="rekap-done">Rekap sudah diisi</div>
               <div v-if="hasRekap && item.biaya" class="rekap-biaya">Jumlah Pembayaran: Rp {{ formatPrice(Number(item.biaya)) }}</div>
-              <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
-                {{ hasRekap ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
+              <Button v-if="!hasRekap && auth.hasPermission('sample_rekap')" block variant="primary" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
+                Buat Rekap Analis
               </Button>
             </Card>
           </div>
