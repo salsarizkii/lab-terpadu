@@ -97,6 +97,7 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:approved,rejected',
             'discount_approved' => 'nullable|numeric|min:0',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:1000',
         ]);
 
         $payment = Payment::findOrFail($id);
@@ -105,6 +106,10 @@ class AdminController extends Controller
         if ($request->has('discount_approved')) {
             $data['discount_approved'] = $request->discount_approved;
             $data['discount_status'] = $request->status;
+        }
+
+        if ($request->status === 'rejected') {
+            $data['rejection_reason'] = $request->input('rejection_reason');
         }
 
         $payment->update($data);

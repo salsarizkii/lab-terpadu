@@ -61,6 +61,9 @@ export interface BeritaAcara {
   biaya?: string
   diskon_diizinkan?: boolean
   formula_id?: number | null
+  formula?: { id: number; name: string; expression: string; unit: string }
+  custom_items?: Array<{ name: string; amount: number }>
+  keterangan?: string
   form_data?: Record<string, any>
   form_template_id?: number
   rekap_analis_data?: Record<string, any>
@@ -100,6 +103,8 @@ export interface Payment {
   discount_nominal?: number
   status: 'pending' | 'approved' | 'rejected'
   payment_proof?: string
+  keterangan?: string
+  rejection_reason?: string
   berita_acara?: BeritaAcara
   created_at: string
 }

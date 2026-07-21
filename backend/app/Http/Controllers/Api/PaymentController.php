@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
+use App\Models\DiscountHistory;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 
@@ -58,7 +59,7 @@ class PaymentController extends Controller
     {
         $payment = Payment::whereHas('beritaAcara', function ($q) {
             $q->where('user_id', auth()->id());
-        })->with('beritaAcara')->findOrFail($id);
+        })->with('beritaAcara.formula')->findOrFail($id);
 
         return response()->json($payment);
     }
@@ -66,16 +67,23 @@ class PaymentController extends Controller
     public function uploadProof(Request $request, $id)
     {
         $request->validate([
-            'payment_proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'payment_proof' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:2048',
+            'keterangan' => 'nullable|string|max:1000',
         ]);
 
         $payment = Payment::whereHas('beritaAcara', function ($q) {
             $q->where('user_id', auth()->id());
         })->findOrFail($id);
 
-        $payment->update([
+        $updateData = [
             'payment_proof' => $request->file('payment_proof')->store('payments', 'public'),
-        ]);
+        ];
+
+        if ($request->has('keterangan')) {
+            $updateData['keterangan'] = $request->input('keterangan');
+        }
+
+        $payment->update($updateData);
 
         return response()->json([
             'message' => 'Payment proof uploaded',
@@ -98,6 +106,15 @@ class PaymentController extends Controller
             'discount_request' => $request->discount_request,
             'discount_reason' => $request->discount_reason,
             'discount_status' => 'pending',
+        ]);
+
+        DiscountHistory::create([
+            'payment_id' => $payment->id,
+            'discount_request' => $request->discount_request,
+            'discount_reason' => $request->discount_reason,
+            'status' => 'pending',
+            'action' => 'request',
+            'changed_by' => auth()->id(),
         ]);
 
         return response()->json([

@@ -42,6 +42,7 @@ const sampleStatusText: Record<string, string> = {
 
 function getSampleStatus(): string {
   const ba = item.value as any
+  if (ba?.rekap_analis_data !== null && ba?.rekap_analis_data !== undefined) return 'taken'
   if (!ba?.samples || ba.samples.length === 0) return 'processing'
   if (ba.samples.every((s: any) => s.status === 'taken')) return 'taken'
   if (ba.samples.some((s: any) => s.status === 'processing')) return 'processing'
@@ -165,7 +166,10 @@ async function handleRejectDiscount() {
           <Button variant="outline" @click="router.push('/analyst/samples')">Kembali</Button>
           <h1>Detail Sampel</h1>
         </div>
-        <Badge v-if="item" :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
+        <div v-if="item" class="page-header__status">
+          <span class="status-label">Status Sampel</span>
+          <Badge :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
+        </div>
       </div>
 
       <SkeletonDetail v-if="loading" />
@@ -196,6 +200,7 @@ async function handleRejectDiscount() {
               <div class="sticky-divider" />
 
               <div v-if="hasRekap" class="rekap-done">Rekap sudah diisi</div>
+              <div v-if="hasRekap && item.biaya" class="rekap-biaya">Jumlah Pembayaran: Rp {{ formatPrice(Number(item.biaya)) }}</div>
               <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
                 {{ hasRekap ? 'Edit Rekap Analis' : 'Buat Rekap Analis' }}
               </Button>
@@ -254,6 +259,8 @@ async function handleRejectDiscount() {
 <style scoped>
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-header__left { display: flex; align-items: center; gap: 12px; }
+.page-header__status { display: flex; align-items: center; gap: 8px; }
+.status-label { font-size: 13px; font-weight: 500; color: #64748b; }
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 
 .detail-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
@@ -264,7 +271,8 @@ async function handleRejectDiscount() {
 .sticky-divider { height: 1px; background: #e2e8f0; margin: 16px 0; }
 
 .pengujian-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
-.rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 12px; }
+.rekap-done { font-size: 13px; color: #16a34a; font-weight: 500; margin-bottom: 8px; }
+.rekap-biaya { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 12px; }
 .pengujian-desc { margin: 0 0 12px; font-size: 14px; color: #475569; }
 .pengujian-pending { color: #94a3b8; font-size: 14px; }
 

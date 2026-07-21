@@ -105,7 +105,9 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
                 <td class="cell-reason">{{ p.discount_reason || '-' }}</td>
                 <td><Badge :type="statusTypeMap[p.status]" :text="p.status === 'approved' ? 'Lunas' : p.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td>
                 <td>
-                  <Button size="sm" @click="openConfirm(p)">Proses</Button>
+                  <Button v-if="p.status === 'approved' || p.status === 'rejected'" size="sm" variant="outline" @click="openConfirm(p)">Detail</Button>
+                  <Button v-else-if="p.payment_proof" size="sm" variant="primary" @click="openConfirm(p)">Proses</Button>
+                  <span v-else class="no-proof">Belum ada bukti</span>
                 </td>
               </tr>
               <tr v-if="filtered.length === 0">
@@ -116,8 +118,8 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
         </div>
       </Card>
 
-      <Modal :show="showConfirmModal" title="Konfirmasi Pembayaran" @close="showConfirmModal = false">
-        <PaymentConfirmation v-if="selectedPayment" :payment="selectedPayment" @confirm="handleConfirm" />
+      <Modal :show="showConfirmModal" size="lg" title="Konfirmasi Pembayaran" @close="showConfirmModal = false">
+        <PaymentConfirmation v-if="selectedPayment" :payment="selectedPayment" @confirm="handleConfirm" @close="showConfirmModal = false" />
       </Modal>
     </div>
   </AppLayout>
@@ -133,5 +135,6 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .cell-reason { max-width: 200px; white-space: normal; word-break: break-word; font-size: 13px; }
+.no-proof { font-size: 12px; color: #94a3b8; }
 
 </style>

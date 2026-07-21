@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
+use App\Models\DiscountHistory;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 
@@ -41,6 +42,115 @@ class DiscountController extends Controller
             });
 
         return response()->json($beritaAcaras);
+    }
+
+    public function requests()
+    {
+        $payments = Payment::with(['beritaAcara.user'])
+            ->whereHas('beritaAcara')
+            ->whereIn('discount_status', ['pending', 'rejected', 'approved'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($payment) {
+                $ba = $payment->beritaAcara;
+                return [
+                    'id' => $payment->id,
+                    'berita_acara_id' => $ba->id,
+                    'judul_penelitian' => $ba->judul_penelitian,
+                    'pemohon' => $ba->user->name ?? '-',
+                    'biaya' => $ba->biaya,
+                    'amount' => $payment->amount,
+                    'discount_request' => $payment->discount_request,
+                    'discount_approved' => $payment->discount_approved,
+                    'discount_reason' => $payment->discount_reason,
+                    'discount_status' => $payment->discount_status,
+                    'status' => $payment->status,
+                    'created_at' => $payment->created_at,
+                ];
+            });
+
+        return response()->json($payments);
+    }
+
+    public function approve(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'discount_nominal' => 'nullable|numeric|min:0',
+            'discount_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $payment = Payment::findOrFail($id);
+        $biaya = floatval($payment->amount);
+
+        $percentValue = floatval($validated['discount_percent'] ?? 0);
+        $nominalValue = floatval($validated['discount_nominal'] ?? 0);
+
+        if ($percentValue <= 0 && $nominalValue <= 0) {
+            return response()->json(['message' => 'Isi minimal satu diskon (persen atau nominal)'], 422);
+        }
+
+        $percentAmount = round($biaya * $percentValue / 100);
+        $totalDiscount = $percentAmount + $nominalValue;
+
+        if ($totalDiscount > $biaya) {
+            return response()->json(['message' => 'Total diskon tidak boleh melebihi biaya'], 422);
+        }
+
+        $payment->update([
+            'discount_approved' => $totalDiscount,
+            'discount_status' => 'approved',
+            'discount_reason' => $validated['discount_reason'] ?? $payment->discount_reason,
+            'discount_type' => 'combined',
+            'discount_percent' => $percentValue > 0 ? $percentValue : null,
+            'discount_nominal' => $nominalValue > 0 ? $nominalValue : null,
+            'status' => 'approved',
+        ]);
+
+        DiscountHistory::create([
+            'payment_id' => $payment->id,
+            'discount_request' => $payment->discount_request,
+            'discount_approved' => $totalDiscount,
+            'discount_reason' => $validated['discount_reason'] ?? $payment->discount_reason,
+            'status' => 'approved',
+            'action' => 'approved',
+            'changed_by' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'message' => 'Ajuan diskon disetujui',
+            'data' => $payment,
+        ]);
+    }
+
+    public function reject($id)
+    {
+        $payment = Payment::findOrFail($id);
+        $payment->update([
+            'discount_status' => 'rejected',
+            'discount_approved' => null,
+        ]);
+
+        DiscountHistory::create([
+            'payment_id' => $payment->id,
+            'discount_request' => $payment->discount_request,
+            'discount_reason' => $payment->discount_reason,
+            'status' => 'rejected',
+            'action' => 'rejected',
+            'changed_by' => auth()->id(),
+        ]);
+
+        return response()->json(['message' => 'Ajuan diskon ditolak']);
+    }
+
+    public function history($id)
+    {
+        $histories = DiscountHistory::with('changedBy:id,name')
+            ->where('payment_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($histories);
     }
 
     public function store(Request $request)

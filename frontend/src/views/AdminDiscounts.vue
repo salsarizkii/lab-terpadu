@@ -3,47 +3,40 @@ import { ref, onMounted, computed, watch } from 'vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
-import Modal from '../components/common/Modal.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonTable from '../components/common/SkeletonTable.vue'
-import FormInput from '../components/common/FormInput.vue'
-import FormSelect from '../components/common/FormSelect.vue'
-import { Search, Eye, Trash2 } from '@lucide/vue'
 import { adminApi } from '../api/admin'
 import { toast } from 'vue-sonner'
 
-interface DiscountItem {
+interface DiscountRequest {
   id: number
+  berita_acara_id: number
   judul_penelitian: string
   pemohon: string
   biaya: number
-  diskon_diizinkan: boolean
-  payment: {
-    id: number
-    amount: number
-    discount_approved: number | null
-    discount_status: string | null
-    discount_reason: string | null
-    discount_percent: number | null
-    discount_nominal: number | null
-    status: string
-  } | null
-  has_discount: boolean
+  amount: number
+  discount_request: number
+  discount_approved: number | null
+  discount_reason: string | null
+  discount_status: string
+  status: string
   created_at: string
 }
 
-const items = ref<DiscountItem[]>([])
+const items = ref<DiscountRequest[]>([])
 const loading = ref(true)
-const search = ref('')
 const showModal = ref(false)
 const saving = ref(false)
-const removing = ref(false)
+const selectedItem = ref<DiscountRequest | null>(null)
+const showHistory = ref(false)
+const historyItems = ref<any[]>([])
+const loadingHistory = ref(false)
 
-const selectedItem = ref<DiscountItem | null>(null)
 const discountMode = ref('percent')
 const discountPercent = ref('')
 const discountNominal = ref('')
-const discountReason = ref('')
+const adminNote = ref('')
+const discountAction = ref<'approve' | 'reject'>('approve')
 
 const discountModeOptions = [
   { value: 'percent', label: 'Persen (%)' },
@@ -56,20 +49,6 @@ watch(discountMode, (mode) => {
   if (mode === 'nominal') discountPercent.value = ''
 })
 
-const filtered = computed(() => {
-  if (!search.value) return items.value
-  const q = search.value.toLowerCase()
-  return items.value.filter(i =>
-    i.judul_penelitian?.toLowerCase().includes(q) ||
-    i.pemohon?.toLowerCase().includes(q) ||
-    String(i.id).includes(q)
-  )
-})
-
-const totalBiaya = computed(() => items.value.reduce((s, i) => s + Number(i.biaya || 0), 0))
-const totalDiskon = computed(() => items.value.reduce((s, i) => s + Number(i.payment?.discount_approved || 0), 0))
-const countWithDiscount = computed(() => items.value.filter(i => i.has_discount).length)
-
 function formatPrice(val: number) {
   return new Intl.NumberFormat('id-ID').format(Math.round(val))
 }
@@ -81,111 +60,133 @@ const percentAmount = computed(() => {
 })
 
 const nominalAmount = computed(() => Number(discountNominal.value) || 0)
-
 const totalDiscount = computed(() => percentAmount.value + nominalAmount.value)
+const sisaBayar = computed(() => Math.max(0, (selectedItem.value?.biaya || 0) - totalDiscount.value))
+const hasAnyInput = computed(() => totalDiscount.value > 0)
 
-const sisaBayar = computed(() => {
-  const biaya = selectedItem.value?.biaya || 0
-  return Math.max(0, biaya - totalDiscount.value)
-})
+const isOverMax = computed(() => totalDiscount.value > (selectedItem.value?.biaya || 0))
 
-const maxNominal = computed(() => {
-  const biaya = selectedItem.value?.biaya || 0
-  return Math.max(0, biaya - percentAmount.value)
-})
+const isReadonly = computed(() => selectedItem.value?.discount_status !== 'pending')
 
-const hasAnyInput = computed(() => {
-  if (discountMode.value === 'percent') return (Number(discountPercent.value) || 0) > 0
-  if (discountMode.value === 'nominal') return (Number(discountNominal.value) || 0) > 0
-  return (Number(discountPercent.value) || 0) > 0 || (Number(discountNominal.value) || 0) > 0
-})
-
-const isOverMax = computed(() => {
-  if (discountMode.value === 'percent' || discountMode.value === 'both') {
-    if (Number(discountPercent.value) > 100) return true
-  }
-  if (discountMode.value === 'nominal') {
-    if (nominalAmount.value > Number(selectedItem.value?.biaya || 0)) return true
-  }
-  if (discountMode.value === 'both') {
-    if (nominalAmount.value > maxNominal.value) return true
-  }
-  return false
-})
-
-function openDetail(item: DiscountItem) {
+function openModal(item: DiscountRequest) {
   selectedItem.value = item
-  if (item.payment?.discount_approved) {
-    discountPercent.value = item.payment.discount_percent ? String(item.payment.discount_percent) : ''
-    discountNominal.value = item.payment.discount_nominal ? String(item.payment.discount_nominal) : ''
-    discountReason.value = item.payment.discount_reason || ''
-    const hasPct = !!item.payment.discount_percent
-    const hasNom = !!item.payment.discount_nominal
-    if (hasPct && hasNom) discountMode.value = 'both'
-    else if (hasPct) discountMode.value = 'percent'
-    else discountMode.value = 'nominal'
-  } else {
-    discountPercent.value = ''
-    discountNominal.value = ''
-    discountReason.value = ''
-    discountMode.value = 'percent'
-  }
+  discountPercent.value = ''
+  discountNominal.value = ''
+  adminNote.value = ''
+  discountAction.value = 'approve'
+  discountMode.value = 'percent'
   showModal.value = true
 }
 
 function closeModal() {
   showModal.value = false
+  showHistory.value = false
   selectedItem.value = null
 }
 
-async function handleSave() {
+async function loadHistory() {
   if (!selectedItem.value) return
-  if (!hasAnyInput.value) {
-    return toast.error('Isi minimal satu diskon')
+  loadingHistory.value = true
+  try {
+    historyItems.value = await adminApi.getDiscountHistory(selectedItem.value.id)
+    showHistory.value = true
+  } catch {
+    toast.error('Gagal memuat riwayat')
+  } finally {
+    loadingHistory.value = false
   }
+}
+
+const noteRequired = computed(() => discountAction.value === 'reject' && !adminNote.value.trim())
+const submitDisabled = computed(() => {
+  if (discountAction.value === 'approve') return !hasAnyInput.value || isOverMax.value
+  return noteRequired.value
+})
+
+const filterTab = ref('all')
+
+const filteredItems = computed(() => {
+  if (filterTab.value === 'all') return items.value
+  if (filterTab.value === 'proses') return items.value.filter(i => i.discount_status === 'pending' || i.discount_status === 'rejected')
+  if (filterTab.value === 'diterima') return items.value.filter(i => i.discount_status === 'approved')
+  return items.value
+})
+
+function autoFillFromRequest() {
+  const biaya = Number(selectedItem.value?.biaya) || 0
+  const req = Number(selectedItem.value?.discount_request) || 0
+  if (req <= 0) return
+  const pct = Math.round((req / biaya) * 100 * 100) / 100
+  discountPercent.value = String(pct)
+  discountNominal.value = ''
+  discountMode.value = 'percent'
+}
+
+async function handleQuickApprove(item: DiscountRequest) {
+  const biaya = Number(item.biaya) || 0
+  const requested = Number(item.discount_request) || 0
+  if (requested <= 0) return toast.error('Tidak ada jumlah diskon yang diminta')
 
   saving.value = true
   try {
-    const payload: any = {
-      discount_percent: discountMode.value === 'nominal' ? 0 : (Number(discountPercent.value) || 0),
-      discount_nominal: discountMode.value === 'percent' ? 0 : (Number(discountNominal.value) || 0),
-      discount_reason: discountReason.value || undefined,
-    }
-    if (selectedItem.value.has_discount && selectedItem.value.payment?.id) {
-      await adminApi.updateDiscount(selectedItem.value.payment.id, payload)
-      toast.success('Diskon berhasil diperbarui')
-    } else {
-      await adminApi.assignDiscount({ berita_acara_id: selectedItem.value.id, ...payload })
-      toast.success('Diskon berhasil diberikan')
-    }
+    const percent = Math.round((requested / biaya) * 100 * 100) / 100
+    await adminApi.approveDiscount(item.id, {
+      discount_percent: percent,
+      discount_nominal: 0,
+      discount_reason: item.discount_reason || undefined,
+    })
+    toast.success('Diskon disetujui sesuai permintaan')
     await loadData()
-    closeModal()
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal menyimpan diskon')
+    toast.error(e.response?.data?.message || 'Gagal menyetujui diskon')
   } finally {
     saving.value = false
   }
 }
 
-async function handleReject() {
-  if (!selectedItem.value?.payment?.id) return
-  removing.value = true
+async function handleSubmit() {
+  if (!selectedItem.value) return
+
+  if (discountAction.value === 'reject') {
+    if (!adminNote.value.trim()) return toast.error('Wajib isi catatan untuk penolakan')
+    saving.value = true
+    try {
+      await adminApi.rejectDiscount(selectedItem.value.id)
+      toast.success('Ajuan diskon ditolak')
+      await loadData()
+      closeModal()
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Gagal menolak diskon')
+    } finally {
+      saving.value = false
+    }
+    return
+  }
+
+  if (!hasAnyInput.value) return toast.error('Isi minimal satu diskon')
+  if (isOverMax.value) return toast.error('Total diskon tidak boleh melebihi biaya')
+
+  saving.value = true
   try {
-    await adminApi.deleteDiscount(selectedItem.value.payment.id)
-    toast.success('Diskon berhasil dihapus')
+    await adminApi.approveDiscount(selectedItem.value.id, {
+      discount_percent: Number(discountPercent.value) || 0,
+      discount_nominal: Number(discountNominal.value) || 0,
+      discount_reason: adminNote.value || undefined,
+    })
+    toast.success('Ajuan diskon disetujui')
     await loadData()
     closeModal()
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal menghapus diskon')
+    toast.error(e.response?.data?.message || 'Gagal menyetujui diskon')
   } finally {
-    removing.value = false
+    saving.value = false
   }
 }
 
 async function loadData() {
   loading.value = true
   try {
-    items.value = await adminApi.getDiscounts()
+    items.value = await adminApi.getDiscountRequests()
   } catch {
     toast.error('Gagal memuat data')
   } finally {
@@ -201,39 +202,19 @@ onMounted(loadData)
     <div>
       <div class="page-header">
         <div>
-          <h1>Kelola Diskon</h1>
-          <p class="subtitle">Beri diskon (persen dan/atau nominal) untuk berita acara yang sudah disetujui</p>
-        </div>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-label">Total Berita Acara</span>
-          <span class="stat-value">{{ items.length }}</span>
-        </div>
-        <div class="stat-card stat-card--accent">
-          <span class="stat-label">Sudah Diberi Diskon</span>
-          <span class="stat-value">{{ countWithDiscount }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Total Biaya</span>
-          <span class="stat-value">Rp {{ formatPrice(totalBiaya) }}</span>
-        </div>
-        <div class="stat-card stat-card--green">
-          <span class="stat-label">Total Diskon</span>
-          <span class="stat-value">Rp {{ formatPrice(totalDiskon) }}</span>
+          <h1>Ajuan Diskon</h1>
+          <p class="subtitle">Proses ajuan diskon dari pengguna</p>
         </div>
       </div>
 
       <Card>
-        <div class="filter-bar">
-          <div class="search-box">
-            <Search :size="16" />
-            <input v-model="search" type="text" placeholder="Cari judul, pemohon, atau ID..." />
-          </div>
+        <div class="tabs">
+          <button class="tab-btn" :class="{ active: filterTab === 'proses' }" @click="filterTab = 'proses'">Dalam Proses</button>
+          <button class="tab-btn" :class="{ active: filterTab === 'diterima' }" @click="filterTab = 'diterima'">Diterima</button>
+          <button class="tab-btn" :class="{ active: filterTab === 'all' }" @click="filterTab = 'all'">Semua</button>
         </div>
 
-        <SkeletonTable v-if="loading" :cols="6" :rows="5" />
+        <SkeletonTable v-if="loading" :cols="7" :rows="5" />
 
         <div v-else class="table-wrap">
           <table class="table">
@@ -243,145 +224,225 @@ onMounted(loadData)
                 <th>Judul Penelitian</th>
                 <th>Pemohon</th>
                 <th>Biaya</th>
-                <th>Diskon</th>
+                <th>Diskon Diminta</th>
+                <th>Status</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in filtered" :key="item.id">
-                <td>#{{ item.id }}</td>
+              <tr v-for="item in filteredItems" :key="item.id" :class="{ 'row-rejected': item.discount_status === 'rejected' }">
+                <td>#{{ item.berita_acara_id }}</td>
                 <td class="cell-title">{{ item.judul_penelitian || '-' }}</td>
                 <td>{{ item.pemohon }}</td>
-                <td>Rp {{ formatPrice(Number(item.biaya || 0)) }}</td>
+                <td>Rp {{ formatPrice(item.biaya || 0) }}</td>
                 <td>
-                  <template v-if="item.has_discount">
-                    <Badge type="success" text="Aktif" />
-                    <span class="discount-detail">
-                      <template v-if="item.payment?.discount_percent">{{ item.payment.discount_percent }}%</template>
-                      <template v-if="item.payment?.discount_percent && item.payment?.discount_nominal"> + </template>
-                      <template v-if="item.payment?.discount_nominal">Rp {{ formatPrice(Number(item.payment.discount_nominal)) }}</template>
-                    </span>
-                  </template>
-                  <span v-else class="text-muted">Belum ada diskon</span>
+                  <span class="discount-req">Rp {{ formatPrice(item.discount_request || 0) }}</span>
+                  <div v-if="item.discount_reason" class="discount-req-reason">{{ item.discount_reason }}</div>
                 </td>
                 <td>
-                  <button class="icon-btn" title="Lihat Detail" @click="openDetail(item)">
-                    <Eye :size="16" />
-                  </button>
+                  <Badge v-if="item.discount_status === 'approved'" type="success" text="Diterima" />
+                  <Badge v-else-if="item.discount_status === 'rejected'" type="danger" text="Ditolak" />
+                  <Badge v-else type="warning" text="Diproses" />
+                </td>
+                <td>
+                  <Button v-if="item.discount_status === 'pending'" size="sm" @click="openModal(item)">Proses</Button>
+                  <Button v-else size="sm" variant="outline" @click="openModal(item)">Lihat</Button>
                 </td>
               </tr>
-              <tr v-if="filtered.length === 0">
-                <td colspan="6" class="empty-cell">Tidak ada data</td>
+              <tr v-if="filteredItems.length === 0">
+                <td colspan="7" class="empty-cell">Tidak ada ajuan diskon</td>
               </tr>
             </tbody>
           </table>
         </div>
       </Card>
 
-      <!-- Modal Detail Diskon -->
-      <Modal :show="showModal" title="Detail Diskon" size="sm" @close="closeModal">
-        <div v-if="selectedItem" class="discount-form">
-          <div class="form-info">
-            <p><strong>#{{ selectedItem.id }}</strong> — {{ selectedItem.judul_penelitian || 'Tanpa judul' }}</p>
-            <p class="form-info__pemohon">{{ selectedItem.pemohon }}</p>
+      <!-- Popup Proses Ajuan -->
+      <div v-if="showModal" class="popup-overlay" @click.self="closeModal">
+        <div class="popup">
+          <div class="popup-header">
+            <h3>Proses Ajuan Diskon</h3>
+            <button class="popup-close" @click="closeModal">&times;</button>
           </div>
+          <div class="popup-body">
+            <template v-if="selectedItem">
+              <!-- Info ajuan -->
+              <div class="req-info">
+                <div class="req-row">
+                  <span class="req-label">Pemohon</span>
+                  <span class="req-value">{{ selectedItem.pemohon }}</span>
+                </div>
+                <div class="req-row">
+                  <span class="req-label">Judul</span>
+                  <span class="req-value">{{ selectedItem.judul_penelitian || '-' }}</span>
+                </div>
+                <div class="req-row req-row--border">
+                  <span class="req-label">Biaya Total</span>
+                  <span class="req-value req-value--bold">Rp {{ formatPrice(selectedItem.biaya || 0) }}</span>
+                </div>
+                <div class="req-row">
+                  <span class="req-label">Diskon Diminta</span>
+                  <span class="req-value req-value--accent">Rp {{ formatPrice(selectedItem.discount_request || 0) }}</span>
+                </div>
+                <div v-if="selectedItem.discount_reason" class="req-row">
+                  <span class="req-label">Alasan</span>
+                  <span class="req-value">{{ selectedItem.discount_reason }}</span>
+                </div>
+                <div class="req-row">
+                  <span class="req-label">Status</span>
+                  <span class="req-value">
+                    <Badge v-if="selectedItem.discount_status === 'approved'" type="success" text="Diterima" />
+                    <Badge v-else-if="selectedItem.discount_status === 'rejected'" type="danger" text="Ditolak" />
+                    <Badge v-else type="warning" text="Menunggu" />
+                  </span>
+                </div>
+                <div v-if="selectedItem.discount_approved" class="req-row">
+                  <span class="req-label">Diskon Diberikan</span>
+                  <span class="req-value req-value--accent">Rp {{ formatPrice(selectedItem.discount_approved || 0) }}</span>
+                </div>
+              </div>
 
-          <div class="form-biaya">
-            <span>Biaya</span>
-            <strong>Rp {{ formatPrice(Number(selectedItem.biaya || 0)) }}</strong>
+              <div class="divider" />
+
+              <Button variant="outline" size="sm" @click="loadHistory" :disabled="loadingHistory" style="width: 100%;">
+                {{ loadingHistory ? 'Memuat...' : 'Riwayat Pengajuan Diskon' }}
+              </Button>
+
+              <div v-if="showHistory && historyItems.length" class="history-list">
+                <div v-for="(h, idx) in historyItems" :key="h.id" class="history-item">
+                  <div class="history-item-header">
+                    <span class="history-action">
+                      <Badge v-if="h.status === 'pending'" type="warning" text="Diajukan" />
+                      <Badge v-else-if="h.status === 'approved'" type="success" text="Disetujui" />
+                      <Badge v-else type="danger" text="Ditolak" />
+                    </span>
+                    <span class="history-date">{{ new Date(h.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
+                  </div>
+                  <div class="history-item-body">
+                    <div v-if="h.discount_request" class="history-row">
+                      <span>Diskon diminta</span>
+                      <span>Rp {{ formatPrice(Number(h.discount_request)) }}</span>
+                    </div>
+                    <div v-if="h.discount_approved" class="history-row">
+                      <span>Diskon diberikan</span>
+                      <span>Rp {{ formatPrice(Number(h.discount_approved)) }}</span>
+                    </div>
+                    <div v-if="h.discount_reason" class="history-row">
+                      <span>Catatan</span>
+                      <span>{{ h.discount_reason }}</span>
+                    </div>
+                    <div v-if="h.changed_by" class="history-row">
+                      <span>Oleh</span>
+                      <span>{{ h.changed_by.name }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="divider" />
+
+              <!-- Readonly: sudah diproses -->
+              <div v-if="isReadonly" class="readonly-info"></div>
+
+              <!-- Pilihan Terima / Tolak (hanya pending) -->
+              <template v-if="!isReadonly">
+              <div class="action-toggle">
+                <button
+                  class="action-toggle-btn"
+                  :class="{ active: discountAction === 'approve' }"
+                  @click="discountAction = 'approve'"
+                >
+                  Terima Ajuan
+                </button>
+                <button
+                  class="action-toggle-btn"
+                  :class="{ active: discountAction === 'reject' }"
+                  @click="discountAction = 'reject'"
+                >
+                  Tolak Ajuan
+                </button>
+              </div>
+
+              <!-- Form Setujui -->
+              <div v-if="discountAction === 'approve'" class="form-section">
+                <label class="form-section-label">Tentukan Diskon yang Disetujui</label>
+
+                <Button variant="outline" size="sm" class="auto-fill-btn" @click="autoFillFromRequest">
+                  Beri Diskon Sesuai Pengajuan
+                </Button>
+
+                <div class="select-row">
+                  <select v-model="discountMode" class="form-select">
+                    <option v-for="opt in discountModeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
+
+                <template v-if="discountMode === 'percent' || discountMode === 'both'">
+                  <div class="form-field">
+                    <label class="form-label">Persentase (%)</label>
+                    <input v-model="discountPercent" type="number" min="0" max="100" class="form-input" placeholder="Contoh: 10" />
+                    <p v-if="Number(discountPercent) > 100" class="form-err">Maksimal 100%</p>
+                    <p v-else-if="Number(discountPercent) > 0" class="form-hint">= Rp {{ formatPrice(percentAmount) }}</p>
+                  </div>
+                </template>
+
+                <template v-if="discountMode === 'nominal' || discountMode === 'both'">
+                  <div class="form-field">
+                    <label class="form-label">Nominal (Rp)</label>
+                    <input v-model="discountNominal" type="number" min="0" class="form-input" placeholder="Contoh: 50000" />
+                  </div>
+                </template>
+
+                <div v-if="hasAnyInput && !isOverMax" class="preview-box">
+                  <div class="preview-row" v-if="Number(discountPercent) > 0">
+                    <span>Diskon {{ discountPercent }}%</span>
+                    <span>- Rp {{ formatPrice(percentAmount) }}</span>
+                  </div>
+                  <div class="preview-row" v-if="Number(discountNominal) > 0">
+                    <span>Diskon Nominal</span>
+                    <span>- Rp {{ formatPrice(nominalAmount) }}</span>
+                  </div>
+                  <div class="preview-row preview-row--total">
+                    <span>Total Diskon Diberikan</span>
+                    <span>- Rp {{ formatPrice(totalDiscount) }}</span>
+                  </div>
+                  <div class="preview-row preview-row--sisa">
+                    <span>Sisa Bayar</span>
+                    <span>Rp {{ formatPrice(sisaBayar) }}</span>
+                  </div>
+                </div>
+
+                <p v-if="isOverMax" class="form-err">Total diskon melebihi biaya!</p>
+
+                <div class="form-field">
+                  <label class="form-label">Catatan (opsional)</label>
+                  <textarea v-model="adminNote" class="form-textarea" rows="2" placeholder="Alasan memberikan diskon sebesar ini..." />
+                </div>
+              </div>
+
+              <!-- Form Tolak -->
+              <div v-if="discountAction === 'reject'" class="form-section">
+                <div class="form-field">
+                  <label class="form-label">Catatan Penolakan <span class="required">*</span></label>
+                  <textarea v-model="adminNote" class="form-textarea" rows="3" placeholder="Alasan menolak ajuan diskon ini..." />
+                </div>
+              </div>
+              </template>
+            </template>
           </div>
-
-          <FormSelect
-            v-model="discountMode"
-            label="Tipe Diskon"
-            :options="discountModeOptions"
-          />
-
-          <template v-if="discountMode === 'percent' || discountMode === 'both'">
-            <FormInput
-              v-model="discountPercent"
-              label="Diskon Persen (%)"
-              type="number"
-              placeholder="Contoh: 10"
-            />
-            <p v-if="Number(discountPercent) > 100" class="form-error-msg">Maksimal 100%</p>
-            <p v-else-if="Number(discountPercent) > 0" class="form-hint">
-              = Rp {{ formatPrice(percentAmount) }}
-            </p>
-          </template>
-
-          <template v-if="discountMode === 'nominal' || discountMode === 'both'">
-            <FormInput
-              v-model="discountNominal"
-              label="Diskon Manual (Rp)"
-              type="number"
-              placeholder="Contoh: 50000"
-            />
-            <p v-if="discountMode === 'both' && nominalAmount > maxNominal" class="form-error-msg">
-              Melebihi sisa biaya (maks Rp {{ formatPrice(maxNominal) }})
-            </p>
-            <p v-else-if="discountMode === 'nominal' && nominalAmount > Number(selectedItem.biaya || 0)" class="form-error-msg">
-              Tidak boleh melebihi biaya
-            </p>
-          </template>
-
-          <div v-if="hasAnyInput" class="form-preview">
-            <div class="form-preview__row" v-if="Number(discountPercent) > 0">
-              <span>Persentase ({{ discountPercent }}%)</span>
-              <span>- Rp {{ formatPrice(percentAmount) }}</span>
-            </div>
-            <div class="form-preview__row" v-if="Number(discountNominal) > 0">
-              <span>Nominal</span>
-              <span>- Rp {{ formatPrice(nominalAmount) }}</span>
-            </div>
-            <div class="form-preview__row form-preview__row--total">
-              <span>Total Diskon</span>
-              <span>- Rp {{ formatPrice(totalDiscount) }}</span>
-            </div>
-            <div class="form-preview__row form-preview__row--sisa">
-              <span>Sisa Bayar</span>
-              <span>Rp {{ formatPrice(sisaBayar) }}</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Catatan (opsional)</label>
-            <textarea
-              v-model="discountReason"
-              class="form-textarea"
-              rows="2"
-              placeholder="Alasan pemberian diskon..."
-            />
+          <div class="popup-footer">
+            <template v-if="isReadonly">
+              <Button variant="outline" @click="closeModal">Tutup</Button>
+            </template>
+            <template v-else>
+              <Button variant="outline" @click="closeModal">Batal</Button>
+              <Button :disabled="saving || submitDisabled" @click="handleSubmit">
+                {{ saving ? 'Menyimpan...' : discountAction === 'approve' ? 'Terima Ajuan' : 'Tolak Ajuan' }}
+              </Button>
+            </template>
           </div>
         </div>
-
-        <template #footer>
-          <div class="modal-footer">
-            <div class="modal-footer__left">
-              <Button
-                v-if="selectedItem?.has_discount"
-                variant="danger"
-                :loading="removing"
-                @click="handleReject"
-              >
-                <Trash2 :size="14" />
-                Hapus Diskon
-              </Button>
-            </div>
-            <div class="modal-footer__right">
-              <Button variant="secondary" @click="closeModal">Tutup</Button>
-              <Button
-                variant="primary"
-                :loading="saving"
-                :disabled="!hasAnyInput || isOverMax"
-                @click="handleSave"
-              >
-                {{ selectedItem?.has_discount ? 'Perbarui' : 'Simpan' }}
-              </Button>
-            </div>
-          </div>
-        </template>
-      </Modal>
+      </div>
     </div>
   </AppLayout>
 </template>
@@ -391,78 +452,139 @@ onMounted(loadData)
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 .subtitle { font-size: 14px; color: #64748b; margin: 4px 0 0; }
 
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.stat-card {
-  background: #fff; border: 1.5px solid #e2e8f0; border-radius: 12px;
-  padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+.tabs { display: flex; gap: 0; border-bottom: none; margin-bottom: 16px; background: #f1f5f9; border-radius: 10px; padding: 4px; }
+.tab-btn {
+  flex: 1; padding: 10px 0; border: none; background: none; font-size: 14px; font-weight: 500;
+  color: #64748b; cursor: pointer; transition: all 0.15s; font-family: inherit; border-radius: 8px;
 }
-.stat-card--accent { border-color: #2563eb; background: #eff6ff; }
-.stat-card--green { border-color: #059669; background: #ecfdf5; }
-.stat-label { font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
-.stat-value { font-size: 18px; font-weight: 700; color: #1e293b; }
-
-.filter-bar { margin-bottom: 16px; }
-.search-box {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
-  background: #fff; max-width: 320px; color: #94a3b8;
-}
-.search-box input { border: none; outline: none; font-size: 14px; flex: 1; color: #1e293b; background: transparent; }
+.tab-btn:hover { color: #1e293b; }
+.tab-btn.active { color: #1e293b; font-weight: 600; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
-.cell-title { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cell-title { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
-.text-muted { color: #94a3b8; font-size: 13px; }
+.discount-req { font-weight: 600; color: #dc2626; }
+.discount-req-reason { font-size: 12px; color: #64748b; margin-top: 2px; max-width: 200px; }
+.text-muted { font-size: 13px; color: #94a3b8; }
+.row-rejected { opacity: 0.6; background: #fef2f2; }
 
-.discount-detail { font-size: 13px; color: #059669; font-weight: 500; margin-left: 6px; }
-
-.icon-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  background: #fff; color: #475569; cursor: pointer; transition: all 0.15s;
+/* ===== Popup ===== */
+.popup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px;
 }
-.icon-btn:hover { background: #f1f5f9; border-color: #cbd5e1; color: #1e293b; }
-
-/* Modal form */
-.discount-form { display: flex; flex-direction: column; gap: 14px; }
-.form-info { padding: 12px; background: #f8fafc; border-radius: 10px; font-size: 14px; color: #334155; }
-.form-info__pemohon { font-size: 13px; color: #64748b; margin: 4px 0 0; }
-.form-biaya {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 10px;
-  font-size: 14px; color: #92400e;
+.popup {
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 100%; max-width: 480px; max-height: 90vh;
+  display: flex; flex-direction: column;
+  animation: popupIn 0.2s ease-out;
 }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-label { font-size: 13px; font-weight: 600; color: #334155; }
+@keyframes popupIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.popup-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 0; }
+.popup-header h3 { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; }
+.popup-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: transparent; color: #94a3b8; cursor: pointer; font-size: 20px;
+}
+.popup-close:hover { background: #f1f5f9; color: #1e293b; }
+.popup-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
+.req-info { display: flex; flex-direction: column; gap: 6px; }
+.req-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.req-row--border { padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; margin-bottom: 4px; }
+.req-label { font-size: 13px; color: #64748b; white-space: nowrap; }
+.req-value { font-size: 14px; color: #1e293b; text-align: right; }
+.req-value--bold { font-weight: 700; font-size: 16px; color: #1e293b; }
+.req-value--accent { font-weight: 600; color: #dc2626; }
+
+.divider { height: 1px; background: #e2e8f0; }
+
+.readonly-info { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.readonly-info .req-row { padding: 4px 0; }
+.readonly-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
+
+.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
+.history-item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.history-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.history-action { display: flex; align-items: center; }
+.history-date { font-size: 11px; color: #94a3b8; }
+.history-item-body { display: flex; flex-direction: column; gap: 2px; }
+.history-row { display: flex; justify-content: space-between; font-size: 12px; color: #475569; }
+.history-row span:first-child { color: #94a3b8; }
+
+.action-toggle {
+  display: flex; gap: 0; border-radius: 10px;
+  border: 1.5px solid #e2e8f0; margin-bottom: 8px;
+}
+.action-toggle-btn {
+  flex: 1; padding: 12px 16px; border: none; background: #f8fafc;
+  font-size: 14px; font-weight: 500; color: #475569; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+.action-toggle-btn:first-child { border-radius: 10px 0 0 10px; }
+.action-toggle-btn:last-child { border-radius: 0 10px 10px 0; }
+.action-toggle-btn.active {
+  background: #2563eb; color: #fff; font-weight: 600;
+}
+.action-toggle-btn:not(.active):hover { background: #f1f5f9; color: #1e293b; }
+
+.required { color: #dc2626; }
+
+.form-section { display: flex; flex-direction: column; gap: 12px; }
+.form-section-label { font-size: 14px; font-weight: 600; color: #1e293b; }
+.auto-fill-btn { align-self: flex-start; }
+
+.select-row { }
+.form-select {
+  width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-size: 14px; color: #1e293b; outline: none; background: #fff; cursor: pointer;
+}
+.form-select:focus { border-color: #2563eb; }
+
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: 13px; font-weight: 500; color: #475569; }
+.form-input {
+  padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-size: 14px; color: #1e293b; outline: none;
+}
+.form-input:focus { border-color: #2563eb; }
 .form-hint { font-size: 12px; color: #94a3b8; margin: 0; }
-.form-error-msg { font-size: 12px; color: #dc2626; margin: 0; }
+.form-err { font-size: 12px; color: #dc2626; margin: 0; }
 
-.form-preview {
+.preview-box {
   padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
 }
-.form-preview__row {
-  display: flex; justify-content: space-between; font-size: 13px; color: #475569; padding: 2px 0;
-}
-.form-preview__row--total {
+.preview-row { display: flex; justify-content: space-between; font-size: 13px; color: #475569; padding: 2px 0; }
+.preview-row--total {
   font-weight: 700; font-size: 14px; color: #166534;
   padding-top: 6px; margin-top: 6px; border-top: 1px solid #bbf7d0;
 }
-.form-preview__row--sisa {
+.preview-row--sisa {
   font-weight: 700; font-size: 15px; color: #1e293b;
   padding-top: 4px; margin-top: 4px; border-top: 1px solid #bbf7d0;
 }
 
+.popup-footer {
+  padding: 0 20px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer-right { display: flex; gap: 8px; }
+
 .form-textarea {
-  padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
   font-size: 14px; color: #1e293b; outline: none; resize: vertical; font-family: inherit;
 }
 .form-textarea:focus { border-color: #2563eb; }
 
-.modal-footer { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.modal-footer__left { display: flex; }
-.modal-footer__right { display: flex; gap: 8px; }
+.action-btns { display: flex; gap: 6px; }
 </style>

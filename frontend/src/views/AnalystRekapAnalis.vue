@@ -33,19 +33,16 @@ const keterangan = ref('')
 const formulas = ref<Formula[]>([])
 
 const formulaOptions = computed(() => [
-  { value: '', label: 'Pilih rumus...' },
   { value: '-1', label: 'Isi Manual' },
   ...formulas.value.map(f => ({ value: String(f.id), label: `${f.name} (${f.unit || 'Rupiah'})` })),
 ])
 
 function getFormulaSelectValue(row: FormulaRow): string {
-  if (row.formulaId === null) return ''
-  return String(row.formulaId)
+  return String(row.formulaId ?? -1)
 }
 
 function onFormulaSelectValue(row: FormulaRow, val: string) {
-  if (val === '') row.formulaId = null
-  else if (val === '-1') row.formulaId = -1
+  if (val === '-1') row.formulaId = -1
   else row.formulaId = Number(val)
   onFormulaSelect(row)
 }
@@ -66,7 +63,7 @@ const formulaRows = ref<FormulaRow[]>([])
 function addFormulaRow() {
   formulaRows.value.push({
     id: ++rowIdCounter,
-    formulaId: null,
+    formulaId: -1,
     formula: null,
     calculating: false,
     biaya: null,
@@ -188,6 +185,7 @@ const sampleStatusText: Record<string, string> = {
 
 function getSampleStatus(): string {
   const ba = item.value as any
+  if (ba?.rekap_analis_data !== null && ba?.rekap_analis_data !== undefined) return 'taken'
   if (!ba?.samples || ba.samples.length === 0) return 'processing'
   if (ba.samples.every((s: any) => s.status === 'taken')) return 'taken'
   if (ba.samples.some((s: any) => s.status === 'processing')) return 'processing'
@@ -340,15 +338,15 @@ async function handleSubmit() {
 
   saving.value = true
   try {
-    const firstFormula = formulaRows.value.find(r => r.formulaId)
+    const firstFormula = formulaRows.value.find(r => r.formulaId && r.formulaId !== -1)
     await analystApi.storeRekapAnalis(item.value.id, {
       rekap_analis_data: JSON.stringify(formValues.value),
       rekap_analis_template_id: templateIdVal.value,
       biaya: totalBiaya.value || null,
       formula_id: firstFormula?.formulaId || null,
       custom_items: formulaRows.value
-        .filter(r => !r.formulaId && r.biaya)
-        .map(r => ({ name: r.formula?.name || `Biaya tambahan`, amount: r.biaya || 0 })),
+        .filter(r => (!r.formulaId || r.formulaId === -1) && r.biaya)
+        .map(r => ({ name: r.manualNote || r.formula?.name || 'Biaya tambahan', amount: r.biaya || 0 })),
       keterangan: keterangan.value || null,
     })
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
@@ -412,7 +410,7 @@ async function handleSubmit() {
             />
 
             <div class="biaya-section">
-              <label class="biaya-label">Perhitungan Biaya</label>
+              <label class="biaya-label">Biaya Pengujian</label>
 
               <!-- Formula rows -->
               <div v-for="(row, idx) in formulaRows" :key="row.id" class="formula-row">
@@ -430,7 +428,7 @@ async function handleSubmit() {
                   </button>
                 </div>
 
-                <!-- Manual input: textarea + biaya -->
+                <!-- Manual input: keterangan + biaya -->
                 <div v-if="row.formulaId === -1" class="manual-section">
                   <input
                     v-model="row.manualNote"
@@ -443,7 +441,7 @@ async function handleSubmit() {
                     type="number"
                     min="0"
                     class="manual-biaya-input"
-                    placeholder="Jumlah (Rp)"
+                    placeholder="Jumlah Biaya (Rp)"
                   />
                 </div>
 
@@ -494,14 +492,13 @@ async function handleSubmit() {
               <Button variant="outline" size="sm" class="add-formula-btn" @click="addFormulaRow">+ Tambah</Button>
 
               <!-- Hitung Semua -->
-              <div class="hitung-semua-row">
+              <div v-if="formulaRows.filter(r => r.formulaId && r.formulaId !== -1).length > 0" class="hitung-semua-row">
                 <Button
                   variant="outline"
                   size="sm"
-                  :disabled="formulaRows.filter(r => r.formulaId && r.formulaId !== -1).length === 0"
                   @click="handleCalculateAll"
                 >
-                  Hitung Semua
+                  Hitung Semua Rumus
                 </Button>
               </div>
 

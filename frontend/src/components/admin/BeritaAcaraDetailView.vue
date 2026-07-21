@@ -128,7 +128,7 @@ watch(() => props.beritaAcara, () => {
   <div class="detail">
     <div class="detail__meta">
       <div class="detail__meta-item">
-        <span class="detail__label">Status</span>
+        <span class="detail__label">Status Sampel</span>
         <Badge
           :type="overrideStatus?.type || statusMap[beritaAcara.status]?.type || 'default'"
           :text="overrideStatus?.label || statusMap[beritaAcara.status]?.label || beritaAcara.status"

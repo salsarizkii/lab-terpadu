@@ -18,6 +18,8 @@ class Payment extends Model
         'discount_nominal',
         'status',
         'payment_proof',
+        'keterangan',
+        'rejection_reason',
     ];
 
     protected function casts(): array

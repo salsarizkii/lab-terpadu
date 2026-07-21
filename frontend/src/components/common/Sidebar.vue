@@ -41,9 +41,9 @@ const menuItems = computed(() => {
     items.push({ label: 'Berita Acara', path, icon: FileText })
   }
 
-  // Pembayaran — muncul jika ada permission payment_riwayat_*
-  if (auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('payment_riwayat_personal')) {
-    const isAdmin = auth.hasPermission('payment_riwayat_semua')
+  // Pembayaran — muncul jika ada payment permissions
+  if (auth.hasPermission('payment_confirm') || auth.hasPermission('payment_view')) {
+    const isAdmin = auth.hasPermission('payment_confirm')
     const path = isAdmin ? '/admin/payments' : '/user/payments'
     const label = isAdmin ? 'Riwayat Pembayaran' : 'Pembayaran'
     items.push({ label, path, icon: CreditCard })

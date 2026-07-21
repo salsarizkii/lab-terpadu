@@ -66,7 +66,10 @@ class InstrumentPriceSeeder extends Seeder
         ];
 
         foreach ($instruments as $data) {
-            InstrumentPrice::create($data);
+            InstrumentPrice::firstOrCreate(
+                ['name' => $data['name']],
+                $data
+            );
         }
     }
 }

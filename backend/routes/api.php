@@ -65,9 +65,13 @@ Route::middleware('api.token')->group(function () {
 
         // Manual discount assignment
         Route::get('/discounts', [DiscountController::class, 'index']);
+        Route::get('/discounts/requests', [DiscountController::class, 'requests']);
         Route::post('/discounts', [DiscountController::class, 'store']);
         Route::put('/discounts/{id}', [DiscountController::class, 'update']);
         Route::delete('/discounts/{id}', [DiscountController::class, 'destroy']);
+        Route::post('/discounts/{id}/approve', [DiscountController::class, 'approve']);
+        Route::post('/discounts/{id}/reject', [DiscountController::class, 'reject']);
+        Route::get('/discounts/{id}/history', [DiscountController::class, 'history']);
 
         // User management
         Route::get('/users', [AdminController::class, 'getUsers']);

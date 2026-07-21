@@ -34,6 +34,8 @@ const sampleStatusText: Record<string, string> = {
 }
 
 function getSampleStatus(ba: BeritaAcara): string {
+  const data = ba as any
+  if (data?.rekap_analis_data !== null && data?.rekap_analis_data !== undefined) return 'taken'
   if (!ba.samples || ba.samples.length === 0) return 'processing'
   if (ba.samples.every(s => s.status === 'taken')) return 'taken'
   if (ba.samples.some(s => s.status === 'processing')) return 'processing'

@@ -29,7 +29,7 @@ export const adminApi = {
     return data
   },
 
-  async confirmPayment(id: number, payload: { status: string; discount_approved?: string }): Promise<Payment> {
+  async confirmPayment(id: number, payload: { status: string; discount_approved?: string; rejection_reason?: string }): Promise<Payment> {
     const { data } = await api.put(`/admin/payments/${id}/confirm`, payload)
     return data.data || data
   },
@@ -101,6 +101,30 @@ export const adminApi = {
 
   async deleteDiscount(id: number): Promise<any> {
     const { data } = await api.delete(`/admin/discounts/${id}`)
+    return data
+  },
+
+  async getDiscountRequests(): Promise<any[]> {
+    const { data } = await api.get('/admin/discounts/requests')
+    return data
+  },
+
+  async approveDiscount(id: number, payload: {
+    discount_percent?: number
+    discount_nominal?: number
+    discount_reason?: string
+  }): Promise<any> {
+    const { data } = await api.post(`/admin/discounts/${id}/approve`, payload)
+    return data
+  },
+
+  async rejectDiscount(id: number): Promise<any> {
+    const { data } = await api.post(`/admin/discounts/${id}/reject`)
+    return data
+  },
+
+  async getDiscountHistory(id: number): Promise<any[]> {
+    const { data } = await api.get(`/admin/discounts/${id}/history`)
     return data
   },
 }
