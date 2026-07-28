@@ -22,8 +22,8 @@ function handleSubmit() {
 
 <template>
   <form class="auth-form" @submit.prevent="handleSubmit">
-    <FormInput v-model="email" label="Email" type="email" placeholder="contoh@email.com" required />
-    <FormInput v-model="password" label="Password" type="password" placeholder="Masukkan password" required />
+    <FormInput v-model="email" label="Email" type="email" placeholder="contoh@email.com" required autocomplete="email" />
+    <FormInput v-model="password" label="Password" type="password" placeholder="Masukkan password" required autocomplete="current-password" />
     <div class="form-options">
       <a href="#" class="forgot-link" @click.prevent="$emit('forgot-password')">Lupa password?</a>
     </div>

@@ -7,6 +7,7 @@ withDefaults(defineProps<{
   placeholder?: string
   required?: boolean
   disabled?: boolean
+  autocomplete?: string
 }>(), {
   type: 'text',
   disabled: false,
@@ -30,6 +31,7 @@ const emit = defineEmits<{
         :placeholder="placeholder || `Masukkan ${label?.toLowerCase() || '...'}`"
         :required="required"
         :disabled="disabled"
+        :autocomplete="autocomplete"
         class="form-input"
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       />
