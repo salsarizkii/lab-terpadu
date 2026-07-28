@@ -26,26 +26,64 @@ onMounted(() => {
 const menuItems = computed(() => {
   const items: Array<{ label: string; path: string; icon: any }> = []
 
-  if (auth.isSuperAdmin || auth.isAdmin) {
-    items.push({ label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard })
+  const canAdminBa = auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')
+
+  // Dashboard — tentukan path dari level permission tertinggi
+  if (auth.hasPermission('dashboard')) {
+    let dashPath = '/user/dashboard'
+    if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('role_manage') || auth.hasPermission('user_view')) {
+      dashPath = '/admin/dashboard'
+    } else if (auth.hasPermission('sample_rekap')) {
+      dashPath = '/analyst/dashboard'
+    }
+    items.push({ label: 'Dashboard', path: dashPath, icon: LayoutDashboard })
+  }
+
+  // Berita Acara
+  if (canAdminBa) {
     items.push({ label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText })
-    items.push({ label: 'Riwayat Pembayaran', path: '/admin/payments', icon: CreditCard })
+  } else if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal')) {
+    items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
+  }
+
+  // Pembayaran
+  if (auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('payment_view')) {
+    const payPath = auth.hasPermission('payment_riwayat_semua') ? '/admin/payments' : '/user/payments'
+    items.push({ label: auth.hasPermission('payment_riwayat_semua') ? 'Riwayat Pembayaran' : 'Pembayaran', path: payPath, icon: CreditCard })
+  } else if (auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount')) {
+    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
+  }
+
+  // Sampel / Tugas Sampel
+  if (auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua')) {
     items.push({ label: 'Sampel', path: '/admin/samples', icon: FlaskConical })
-    items.push({ label: 'Ajuan Diskon', path: '/admin/discounts', icon: BadgePercent })
-    items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
-    items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
-    items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
-  } else if (auth.isAnalyst) {
-    items.push({ label: 'Dashboard', path: '/analyst/dashboard', icon: LayoutDashboard })
+  } else if (auth.hasPermission('sample_rekap')) {
     items.push({ label: 'Tugas Sampel', path: '/analyst/samples', icon: FlaskConical })
-    items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
-    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
-  } else {
-    // Default User Menu
-    items.push({ label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard })
-    items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
-    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
+  }
+
+  // Sertifikat
+  if (auth.hasPermission('certificate_view') || auth.hasPermission('certificate_download')) {
     items.push({ label: 'Sertifikat', path: '/user/certificates', icon: Award })
+  }
+
+  // Diskon
+  if (auth.hasPermission('discount_verifikasi') || auth.hasPermission('discount_manage') || auth.hasPermission('discount_riwayat_semua')) {
+    items.push({ label: 'Ajuan Diskon', path: '/admin/discounts', icon: BadgePercent })
+  }
+
+  // Kelola Form
+  if (auth.hasPermission('form_manage_berita_acara') || auth.hasPermission('form_manage_rekap_analis') || auth.hasPermission('form_manage_perhitungan_biaya') || auth.hasPermission('form_manage_kelola_harga_instrumen')) {
+    items.push({ label: 'Kelola Form', path: '/admin/forms', icon: ClipboardList })
+  }
+
+  // Kelola Role
+  if (auth.hasPermission('role_manage')) {
+    items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
+  }
+
+  // Kelola Pengguna
+  if (auth.hasPermission('user_view')) {
+    items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
   }
 
   return items

@@ -12,11 +12,13 @@ import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
 import { formTemplateApi } from '../api/formTemplate'
+import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara, User, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const item = ref<BeritaAcara | null>(null)
 const analysts = ref<User[]>([])
@@ -186,46 +188,50 @@ function getRevisionDiff(rev: any) {
           <div class="detail-sidebar">
             <Card title="Aksi">
               <div class="action-stack">
-                <Button
-                  block
-                  @click="showVerification = true"
-                  :disabled="item.status === 'draft' || item.status === 'approved'"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>
-                  Verifikasi
-                </Button>
-
-                <Button
-                  block
-                  variant="danger"
-                  @click="openRevisionModal"
-                  :disabled="item.status === 'draft' || item.status === 'revision' || item.status === 'approved'"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                  Perlu Perbaikan
-                </Button>
-
-                <div class="section-divider">
+                <template v-if="auth.hasPermission('berita_acara_verify')">
                   <Button
                     block
-                    variant="outline"
-                    :disabled="!canAssign"
-                    @click="showAssignForm = !showAssignForm"
+                    @click="showVerification = true"
+                    :disabled="item.status === 'draft' || item.status === 'approved'"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line id="line" x1="19" x2="19" y1="8" y2="14"/><line id="line" x1="22" x2="16" y1="11" y2="11"/></svg>
-                    {{ currentAnalystIds.length ? 'Ganti Analis' : 'Assign Analis' }}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>
+                    Verifikasi
                   </Button>
 
-                  <div v-if="showAssignForm" class="assign-form">
-                    <AnalystAssignment
-                      :berita-acara-id="item.id"
-                      :analysts="analysts"
-                      v-model="currentAnalystIds"
-                      :loading="saving"
-                      @assign="handleAssign"
-                    />
+                  <Button
+                    block
+                    variant="danger"
+                    @click="openRevisionModal"
+                    :disabled="item.status === 'draft' || item.status === 'revision' || item.status === 'approved'"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Perlu Perbaikan
+                  </Button>
+                </template>
+
+                <template v-if="auth.hasPermission('berita_acara_assign')">
+                  <div class="section-divider">
+                    <Button
+                      block
+                      variant="outline"
+                      :disabled="!canAssign"
+                      @click="showAssignForm = !showAssignForm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line id="line" x1="19" x2="19" y1="8" y2="14"/><line id="line" x1="22" x2="16" y1="11" y2="11"/></svg>
+                      {{ currentAnalystIds.length ? 'Ganti Analis' : 'Assign Analis' }}
+                    </Button>
+
+                    <div v-if="showAssignForm" class="assign-form">
+                      <AnalystAssignment
+                        :berita-acara-id="item.id"
+                        :analysts="analysts"
+                        v-model="currentAnalystIds"
+                        :loading="saving"
+                        @assign="handleAssign"
+                      />
+                    </div>
                   </div>
-                </div>
+                </template>
               </div>
             </Card>
           </div>

@@ -26,51 +26,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value)
   const isSuperAdmin = computed(() => user.value?.role === 'superadmin')
-  const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'superadmin')
-  const isAnalyst = computed(() => user.value?.role === 'analyst')
-  const isUser = computed(() => user.value?.role === 'user')
 
   const userPermissions = computed(() => user.value?.permissions ?? [])
 
   function hasPermission(permission: string): boolean {
     if (!user.value) return false
     if (isSuperAdmin.value) return true
-    if (userPermissions.value.includes(permission)) return true
-
-    // Fallback defaults by role if user.permissions column is empty or not synced
-    if (isUser.value) {
-      const userDefaults = [
-        'dashboard',
-        'berita_acara_view',
-        'berita_acara_create',
-        'berita_acara_riwayat_personal',
-        'sample_riwayat_personal',
-        'payment_view',
-        'payment_upload',
-        'payment_discount',
-        'certificate_view',
-        'certificate_download',
-      ]
-      return userDefaults.includes(permission)
-    }
-
-    if (isAdmin.value) {
-      return true
-    }
-
-    if (isAnalyst.value) {
-      const analystDefaults = [
-        'dashboard',
-        'berita_acara_view',
-        'sample_view',
-        'sample_rekap',
-        'sample_riwayat_personal',
-        'berita_acara_riwayat_semua',
-      ]
-      return analystDefaults.includes(permission)
-    }
-
-    return false
+    return userPermissions.value.includes(permission)
   }
 
   function setAuth(userData: User, tokenStr: string) {
@@ -141,9 +103,6 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     isAuthenticated,
     isSuperAdmin,
-    isAdmin,
-    isAnalyst,
-    isUser,
     userPermissions,
     hasPermission,
     login,

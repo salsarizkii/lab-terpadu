@@ -11,11 +11,13 @@ class BeritaAcaraController extends Controller
 {
     public function index()
     {
-        $beritaAcaras = BeritaAcara::where('user_id', auth()->id())
-            ->with(['revisions', 'payment', 'samples', 'certificate'])
-            ->get();
+        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate']);
 
-        return response()->json($beritaAcaras);
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request)
@@ -69,11 +71,13 @@ class BeritaAcaraController extends Controller
 
     public function show($id)
     {
-        $beritaAcara = BeritaAcara::where('user_id', auth()->id())
-            ->with(['revisions', 'payment', 'samples', 'certificate'])
-            ->findOrFail($id);
+        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate']);
 
-        return response()->json($beritaAcara);
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return response()->json($query->findOrFail($id));
     }
 
     public function update(Request $request, $id)

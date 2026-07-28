@@ -4,7 +4,7 @@ Panduan untuk agen yang bekerja di codebase ini.
 
 ## Project Overview
 
-**Lab Terpadu** - Sistem Manajemen Laboratorium untuk pengelolaan pengujian sampel penelitian.
+**UPT Lab Terpadu** - Sistem Manajemen Laboratorium untuk pengelolaan pengujian sampel penelitian.
 
 | Layer | Path | Tech |
 |---|---|---|

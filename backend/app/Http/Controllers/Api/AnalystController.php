@@ -21,7 +21,7 @@ class AnalystController extends Controller
         if ($withRelations) {
             $query->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
         }
-        if (!in_array($user->role, ['superadmin', 'admin'])) {
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
             });
@@ -68,7 +68,7 @@ class AnalystController extends Controller
         $user = auth()->user();
         $query = BeritaAcara::query()
             ->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
-        if (!in_array($user->role, ['superadmin', 'admin'])) {
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
             });
@@ -235,7 +235,7 @@ class AnalystController extends Controller
     {
         $user = auth()->user();
         $query = BeritaAcara::query();
-        if (!in_array($user->role, ['superadmin', 'admin'])) {
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
             });

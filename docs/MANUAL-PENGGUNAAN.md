@@ -1,4 +1,4 @@
-# Manual Penggunaan Aplikasi Lab Terpadu (LIMS)
+# Manual Penggunaan Aplikasi UPT Lab Terpadu (LIMS)
 
 > **Laboratory Information Management System** — Sistem Manajemen Informasi Laboratorium untuk Pengelolaan Pengujian Sampel Penelitian
 
@@ -23,9 +23,9 @@
 
 ## 1. Tentang Aplikasi
 
-### Apa itu Lab Terpadu?
+### Apa itu UPT Lab Terpadu?
 
-**Lab Terpadu** adalah aplikasi web berbasis **Laboratory Information Management System (LIMS)** yang dirancang untuk mengelola seluruh alur pengujian sampel penelitian di laboratorium terpadu. Aplikasi ini memudahkan peneliti/mahasiswa, analis, dan admin laboratorium dalam mengelola pengajuan pengujian, pembayaran, pemrosesan sampel, hingga penerbitan sertifikat hasil pengujian.
+**UPT Lab Terpadu** adalah aplikasi web berbasis **Laboratory Information Management System (LIMS)** yang dirancang untuk mengelola seluruh alur pengujian sampel penelitian di laboratorium terpadu. Aplikasi ini memudahkan peneliti/mahasiswa, analis, dan admin laboratorium dalam mengelola pengajuan pengujian, pembayaran, pemrosesan sampel, hingga penerbitan sertifikat hasil pengujian.
 
 ### Siapa yang Menggunakan?
 

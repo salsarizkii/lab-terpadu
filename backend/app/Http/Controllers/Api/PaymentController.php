@@ -60,7 +60,7 @@ class PaymentController extends Controller
         $user = auth()->user();
         $query = Payment::query();
 
-        if ($user && $user->role !== 'superadmin' && $user->role !== 'admin' && $user->role !== 'analyst') {
+        if (!auth()->user()->hasPermission('payment_riwayat_semua')) {
             $query->whereHas('beritaAcara', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             });

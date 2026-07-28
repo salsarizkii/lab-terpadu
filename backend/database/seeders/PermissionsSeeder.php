@@ -14,7 +14,6 @@ class PermissionsSeeder extends Seeder
             ['name' => 'dashboard', 'display_name' => 'Dashboard', 'group' => 'Umum'],
 
             // Berita Acara
-            ['name' => 'berita_acara_view', 'display_name' => 'Melihat Berita Acara', 'group' => 'Berita Acara'],
             ['name' => 'berita_acara_create', 'display_name' => 'Buat Berita Acara', 'group' => 'Berita Acara'],
             ['name' => 'berita_acara_verify', 'display_name' => 'Verifikasi Berita Acara', 'group' => 'Berita Acara'],
             ['name' => 'berita_acara_assign', 'display_name' => 'Menugaskan Analis', 'group' => 'Berita Acara'],
@@ -26,6 +25,8 @@ class PermissionsSeeder extends Seeder
             ['name' => 'payment_upload', 'display_name' => 'Upload Bukti Bayar', 'group' => 'Pembayaran'],
             ['name' => 'payment_discount', 'display_name' => 'Diskon Pembayaran', 'group' => 'Pembayaran'],
             ['name' => 'payment_confirm', 'display_name' => 'Konfirmasi Pembayaran', 'group' => 'Pembayaran'],
+            ['name' => 'payment_riwayat_personal', 'display_name' => 'Personal Riwayat Pembayaran', 'group' => 'Pembayaran'],
+            ['name' => 'payment_riwayat_semua', 'display_name' => 'Riwayat Seluruh Pembayaran', 'group' => 'Pembayaran'],
 
             // Sample
             ['name' => 'sample_view', 'display_name' => 'Melihat Sampel', 'group' => 'Sampel'],
@@ -54,6 +55,7 @@ class PermissionsSeeder extends Seeder
 
             // Discount
             ['name' => 'discount_verifikasi', 'display_name' => 'Verifikasi Diskon', 'group' => 'Diskon'],
+            ['name' => 'discount_manage', 'display_name' => 'Kelola Diskon', 'group' => 'Diskon'],
             ['name' => 'discount_riwayat_semua', 'display_name' => 'Riwayat Seluruh Diskon', 'group' => 'Diskon'],
             ['name' => 'discount_riwayat_personal', 'display_name' => 'Personal Riwayat Diskon', 'group' => 'Diskon'],
         ];

@@ -26,7 +26,7 @@ Route::middleware('api.token')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::put('/auth/password', [AuthController::class, 'changePassword']);
 
-    Route::middleware('api.token:user,berita_acara_create,berita_acara_view,berita_acara_riwayat_personal,sample_rekap,sample_riwayat_personal,payment_riwayat_personal,discount_riwayat_personal')->prefix('/user')->group(function () {
+    Route::middleware('api.token:berita_acara_create,berita_acara_riwayat_personal,sample_rekap,sample_riwayat_personal,payment_view,payment_upload,payment_discount,payment_riwayat_personal,certificate_view,certificate_download,discount_riwayat_personal')->prefix('/user')->group(function () {
         // Berita Acara — permission: berita_acara_create
         Route::get('/berita-acara', [BeritaAcaraController::class, 'index']);
         Route::post('/berita-acara', [BeritaAcaraController::class, 'store'])
@@ -38,25 +38,35 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:berita_acara_create');
 
         // Payments
-        Route::post('/payments', [PaymentController::class, 'store']);
-        Route::post('/payments/{id}/discount', [PaymentController::class, 'requestDiscount']);
-        Route::post('/payments/{id}/upload-proof', [PaymentController::class, 'uploadProof']);
-        Route::get('/payments', [PaymentController::class, 'index']);
-        Route::get('/payments/{id}', [PaymentController::class, 'show']);
+        Route::post('/payments', [PaymentController::class, 'store'])
+            ->middleware('permission:payment_upload');
+        Route::post('/payments/{id}/discount', [PaymentController::class, 'requestDiscount'])
+            ->middleware('permission:payment_discount');
+        Route::post('/payments/{id}/upload-proof', [PaymentController::class, 'uploadProof'])
+            ->middleware('permission:payment_upload');
+        Route::get('/payments', [PaymentController::class, 'index'])
+            ->middleware('permission:payment_view');
+        Route::get('/payments/{id}', [PaymentController::class, 'show'])
+            ->middleware('permission:payment_view');
 
         // Certificates
-        Route::get('/certificates/{id}/download', [CertificateController::class, 'download']);
+        Route::get('/certificates/{id}/download', [CertificateController::class, 'download'])
+            ->middleware('permission:certificate_download');
     });
 
-    Route::middleware('api.token:admin,berita_acara_view,berita_acara_riwayat_semua,sample_view,sample_rekap,payment_riwayat_semua,user_view,role_manage')->prefix('/admin')->group(function () {
+    Route::middleware('api.token:berita_acara_riwayat_semua,berita_acara_verify,berita_acara_assign,sample_view,sample_rekap,sample_riwayat_semua,sample_status,payment_riwayat_semua,payment_confirm,user_view,user_verify,role_manage,form_manage_berita_acara,form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen,discount_verifikasi,discount_manage,discount_riwayat_semua')->prefix('/admin')->group(function () {
         Route::get('/berita-acara', [AdminController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
-        Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus']);
-        Route::put('/berita-acara/{id}/assign-analyst', [AdminController::class, 'assignAnalyst']);
+        Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus'])
+            ->middleware('permission:berita_acara_verify');
+        Route::put('/berita-acara/{id}/assign-analyst', [AdminController::class, 'assignAnalyst'])
+            ->middleware('permission:berita_acara_assign');
         Route::get('/payments', [AdminController::class, 'paymentIndex']);
-        Route::put('/payments/{id}/confirm', [AdminController::class, 'confirmPayment']);
+        Route::put('/payments/{id}/confirm', [AdminController::class, 'confirmPayment'])
+            ->middleware('permission:payment_confirm');
         Route::get('/samples', [AdminController::class, 'sampleIndex']);
-        Route::put('/samples/{id}/mark-taken', [AdminController::class, 'markSampleTaken']);
+        Route::put('/samples/{id}/mark-taken', [AdminController::class, 'markSampleTaken'])
+            ->middleware('permission:sample_status');
         Route::get('/analysts', [AdminController::class, 'getAnalysts']);
 
         // Discount management
@@ -64,22 +74,34 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:discount_verifikasi');
 
         // Manual discount assignment
-        Route::get('/discounts', [DiscountController::class, 'index']);
-        Route::get('/discounts/requests', [DiscountController::class, 'requests']);
-        Route::post('/discounts', [DiscountController::class, 'store']);
-        Route::put('/discounts/{id}', [DiscountController::class, 'update']);
-        Route::delete('/discounts/{id}', [DiscountController::class, 'destroy']);
-        Route::post('/discounts/{id}/approve', [DiscountController::class, 'approve']);
-        Route::post('/discounts/{id}/reject', [DiscountController::class, 'reject']);
-        Route::get('/discounts/{id}/history', [DiscountController::class, 'history']);
+        Route::get('/discounts', [DiscountController::class, 'index'])
+            ->middleware('permission:discount_riwayat_semua');
+        Route::get('/discounts/requests', [DiscountController::class, 'requests'])
+            ->middleware('permission:discount_riwayat_semua');
+        Route::post('/discounts', [DiscountController::class, 'store'])
+            ->middleware('permission:discount_manage');
+        Route::put('/discounts/{id}', [DiscountController::class, 'update'])
+            ->middleware('permission:discount_manage');
+        Route::delete('/discounts/{id}', [DiscountController::class, 'destroy'])
+            ->middleware('permission:discount_manage');
+        Route::post('/discounts/{id}/approve', [DiscountController::class, 'approve'])
+            ->middleware('permission:discount_manage');
+        Route::post('/discounts/{id}/reject', [DiscountController::class, 'reject'])
+            ->middleware('permission:discount_manage');
+        Route::get('/discounts/{id}/history', [DiscountController::class, 'history'])
+            ->middleware('permission:discount_riwayat_semua');
 
         // User management
         Route::get('/users', [AdminController::class, 'getUsers']);
-        Route::put('/users/{id}/verify', [AdminController::class, 'verifyUser']);
-        Route::put('/users/{id}/deactivate', [AdminController::class, 'deactivateUser']);
+        Route::put('/users/{id}/verify', [AdminController::class, 'verifyUser'])
+            ->middleware('permission:user_verify');
+        Route::put('/users/{id}/deactivate', [AdminController::class, 'deactivateUser'])
+            ->middleware('permission:user_verify');
 
-        Route::apiResource('/form-templates', FormTemplateController::class);
-        Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields']);
+        Route::apiResource('/form-templates', FormTemplateController::class)
+            ->middleware('permission:form_manage_berita_acara');
+        Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields'])
+            ->middleware('permission:form_manage_berita_acara');
 
         // Formulas
         Route::apiResource('/formulas', FormulaController::class);
@@ -93,11 +115,13 @@ Route::middleware('api.token')->group(function () {
         Route::put('/instrument-prices/bulk', [InstrumentPriceController::class, 'bulkUpdate']);
     });
 
-    Route::middleware('api.token:analyst,sample_rekap,berita_acara_view,berita_acara_riwayat_semua,sample_view')->prefix('/analyst')->group(function () {
+    Route::middleware('api.token:berita_acara_riwayat_semua,sample_view,sample_rekap,sample_input,sample_status,sample_riwayat_personal')->prefix('/analyst')->group(function () {
         Route::get('/berita-acara', [AnalystController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AnalystController::class, 'beritaAcaraShow']);
-        Route::put('/berita-acara/{id}/samples/{sampleId}', [AnalystController::class, 'updateSample']);
-        Route::put('/berita-acara/{id}/samples/{sampleId}/ready', [AnalystController::class, 'markSampleReady']);
+        Route::put('/berita-acara/{id}/samples/{sampleId}', [AnalystController::class, 'updateSample'])
+            ->middleware('permission:sample_input');
+        Route::put('/berita-acara/{id}/samples/{sampleId}/ready', [AnalystController::class, 'markSampleReady'])
+            ->middleware('permission:sample_status');
 
         // Pengujian (Rekap Analis) — permission: sample_rekap
         Route::post('/berita-acara/{id}/pengujian', [AnalystController::class, 'storePengujian'])

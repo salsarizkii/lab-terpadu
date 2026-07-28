@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
         );
         $superadminRole->permissions()->sync($allPermissions->pluck('id'));
 
-        // Admin
+        // Admin — full access
         $adminRole = Role::firstOrCreate(
             ['name' => 'admin'],
             [
@@ -48,9 +48,8 @@ class DatabaseSeeder extends Seeder
                 'requires_verification' => true,
             ]
         );
-        $analystPermissions = Permission::whereIn('name', [
+        $analystRole->permissions()->sync(Permission::whereIn('name', [
             'dashboard',
-            'berita_acara_view',
             'berita_acara_riwayat_semua',
             'sample_view',
             'sample_input',
@@ -59,8 +58,7 @@ class DatabaseSeeder extends Seeder
             'sample_riwayat_personal',
             'certificate_view',
             'certificate_download',
-        ])->get();
-        $analystRole->permissions()->sync($analystPermissions->pluck('id'));
+        ])->pluck('id'));
 
         // User
         $userRole = Role::firstOrCreate(
@@ -71,30 +69,107 @@ class DatabaseSeeder extends Seeder
                 'requires_verification' => false,
             ]
         );
-        $userPermissions = Permission::whereIn('name', [
+        $userRole->permissions()->sync(Permission::whereIn('name', [
+            'dashboard',
             'berita_acara_create',
-            'berita_acara_view',
             'berita_acara_riwayat_personal',
             'sample_riwayat_personal',
             'sample_rekap',
             'payment_view',
             'payment_upload',
             'payment_discount',
+            'payment_riwayat_personal',
+            'discount_riwayat_personal',
             'certificate_view',
             'certificate_download',
-        ])->get();
-        $userRole->permissions()->sync($userPermissions->pluck('id'));
+        ])->pluck('id'));
 
-        // Superadmin account
-        User::firstOrCreate(
-            ['email' => 'superadmin@lab.com'],
+        // Penyelia (Supervisor)
+        $penyeliaRole = Role::firstOrCreate(
+            ['name' => 'penyelia'],
             [
-                'name' => 'Super Admin',
-                'password' => bcrypt('password'),
-                'role' => 'superadmin',
-                'is_verified' => true,
+                'description' => 'Penyelia laboratorium untuk pengawasan dan verifikasi pengujian',
+                'is_system' => false,
+                'requires_verification' => true,
             ]
         );
+        $penyeliaRole->permissions()->sync(Permission::whereIn('name', [
+            'dashboard',
+            'berita_acara_verify',
+            'berita_acara_assign',
+            'berita_acara_riwayat_semua',
+            'berita_acara_riwayat_personal',
+            'sample_view',
+            'sample_rekap',
+            'sample_status',
+            'sample_riwayat_semua',
+            'sample_riwayat_personal',
+            'payment_view',
+            'payment_confirm',
+            'payment_riwayat_semua',
+            'certificate_view',
+            'certificate_download',
+            'discount_verifikasi',
+            'discount_manage',
+            'discount_riwayat_semua',
+            'user_view',
+            'user_verify',
+        ])->pluck('id'));
+
+        // Manager Teknis (Technical Manager)
+        $managerTeknisRole = Role::firstOrCreate(
+            ['name' => 'manager_teknis'],
+            [
+                'description' => 'Manager teknis untuk pengelolaan teknis laboratorium',
+                'is_system' => false,
+                'requires_verification' => true,
+            ]
+        );
+        $managerTeknisRole->permissions()->sync(Permission::whereIn('name', [
+            'dashboard',
+            'berita_acara_riwayat_semua',
+            'berita_acara_riwayat_personal',
+            'sample_view',
+            'sample_input',
+            'sample_rekap',
+            'sample_status',
+            'sample_riwayat_semua',
+            'sample_riwayat_personal',
+            'payment_view',
+            'payment_confirm',
+            'payment_riwayat_semua',
+            'certificate_view',
+            'certificate_download',
+            'form_manage_berita_acara',
+            'form_manage_rekap_analis',
+            'form_manage_perhitungan_biaya',
+            'form_manage_kelola_harga_instrumen',
+            'user_view',
+            'discount_verifikasi',
+            'discount_manage',
+            'discount_riwayat_semua',
+        ])->pluck('id'));
+
+        // Akun test
+        $accounts = [
+            ['email' => 'superadmin@lab.com', 'name' => 'Super Admin',     'role' => 'superadmin',     'is_verified' => true],
+            ['email' => 'admin@lab.com',      'name' => 'Admin Lab',       'role' => 'admin',          'is_verified' => true],
+            ['email' => 'analyst@lab.com',    'name' => 'Analis Lab',      'role' => 'analyst',        'is_verified' => true],
+            ['email' => 'user@lab.com',       'name' => 'User Lab',        'role' => 'user',           'is_verified' => true],
+            ['email' => 'penyelia@lab.com',   'name' => 'Penyelia Lab',    'role' => 'penyelia',       'is_verified' => true],
+            ['email' => 'manager@lab.com',    'name' => 'Manager Teknis',  'role' => 'manager_teknis', 'is_verified' => true],
+        ];
+        foreach ($accounts as $acc) {
+            User::firstOrCreate(
+                ['email' => $acc['email']],
+                [
+                    'name' => $acc['name'],
+                    'password' => bcrypt('password'),
+                    'role' => $acc['role'],
+                    'is_verified' => $acc['is_verified'],
+                ]
+            );
+        }
 
         // Instrument prices
         $this->call(InstrumentPriceSeeder::class);

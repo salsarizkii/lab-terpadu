@@ -37,7 +37,7 @@ class ApiTokenMiddleware
             $allowedRoles = array_filter($params, fn($p) => !str_contains($p, '_'));
             $requiredPermissions = array_filter($params, fn($p) => str_contains($p, '_'));
 
-            $roleMatch = empty($allowedRoles) || in_array($user->role, $allowedRoles);
+            $roleMatch = !empty($allowedRoles) && in_array($user->role, $allowedRoles);
 
             // If role doesn't match, check permissions as fallback
             if (!$roleMatch && !empty($requiredPermissions)) {

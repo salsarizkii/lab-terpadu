@@ -71,7 +71,10 @@ class AdminController extends Controller
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
-        $validAnalysts = User::whereIn('id', $request->analyst_ids)->where('role', 'analyst')->pluck('id');
+        $validAnalysts = User::whereIn('id', $request->analyst_ids)
+            ->whereHas('roleModel.permissions', function ($q) {
+                $q->whereIn('name', ['sample_rekap', 'sample_input', 'sample_status']);
+            })->pluck('id');
 
         if ($validAnalysts->isEmpty()) {
             return response()->json(['message' => 'Tidak ada analis valid yang dipilih'], 422);
@@ -149,7 +152,9 @@ class AdminController extends Controller
 
     public function getAnalysts()
     {
-        $analysts = User::where('role', 'analyst')->get();
+        $analysts = User::whereHas('roleModel.permissions', function ($q) {
+            $q->whereIn('name', ['sample_rekap', 'sample_input', 'sample_status']);
+        })->get();
 
         return response()->json($analysts);
     }

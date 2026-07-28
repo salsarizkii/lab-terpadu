@@ -20,15 +20,17 @@ const routes = [
     redirect: () => {
       const auth = useAuthStore(pinia)
       if (!auth.hasPermission('dashboard')) {
-        // Fallback: arahkan ke halaman sesuai permission pertama yang dimiliki
         if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/admin/berita-acara'
-        if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_view')) return '/user/berita-acara'
-        if (auth.hasPermission('sample_view')) return '/admin/samples'
-        return '/login'
+        if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal') || auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/user/berita-acara'
+        if (auth.hasPermission('sample_view') || auth.hasPermission('sample_rekap') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('sample_riwayat_personal')) return '/admin/samples'
+        if (auth.hasPermission('payment_view') || auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount')) return '/user/payments'
+        if (auth.hasPermission('certificate_view') || auth.hasPermission('certificate_download')) return '/user/certificates'
+        if (auth.hasPermission('user_view')) return '/admin/users'
+        if (auth.hasPermission('role_manage')) return '/admin/roles'
+        return '/user/berita-acara'
       }
-      if (auth.isAdmin || auth.isSuperAdmin) return '/admin/dashboard'
-      if (auth.isAnalyst) return '/analyst/dashboard'
-      if (auth.hasPermission('sample_view') || auth.hasPermission('sample_rekap')) return '/analyst/dashboard'
+      if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('role_manage') || auth.hasPermission('user_view')) return '/admin/dashboard'
+      if (auth.hasPermission('sample_rekap')) return '/analyst/dashboard'
       return '/user/dashboard'
     },
   },
@@ -90,13 +92,13 @@ const routes = [
     path: '/admin/berita-acara',
     name: 'AdminBeritaAcara',
     component: () => import('../views/AdminBeritaAcara.vue'),
-    meta: { auth: true, permission: 'berita_acara_view', permissionOr: 'berita_acara_riwayat_semua,berita_acara_riwayat_personal,berita_acara_verify,berita_acara_assign,berita_acara_create' },
+    meta: { auth: true, permission: 'berita_acara_riwayat_semua', permissionOr: 'berita_acara_riwayat_personal,berita_acara_verify,berita_acara_assign,berita_acara_create' },
   },
   {
     path: '/admin/berita-acara/:id',
     name: 'AdminBeritaAcaraDetail',
     component: () => import('../views/AdminBeritaAcaraDetail.vue'),
-    meta: { auth: true, permission: 'berita_acara_view', permissionOr: 'berita_acara_riwayat_semua,berita_acara_riwayat_personal,berita_acara_verify,berita_acara_assign' },
+    meta: { auth: true, permission: 'berita_acara_riwayat_semua', permissionOr: 'berita_acara_riwayat_personal,berita_acara_verify,berita_acara_assign' },
   },
   {
     path: '/admin/payments',

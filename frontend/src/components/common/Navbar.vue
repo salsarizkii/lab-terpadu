@@ -98,7 +98,7 @@ function confirmLogout() {
         </div>
       </div>
       <div class="navbar__brand-text">
-        <span class="navbar__title">Lab Terpadu</span>
+        <span class="navbar__title">UPT Lab Terpadu</span>
         <span class="navbar__subtitle">Sampel Penelitian</span>
       </div>
     </div>
