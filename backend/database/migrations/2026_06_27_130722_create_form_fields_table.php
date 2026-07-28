@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('form_template_id');
             $table->string('label');
-            $table->enum('type', ['text', 'textarea', 'number', 'select', 'checkbox', 'date', 'file']);
+            $table->enum('type', ['text', 'textarea', 'number', 'select', 'checkbox', 'radio', 'date', 'time', 'email', 'phone', 'file', 'heading', 'paragraph', 'divider']);
             $table->json('options')->nullable();
             $table->boolean('is_required')->default(false);
             $table->integer('sort_order')->default(0);
