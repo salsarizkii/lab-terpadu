@@ -1,0 +1,38 @@
+node_modules/
+.git/
+.gitattributes
+.gitignore
+docs/
+*.md
+!AGENTS.md
+
+# Backend
+backend/.env
+backend/.env.example
+backend/storage/app/*
+!backend/storage/app/.gitignore
+backend/storage/framework/cache/*
+!backend/storage/framework/cache/.gitignore
+backend/storage/framework/sessions/*
+!backend/storage/framework/sessions/.gitignore
+backend/storage/framework/views/*
+!backend/storage/framework/views/.gitignore
+backend/storage/logs/*
+!backend/storage/logs/.gitignore
+backend/tests/
+backend/phpunit.xml
+backend/.editorconfig
+backend/.gitattributes
+backend/.gitignore
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vscode/
+
+# Root
+file/
+package-lock.json
+
+# Docker
+docker/
