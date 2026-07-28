@@ -152,9 +152,7 @@ class AdminController extends Controller
 
     public function getAnalysts()
     {
-        $analysts = User::whereHas('roleModel.permissions', function ($q) {
-            $q->whereIn('name', ['sample_rekap', 'sample_input', 'sample_status']);
-        })->get();
+        $analysts = User::where('role', 'analyst')->get();
 
         return response()->json($analysts);
     }

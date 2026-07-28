@@ -26,6 +26,9 @@ Route::middleware('api.token')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::put('/auth/password', [AuthController::class, 'changePassword']);
 
+    // Public read-only instrument prices (for form dropdowns)
+    Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);
+
     Route::middleware('api.token:berita_acara_create,berita_acara_riwayat_personal,sample_rekap,sample_riwayat_personal,payment_view,payment_upload,payment_discount,payment_riwayat_personal,certificate_view,certificate_download,discount_riwayat_personal')->prefix('/user')->group(function () {
         // Berita Acara — permission: berita_acara_create
         Route::get('/berita-acara', [BeritaAcaraController::class, 'index']);

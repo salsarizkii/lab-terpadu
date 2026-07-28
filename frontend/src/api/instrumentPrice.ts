@@ -12,7 +12,7 @@ export interface InstrumentPrice {
 
 export const instrumentPriceApi = {
   getAll() {
-    return axios.get<InstrumentPrice[]>('/admin/instrument-prices')
+    return axios.get<InstrumentPrice[]>('/instrument-prices')
   },
   create(data: Omit<InstrumentPrice, 'id'>) {
     return axios.post('/admin/instrument-prices', data)

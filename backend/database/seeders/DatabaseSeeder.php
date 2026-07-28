@@ -50,8 +50,6 @@ class DatabaseSeeder extends Seeder
         );
         $analystRole->permissions()->sync(Permission::whereIn('name', [
             'dashboard',
-            'berita_acara_riwayat_semua',
-            'sample_view',
             'sample_input',
             'sample_rekap',
             'sample_status',
@@ -74,7 +72,6 @@ class DatabaseSeeder extends Seeder
             'berita_acara_create',
             'berita_acara_riwayat_personal',
             'sample_riwayat_personal',
-            'sample_rekap',
             'payment_view',
             'payment_upload',
             'payment_discount',
