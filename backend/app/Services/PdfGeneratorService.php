@@ -29,13 +29,13 @@ class PdfGeneratorService
                     ['key' => '{{ email }}', 'label' => 'Email', 'example' => 'budi@example.com'],
                     ['key' => '{{ alamat }}', 'label' => 'Alamat Pemohon', 'example' => 'Jl. Merdeka No. 10'],
                     ['key' => '{{ judul_penelitian }}', 'label' => 'Judul Penelitian', 'example' => 'Analisis Kualitas Air Sungai'],
-                    ['key' => '{{ bahan_contoh_uji }}', 'label' => 'Bahan / Contoh Uji', 'example' => 'Air Sampel 500ml'],
-                    ['key' => '{{ jumlah_sampel }}', 'label' => 'Jumlah Sampel', 'example' => '3 Sampel'],
+                    ['key' => '{{ bahan_contoh_uji }}', 'label' => 'Bahan / Contoh Uji', 'example' => 'Air 500ml'],
+                    ['key' => '{{ jumlah_sampel }}', 'label' => 'Jumlah Hasil Pengujian', 'example' => '3 Hasil Pengujian'],
                     ['key' => '{{ status_pelanggan }}', 'label' => 'Status Pelanggan', 'example' => 'Internal / Mahasiswa'],
                     ['key' => '{{ status_berkas }}', 'label' => 'Status Berkas', 'example' => 'Disetujui'],
                     ['key' => '{{ tanggal_pengajuan }}', 'label' => 'Tanggal Pengajuan', 'example' => '25 Juli 2026'],
                     ['key' => '{{ total_biaya }}', 'label' => 'Total Biaya (Rp)', 'example' => 'Rp 500.000'],
-                    ['key' => '{{ tabel_sampel }}', 'label' => 'Tabel Daftar Sampel (HTML)', 'example' => '[Tabel Sampel & Parameter]'],
+                    ['key' => '{{ tabel_sampel }}', 'label' => 'Tabel Daftar Hasil Pengujian (HTML)', 'example' => '[Tabel Hasil Pengujian & Parameter]'],
                 ]);
 
             case 'rekap_analis':
@@ -69,8 +69,8 @@ class PdfGeneratorService
                     ['key' => '{{ nama_pemohon }}', 'label' => 'Nama Pemohon / Pelanggan', 'example' => 'Budi Santoso'],
                     ['key' => '{{ instansi }}', 'label' => 'Instansi', 'example' => 'Universitas X'],
                     ['key' => '{{ judul_penelitian }}', 'label' => 'Judul Penelitian / Kegiatan', 'example' => 'Uji Mutu Air'],
-                    ['key' => '{{ jenis_sampel }}', 'label' => 'Jenis / Bahan Sampel', 'example' => 'Air Limbah'],
-                    ['key' => '{{ jumlah_sampel }}', 'label' => 'Jumlah Sampel', 'example' => '3 Sampel'],
+                    ['key' => '{{ jenis_sampel }}', 'label' => 'Jenis / Bahan Hasil Pengujian', 'example' => 'Air Limbah'],
+                    ['key' => '{{ jumlah_sampel }}', 'label' => 'Jumlah Hasil Pengujian', 'example' => '3 Hasil Pengujian'],
                     ['key' => '{{ tanggal_selesai }}', 'label' => 'Tanggal Selesai Pengujian', 'example' => '30 Juli 2026'],
                     ['key' => '{{ tabel_hasil_uji }}', 'label' => 'Tabel Laporan Hasil Uji (HTML)', 'example' => '[Tabel Parameter, Satuan & Hasil]'],
                     ['key' => '{{ tempat_ttd_kosong }}', 'label' => 'Area Tanda Tangan Basah Kepala UPT', 'example' => '[Area TTD Kepala UPT Lab]'],

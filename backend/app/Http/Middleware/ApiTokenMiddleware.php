@@ -14,6 +14,9 @@ class ApiTokenMiddleware
     {
         $token = $request->bearerToken();
         if (!$token) {
+            $token = $request->query('token');
+        }
+        if (!$token) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
         $user = User::where('api_token', $token)->first();

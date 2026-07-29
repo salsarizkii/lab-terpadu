@@ -188,7 +188,7 @@ class PdfTemplateController extends Controller
 
     private function getDummyData($type): array
     {
-        $sampleTableHtml = '<table><thead><tr><th>No</th><th>Kode Sampel</th><th>Parameter Uji</th><th>Jumlah</th></tr></thead><tbody><tr><td>1</td><td>SMP-001</td><td>Kadar Air, pH, Logam Berat</td><td>100 ml</td></tr><tr><td>2</td><td>SMP-002</td><td>Viskositas & Kejernihan</td><td>250 gr</td></tr></tbody></table>';
+        $sampleTableHtml = '<table><thead><tr><th>No</th><th>Kode Hasil Pengujian</th><th>Parameter Uji</th><th>Jumlah</th></tr></thead><tbody><tr><td>1</td><td>HP-001</td><td>Kadar Air, pH, Logam Berat</td><td>100 ml</td></tr><tr><td>2</td><td>HP-002</td><td>Viskositas & Kejernihan</td><td>250 gr</td></tr></tbody></table>';
 
         switch ($type) {
             case 'berita_acara':
@@ -220,7 +220,7 @@ class PdfTemplateController extends Controller
                     '{{ status }}' => 'Pengujian Selesai',
                     '{{ tanggal_pengajuan }}' => date('d F Y'),
                     '{{ tabel_pengujian }}' => '<table><thead><tr><th>Parameter</th><th>Metode</th><th>Satuan</th><th>Hasil</th></tr></thead><tbody><tr><td>pH</td><td>pH Meter ISO 10523</td><td>-</td><td>7.2</td></tr><tr><td>Kadar Air</td><td>Gravimetri</td><td>%</td><td>4.5 %</td></tr></tbody></table>',
-                    '{{ keterangan_analis }}' => 'Semua sampel memenuhi batas kriteria pengujian baku mutu.',
+                    '{{ keterangan_analis }}' => 'Semua hasil pengujian memenuhi batas kriteria pengujian baku mutu.',
                 ];
 
             case 'tagihan':
@@ -233,7 +233,7 @@ class PdfTemplateController extends Controller
                     '{{ total_bayar }}' => 'Rp 700.000',
                     '{{ status_pembayaran }}' => 'LUNAS',
                     '{{ tanggal_pembayaran }}' => date('d F Y'),
-                    '{{ rincian_biaya_tabel }}' => '<table><thead><tr><th>Deskripsi Pengujian</th><th>Jumlah</th><th>Harga Satuan</th><th>Total</th></tr></thead><tbody><tr><td>Uji pH & Viskositas</td><td>2 Sampel</td><td>Rp 250.000</td><td>Rp 500.000</td></tr><tr><td>Uji Kadar Air</td><td>2 Sampel</td><td>Rp 125.000</td><td>Rp 250.000</td></tr></tbody></table>',
+                    '{{ rincian_biaya_tabel }}' => '<table><thead><tr><th>Deskripsi Pengujian</th><th>Jumlah</th><th>Harga Satuan</th><th>Total</th></tr></thead><tbody><tr><td>Uji pH & Viskositas</td><td>2 Hasil Pengujian</td><td>Rp 250.000</td><td>Rp 500.000</td></tr><tr><td>Uji Kadar Air</td><td>2 Hasil Pengujian</td><td>Rp 125.000</td><td>Rp 250.000</td></tr></tbody></table>',
                 ];
 
             case 'sertifikat':
@@ -258,7 +258,7 @@ class PdfTemplateController extends Controller
         switch ($type) {
             case 'berita_acara':
                 $ba = BeritaAcara::with(['user', 'samples'])->findOrFail($id);
-                $samplesHtml = '<table><thead><tr><th>No</th><th>Kode Sampel</th><th>Keterangan</th></tr></thead><tbody>';
+                $samplesHtml = '<table><thead><tr><th>No</th><th>Kode Hasil Pengujian</th><th>Keterangan</th></tr></thead><tbody>';
                 if ($ba->samples && count($ba->samples) > 0) {
                     foreach ($ba->samples as $idx => $s) {
                         $num = $idx + 1;
@@ -293,7 +293,7 @@ class PdfTemplateController extends Controller
                 $ba = $payment->beritaAcara;
 
                 $rincianTabel = '<table><thead><tr><th>Deskripsi</th><th>Total</th></tr></thead><tbody>';
-                $rincianTabel .= "<tr><td>Pengujian Sampel (" . e($ba->bahan_contoh_uji ?? 'Layanan Lab') . ")</td><td>Rp " . number_format((float)$payment->amount, 0, ',', '.') . "</td></tr>";
+                $rincianTabel .= "<tr><td>Biaya Pengujian (" . e($ba->bahan_contoh_uji ?? 'Layanan Lab') . ")</td><td>Rp " . number_format((float)$payment->amount, 0, ',', '.') . "</td></tr>";
                 $rincianTabel .= '</tbody></table>';
 
                 $subtotal = (float)$payment->amount;

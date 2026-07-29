@@ -47,11 +47,11 @@ class PdfTemplateSeeder extends Seeder
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Email</td><td style="border: none;">: {{ email }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Judul Penelitian</td><td style="border: none;">: {{ judul_penelitian }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Bahan / Contoh Uji</td><td style="border: none;">: {{ bahan_contoh_uji }}</td></tr>
-    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Sampel</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
+     <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Hasil Pengujian</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Tanggal Pengajuan</td><td style="border: none;">: {{ tanggal_pengajuan }}</td></tr>
 </table>
 
-<h4 style="margin-top: 20px; margin-bottom: 8px;">Daftar Sampel & Parameter Uji:</h4>
+<h4 style="margin-top: 20px; margin-bottom: 8px;">Daftar Hasil Pengujian & Parameter Uji:</h4>
 {{ tabel_sampel }}
 
 <div style="margin-top: 15px; font-weight: bold; font-size: 11pt;">
@@ -67,7 +67,7 @@ class PdfTemplateSeeder extends Seeder
                 <p><strong>({{ nama_pemohon }})</strong></p>
             </td>
             <td style="border: none; text-align: center; width: 50%;">
-                <p>Petugas Penerima Sample,</p>
+                <p>Petugas Penerima Hasil Pengujian,</p>
                 <div class="ttd-space"></div>
                 <p><strong>(Admin UPT Lab Terpadu)</strong></p>
             </td>
@@ -212,15 +212,15 @@ HTML
     <tr style="border: none;"><td style="border: none; width: 30%; font-weight: bold;">Nama Pelanggan / Pemohon</td><td style="border: none;">: {{ nama_pemohon }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Instansi / Fakultas</td><td style="border: none;">: {{ instansi }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Judul Penelitian</td><td style="border: none;">: {{ judul_penelitian }}</td></tr>
-    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jenis / Bahan Sampel</td><td style="border: none;">: {{ jenis_sampel }}</td></tr>
-    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Sampel</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
+     <tr style="border: none;"><td style="border: none; font-weight: bold;">Jenis / Bahan Hasil Pengujian</td><td style="border: none;">: {{ jenis_sampel }}</td></tr>
+     <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Hasil Pengujian</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Tanggal Selesai Uji</td><td style="border: none;">: {{ tanggal_selesai }}</td></tr>
 </table>
 
 <h4 style="margin-top: 20px; margin-bottom: 10px;">HASIL PENGUJIAN LABORATORIUM:</h4>
 {{ tabel_hasil_uji }}
 
-<p style="font-size: 9pt; color: #64748b; margin-top: 15px;">* Laporan Hasil Uji ini hanya berlaku untuk sampel yang diuji di UPT Laboratorium Terpadu.</p>
+<p style="font-size: 9pt; color: #64748b; margin-top: 15px;">* Laporan Hasil Uji ini hanya berlaku untuk hasil pengujian yang diuji di UPT Laboratorium Terpadu.</p>
 
 <!-- Area Tanda Tangan Basah Kepala UPT (Dikosongkan untuk TTD Manual) -->
 <div style="margin-top: 40px; text-align: right;">

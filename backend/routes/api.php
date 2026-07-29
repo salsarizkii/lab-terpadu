@@ -122,11 +122,16 @@ Route::middleware('api.token')->group(function () {
         Route::delete('/instrument-prices/{id}', [InstrumentPriceController::class, 'destroy'])
             ->middleware('permission:form_manage_kelola_harga_instrumen');
         // PDF Templates Management
-        Route::get('/pdf-templates', [PdfTemplateController::class, 'index']);
-        Route::get('/pdf-templates/{type}', [PdfTemplateController::class, 'show']);
-        Route::put('/pdf-templates/{type}', [PdfTemplateController::class, 'update']);
-        Route::post('/pdf-templates/{type}/import-docx', [PdfTemplateController::class, 'importDocx']);
-        Route::post('/pdf-templates/{type}/preview', [PdfTemplateController::class, 'preview']);
+        Route::get('/pdf-templates', [PdfTemplateController::class, 'index'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::get('/pdf-templates/{type}', [PdfTemplateController::class, 'show'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::put('/pdf-templates/{type}', [PdfTemplateController::class, 'update'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::post('/pdf-templates/{type}/import-docx', [PdfTemplateController::class, 'importDocx'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::post('/pdf-templates/{type}/preview', [PdfTemplateController::class, 'preview'])
+            ->middleware('permission:form_manage_berita_acara');
     });
 
     Route::middleware('api.token:berita_acara_riwayat_semua,hasil_pengujian_rekap,hasil_pengujian_riwayat_personal')->prefix('/analyst')->group(function () {

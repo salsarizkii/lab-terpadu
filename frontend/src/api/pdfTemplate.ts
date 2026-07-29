@@ -38,7 +38,7 @@ export const pdfTemplateApi = {
 
   getDownloadUrl(type: string, id: number): string {
     const baseURL = api.defaults.baseURL || '/api'
-    const token = localStorage.getItem('api_token')
+    const token = localStorage.getItem('token')
     return `${baseURL}/pdf-generate/${type}/${id}?token=${token}`
   },
 }

@@ -238,6 +238,7 @@ async function saveFields() {
           </div>
 
           <div
+            v-if="auth.hasPermission('form_manage_berita_acara')"
             class="ft-card"
             @click="selectType('pdf_templates')"
           >
