@@ -1,7 +1,12 @@
 import api from './axios'
-import type { BeritaAcara } from '../types'
+import type { BeritaAcara, Sample } from '../types'
 
 export const beritaAcaraApi = {
+  async getSamples(): Promise<Sample[]> {
+    const { data } = await api.get<Sample[]>('/user/samples')
+    return data
+  },
+
   async getList(params?: Record<string, any>): Promise<BeritaAcara[]> {
     const { data } = await api.get<BeritaAcara[]>('/user/berita-acara', { params })
     return data

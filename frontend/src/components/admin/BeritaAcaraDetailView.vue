@@ -25,12 +25,12 @@ const legacyFields = [
   { label: 'Bahan Contoh Uji', key: 'bahan_contoh_uji' },
   { label: 'Kemasan/Packing', key: 'kemasan_packing' },
   { label: 'Metode / Instrumen', key: 'permintaan_analisa' },
-  { label: 'Jumlah Sampel', key: 'jumlah_sampel' },
-  { label: 'Kode/Nama Sampel', key: 'kode_nama_sampel' },
-  { label: 'Keterangan Sampel', key: 'keterangan_sampel' },
+  { label: 'Jumlah Hasil Pengujian', key: 'jumlah_sampel' },
+  { label: 'Kode/Nama Hasil Pengujian', key: 'kode_nama_sampel' },
+  { label: 'Keterangan Hasil Pengujian', key: 'keterangan_sampel' },
   { label: 'Keterangan Tambahan', key: 'keterangan_tambahan' },
-  { label: 'Pengukuran per Sampel', key: 'pengukuran_per_sampel' },
-  { label: 'Sisa Sampel Setelah Pengujian', key: 'sisa_sampel' },
+  { label: 'Pengukuran per Hasil Pengujian', key: 'pengukuran_per_sampel' },
+  { label: 'Sisa Hasil Pengujian Setelah Pengujian', key: 'sisa_sampel' },
 ]
 
 const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'default'; label: string }> = {
@@ -128,7 +128,7 @@ watch(() => props.beritaAcara, () => {
   <div class="detail">
     <div class="detail__meta">
       <div class="detail__meta-item">
-        <span class="detail__label">Status Sampel</span>
+        <span class="detail__label">Status Hasil Pengujian</span>
         <Badge
           :type="overrideStatus?.type || statusMap[beritaAcara.status]?.type || 'default'"
           :text="overrideStatus?.label || statusMap[beritaAcara.status]?.label || beritaAcara.status"

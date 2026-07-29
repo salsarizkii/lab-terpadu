@@ -1,6 +1,6 @@
 # Manual Penggunaan Aplikasi UPT Lab Terpadu (LIMS)
 
-> **Laboratory Information Management System** — Sistem Manajemen Informasi Laboratorium untuk Pengelolaan Pengujian Sampel Penelitian
+> **Laboratory Information Management System** — Sistem Manajemen Informasi Laboratorium untuk Pengelolaan Pengujian Hasil Pengujian Penelitian
 
 ---
 
@@ -25,7 +25,7 @@
 
 ### Apa itu UPT Lab Terpadu?
 
-**UPT Lab Terpadu** adalah aplikasi web berbasis **Laboratory Information Management System (LIMS)** yang dirancang untuk mengelola seluruh alur pengujian sampel penelitian di laboratorium terpadu. Aplikasi ini memudahkan peneliti/mahasiswa, analis, dan admin laboratorium dalam mengelola pengajuan pengujian, pembayaran, pemrosesan sampel, hingga penerbitan sertifikat hasil pengujian.
+**UPT Lab Terpadu** adalah aplikasi web berbasis **Laboratory Information Management System (LIMS)** yang dirancang untuk mengelola seluruh alur pengujian hasil pengujian penelitian di laboratorium terpadu. Aplikasi ini memudahkan peneliti/mahasiswa, analis, dan admin laboratorium dalam mengelola pengajuan pengujian, pembayaran, pemrosesan hasil pengujian, hingga penerbitan sertifikat hasil pengujian.
 
 ### Siapa yang Menggunakan?
 
@@ -33,15 +33,15 @@
 |---|---|
 | **Superadmin** | Pengelola utama sistem. Mengelola role, permission, user, dan memiliki akses penuh ke seluruh fitur. |
 | **Admin** | Pengelola operasional lab. Memverifikasi pengajuan, mengkonfirmasi pembayaran, mengelola form dan harga instrumen. |
-| **Analyst** | Teknisi/peneliti yang melakukan pengujian sampel. Memproses sampel, menginput hasil pengujian, dan membuat rekap analis. |
-| **User** | Peneliti/mahasiswa yang mengajukan pengujian sampel. Membuat berita acara, mengunggah bukti pembayaran, dan mengunduh sertifikat. |
+| **Analyst** | Teknisi/peneliti yang melakukan pengujian hasil pengujian. Memproses hasil pengujian, menginput hasil pengujian, dan membuat rekap analis. |
+| **User** | Peneliti/mahasiswa yang mengajukan pengujian hasil pengujian. Membuat berita acara, mengunggah bukti pembayaran, dan mengunduh sertifikat. |
 
 ### Fitur Utama
 
 - **Autentikasi** — Login, registrasi, profil, ubah password
-- **Berita Acara (BA)** — Pengajuan pengujian sampel dengan form dinamis 20+ field
+- **Berita Acara (BA)** — Pengajuan pengujian hasil pengujian dengan form dinamis 20+ field
 - **Pembayaran** — Upload bukti pembayaran, diskon, konfirmasi admin
-- **Manajemen Sampel** — Pelacakan status sampel, hasil pengujian
+- **Manajemen Hasil Pengujian** — Pelacakan status hasil pengujian, hasil pengujian
 - **Sertifikat** — Unduh sertifikat hasil pengujian
 - **Form Builder** — Pembuat form dinamis dengan 14 tipe field (drag-and-drop)
 - **Manajemen Harga Instrumen** — Pengelolaan harga instrumen laboratorium
@@ -87,7 +87,7 @@ Aplikasi ini mengikuti alur bisnis 4 langkah:
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   1. PENGAJUAN  │───▶│  2. PEMBAYARAN  │───▶│  3. PENGAMBILAN │───▶│ 4. SERTIFIKAT  │
-│   (Berita Acara)│    │  (Upload Bukti) │    │ (Proses Sampel) │    │  (Download)     │
+│   (Berita Acara)│    │  (Upload Bukti) │    │ (Proses Hasil Pengujian) │    │  (Download)     │
 │                 │    │                 │    │                 │    │                 │
 │   User/Role:    │    │   User/Role:    │    │   User/Role:    │    │   User/Role:    │
 │   User          │    │   User + Admin  │    │   Analyst+Admin │    │   User          │
@@ -97,7 +97,7 @@ Aplikasi ini mengikuti alur bisnis 4 langkah:
 ### Detail Alur:
 
 1. **Pengajuan (Berita Acara)**
-   - User mengisi form pengajuan dengan data diri, detail penelitian, informasi sampel, dan kebutuhan akses lab
+   - User mengisi form pengajuan dengan data diri, detail penelitian, informasi hasil pengujian, dan kebutuhan akses lab
    - Admin memverifikasi, meminta revisi, atau menolak pengajuan
    - Admin menugaskan analis ke pengajuan
 
@@ -106,11 +106,11 @@ Aplikasi ini mengikuti alur bisnis 4 langkah:
    - User dapat meminta diskon
    - Admin mengkonfirmasi atau menolak pembayaran
 
-3. **Pengambilan (Proses Sampel)**
-   - Analis memproses sampel yang ditugaskan
-   - Analis menginput data sampel dan hasil pengujian
+3. **Pengambilan (Proses Hasil Pengujian)**
+   - Analis memproses hasil pengujian yang ditugaskan
+   - Analis menginput data hasil pengujian dan hasil pengujian
    - Analis membuat rekap analis (rekapan biaya)
-   - Admin menandai sampel sebagai "diambil"
+   - Admin menandai hasil pengujian sebagai "diambil"
 
 4. **Sertifikat**
    - User mengunduh sertifikat hasil pengujian
@@ -176,7 +176,7 @@ Aplikasi ini mengikuti alur bisnis 4 langkah:
 Dashboard menampilkan ringkasan statistik:
 - Total pengajuan (berita acara)
 - Total pembayaran
-- Total sampel
+- Total hasil pengujian
 - Total pengguna
 - Status pengajuan terkini
 
@@ -198,7 +198,7 @@ Superadmin adalah satu-satunya role yang bisa mengelola role dan permission.
 2. Isi **Nama Role** (contoh: "petugas_lab")
 3. Isi **Deskripsi** (opsional)
 4. Pilih permission yang diinginkan dari daftar yang tersedia
-   - Permission dikelompokkan per grup: Umum, Berita Acara, Pembayaran, Sampel, Sertifikat, Pengguna, Role, Form
+   - Permission dikelompokkan per grup: Umum, Berita Acara, Pembayaran, Hasil Pengujian, Sertifikat, Pengguna, Role, Form
    - Centang permission yang diinginkan
 5. Klik **"Simpan"**
 
@@ -219,27 +219,27 @@ Superadmin adalah satu-satunya role yang bisa mengelola role dan permission.
 | Grup | Permission | Fungsi |
 |---|---|---|
 | **Umum** | `dashboard` | Akses dashboard |
-| **Berita Acara** | `berita_acara_view` | Melihat daftar berita acara |
+| **Berita Acara** | `berita_acara_riwayat_personal` | Melihat daftar berita acara |
 | | `berita_acara_create` | Membuat berita acara baru |
 | | `berita_acara_verify` | Memverifikasi berita acara |
 | | `berita_acara_assign` | Menugaskan analis |
 | | `berita_acara_riwayat_personal` | Melihat riwayat BA sendiri |
 | | `berita_acara_riwayat_semua` | Melihat riwayat BA semua orang |
-| **Pembayaran** | `payment_view` | Melihat daftar pembayaran |
+| **Pembayaran** | `payment_riwayat_personal` | Melihat daftar pembayaran |
 | | `payment_upload` | Upload bukti pembayaran |
 | | `payment_discount` | Meminta diskon |
 | | `payment_confirm` | Mengkonfirmasi pembayaran |
-| **Sampel** | `sample_view` | Melihat daftar sampel |
-| | `sample_input` | Input data sampel |
-| | `sample_rekap` | Membuat rekap analis |
-| | `sample_status` | Update status sampel |
-| | `sample_riwayat_personal` | Riwayat sampel sendiri |
-| | `sample_riwayat_semua` | Riwayat sampel semua orang |
+| **Hasil Pengujian** | `hasil_pengujian_rekap` | Melihat daftar hasil pengujian |
+| | `hasil_pengujian_rekap` | Input data hasil pengujian |
+| | `hasil_pengujian_rekap` | Membuat rekap analis |
+| | `hasil_pengujian_rekap` | Update status hasil pengujian |
+| | `hasil_pengujian_riwayat_personal` | Riwayat hasil pengujian sendiri |
+| | `hasil_pengujian_riwayat_semua` | Riwayat hasil pengujian semua orang |
 | **Sertifikat** | `certificate_view` | Melihat sertifikat |
 | | `certificate_download` | Download sertifikat |
 | **Pengguna** | `user_view` | Melihat daftar pengguna |
 | | `user_verify` | Memverifikasi pengguna |
-| **Role** | `role_manage` | Mengelola role |
+| **Role** | `(superadmin only)` | Mengelola role |
 | **Form** | `form_manage_berita_acara` | Kelola form berita acara |
 | | `form_manage_rekap_analis` | Kelola form rekap analis |
 | | `form_manage_perhitungan_biaya` | Kelola form perhitungan biaya |
@@ -311,7 +311,7 @@ Lihat [Bagian 10: Manajemen Harga Instrumen](#10-manajemen-harga-instrumen) untu
 
 ### 5.7 Melihat Semua Riwayat
 
-Superadmin dengan permission `berita_acara_riwayat_semua` dan `sample_riwayat_semua` bisa melihat riwayat lengkap dari semua pengguna.
+Superadmin dengan permission `berita_acara_riwayat_semua` dan `hasil_pengujian_riwayat_semua` bisa melihat riwayat lengkap dari semua pengguna.
 
 ---
 
@@ -326,7 +326,7 @@ Superadmin dengan permission `berita_acara_riwayat_semua` dan `sample_riwayat_se
 Dashboard menampilkan:
 - Statistik pengajuan terkini
 - Jumlah pembayaran pending
-- Jumlah sampel yang perlu diproses
+- Jumlah hasil pengujian yang perlu diproses
 - Ringkasan aktivitas lab
 
 ### 6.2 Mengelola Berita Acara
@@ -345,7 +345,7 @@ Dashboard menampilkan:
 2. Tinjau semua data yang diinput:
    - Data diri pemohon
    - Detail penelitian
-   - Informasi sampel
+   - Informasi hasil pengujian
    - Kebutuhan akses laboratorium
    - Form dinamis tambahan (jika ada)
 3. Pilih aksi:
@@ -392,21 +392,21 @@ Dashboard menampilkan:
 2. Tinjau alasan diskon dari user
 3. Setujui atau tolak diskon saat mengkonfirmasi pembayaran
 
-### 6.4 Mengelola Sampel
+### 6.4 Mengelola Hasil Pengujian
 
 **URL:** `/admin/samples`
 
-#### Melihat Status Sampel
+#### Melihat Status Hasil Pengujian
 
-1. Buka menu **"Sampel"** di sidebar
-2. Daftar sampel ditampilkan berdasarkan berita acara
-3. Status sampel: Pending, Processing, Ready, Taken
+1. Buka menu **"Hasil Pengujian"** di sidebar
+2. Daftar hasil pengujian ditampilkan berdasarkan berita acara
+3. Status hasil pengujian: Pending, Processing, Ready, Taken
 
-#### Menandai Sampel Sebagai "Diambil"
+#### Menandai Hasil Pengujian Sebagai "Diambil"
 
-1. Klik detail sampel yang berstatus "Ready"
+1. Klik detail hasil pengujian yang berstatus "Ready"
 2. Klik tombol **"Tandai Diambil"**
-3. Status sampel berubah menjadi "Taken"
+3. Status hasil pengujian berubah menjadi "Taken"
 
 ### 6.5 Mengelola Form Template
 
@@ -492,7 +492,7 @@ Lihat [Bagian 10](#10-manajemen-harga-instrumen) untuk panduan lengkap.
 
 ## 7. Panduan Analyst (Analis)
 
-> **Analyst memproses sampel dan menginput hasil pengujian.** Hanya bisa melihat berita acara yang ditugaskan kepadanya.
+> **Analyst memproses hasil pengujian dan menginput hasil pengujian.** Hanya bisa melihat berita acara yang ditugaskan kepadanya.
 
 ### 7.1 Dashboard Analyst
 
@@ -500,44 +500,44 @@ Lihat [Bagian 10](#10-manajemen-harga-instrumen) untuk panduan lengkap.
 
 Dashboard menampilkan:
 - Berita acara yang ditugaskan
-- Status pemrosesan sampel
+- Status pemrosesan hasil pengujian
 - Statistik pengujian
 
 ### 7.2 Melihat Berita Acara yang Ditugaskan
 
 **URL:** `/analyst/samples`
 
-1. Buka menu **"Sampel"** di sidebar
+1. Buka menu **"Hasil Pengujian"** di sidebar
 2. Daftar berita acara yang ditugaskan ke Anda ditampilkan
 3. Klik detail untuk melihat informasi lengkap:
    - Data pemohon
    - Detail penelitian
-   - Daftar sampel
-   - Status setiap sampel
+   - Daftar hasil pengujian
+   - Status setiap hasil pengujian
 
-### 7.3 Menginput Data Sampel
+### 7.3 Menginput Data Hasil Pengujian
 
 1. Buka detail berita acara yang ditugaskan
-2. Pada bagian **"Data Sampel"**, klik **"Input/Edit Sampel"**
-3. Isi data sampel:
-   - **Nama Sampel** — Identitas sampel
-   - **Deskripsi** — Keterangan sampel
-   - **Jumlah** — Kuantitas sampel
+2. Pada bagian **"Data Hasil Pengujian"**, klik **"Input/Edit Hasil Pengujian"**
+3. Isi data hasil pengujian:
+   - **Nama Hasil Pengujian** — Identitas hasil pengujian
+   - **Deskripsi** — Keterangan hasil pengujian
+   - **Jumlah** — Kuantitas hasil pengujian
    - **Satuan** — Unit pengukuran
 4. Klik **"Simpan"**
 
 ### 7.4 Menginput Hasil Pengujian
 
-1. Buka detail sampel yang sudah diproses
+1. Buka detail hasil pengujian yang sudah diproses
 2. Pada bagian **"Hasil Pengujian"**, masukkan hasil uji
 3. Upload file hasil pengujian (jika diperlukan)
 4. Klik **"Simpan Hasil"**
 
-### 7.5 Menandai Sampel Selesai
+### 7.5 Menandai Hasil Pengujian Selesai
 
-1. Buka detail sampel
+1. Buka detail hasil pengujian
 2. Ubah status menjadi **"Ready"** (Siap Diambil)
-3. Sampel akan muncul di panel admin untuk ditandai "Diambil"
+3. Hasil Pengujian akan muncul di panel admin untuk ditandai "Diambil"
 
 ### 7.6 Membuat Rekap Analis
 
@@ -553,7 +553,7 @@ Rekap analis adalah dokumen rekapan yang berisi ringkasan pengujian dan perhitun
    - Keterangan tambahan
 4. Form ini menggunakan template form type `rekap_analis` yang sudah dikonfigurasi admin
 5. Klik **"Simpan Rekap"**
-6. Rekap akan memperbarui data berita acara dan menandai sampel sebagai "taken"
+6. Rekap akan memperbarui data berita acara dan menandai hasil pengujian sebagai "taken"
 
 ### 7.7 Meminta Diskon
 
@@ -578,7 +578,7 @@ Rekap analis adalah dokumen rekapan yang berisi ringkasan pengujian dan perhitun
 
 ## 8. Panduan User (Pengguna)
 
-> **User adalah peneliti/mahasiswa yang mengajukan pengujian sampel.** Membuat berita acara, upload bukti pembayaran, dan unduh sertifikat.
+> **User adalah peneliti/mahasiswa yang mengajukan pengujian hasil pengujian.** Membuat berita acara, upload bukti pembayaran, dan unduh sertifikat.
 
 ### 8.1 Dashboard User
 
@@ -614,11 +614,11 @@ Dashboard menampilkan:
 - Tujuan pengujian
 - Metode pengujian
 
-**Seksi 3: Informasi Sampel**
-- Nama sampel
-- Jenis sampel
-- Jumlah sampel
-- Kondisi sampel
+**Seksi 3: Informasi Hasil Pengujian**
+- Nama hasil pengujian
+- Jenis hasil pengujian
+- Jumlah hasil pengujian
+- Kondisi hasil pengujian
 - Penanganan khusus (jika ada)
 
 **Seksi 4: Kebutuhan Akses Lab**
@@ -724,7 +724,7 @@ Form Builder memungkinkan admin membuat form kustom untuk berbagai keperluan tan
 
 | Tipe | Digunakan Untuk |
 |---|---|
-| `berita_acara` | Form pengajuan pengujian sampel |
+| `berita_acara` | Form pengajuan pengujian hasil pengujian |
 | `rekap_analis` | Form rekap analis |
 | `perhitungan_biaya` | Form perhitungan biaya |
 | `kelola_harga_instrumen` | Form pengelolaan harga instrumen |
@@ -796,7 +796,7 @@ Fitur ini memungkinkan admin mengelola daftar harga sewa/penggunaan instrumen la
 1. Klik tombol **"+ Tambah"**
 2. Isi form:
    - **Nama Instrumen** — Nama instrumen laboratorium
-   - **Satuan** — Unit pengukuran (contoh: "per jam", "per sampel")
+   - **Satuan** — Unit pengukuran (contoh: "per jam", "per hasil pengujian")
    - **Harga Regular** — Harga untuk pengguna umum
    - **Harga UNS** — Harga khusus mahasiswa/pegawai UNS
    - **Catatan** — Keterangan tambahan (opsional)
@@ -867,9 +867,9 @@ Saat navigasi:
 | Role | Permission Default |
 |---|---|
 | **Superadmin** | Semua 22 permission (bypass) |
-| **Admin** | `dashboard`, `berita_acara_view`, `berita_acara_verify`, `berita_acara_assign`, `berita_acara_riwayat_semua`, `payment_view`, `payment_confirm`, `sample_view`, `sample_status`, `sample_riwayat_semua`, `user_view`, `user_verify`, `form_manage_*` |
-| **Analyst** | `dashboard`, `berita_acara_view`, `berita_acara_riwayat_personal`, `sample_view`, `sample_input`, `sample_rekap`, `sample_status`, `sample_riwayat_personal`, `payment_discount` |
-| **User** | `dashboard`, `berita_acara_view`, `berita_acara_create`, `berita_acara_riwayat_personal`, `payment_upload`, `payment_discount`, `certificate_view`, `certificate_download` |
+| **Admin** | `dashboard`, `berita_acara_riwayat_personal`, `berita_acara_verify`, `berita_acara_assign`, `berita_acara_riwayat_semua`, `payment_riwayat_personal`, `payment_confirm`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_semua`, `user_view`, `user_verify`, `form_manage_*` |
+| **Analyst** | `dashboard`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_personal`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal`, `payment_discount` |
+| **User** | `dashboard`, `berita_acara_riwayat_personal`, `berita_acara_create`, `berita_acara_riwayat_personal`, `payment_upload`, `payment_discount`, `certificate_view`, `certificate_download` |
 
 **Catatan:** Permission dapat dikustomisasi oleh superadmin melalui UI Manajemen Role.
 
@@ -925,7 +925,7 @@ Saat navigasi:
 
 | Istilah | Deskripsi |
 |---|---|
-| **Berita Acara (BA)** | Dokumen pengajuan pengujian sampel dari user ke laboratorium |
+| **Berita Acara (BA)** | Dokumen pengajuan pengujian hasil pengujian dari user ke laboratorium |
 | **Rekap Analis** | Dokumen rekapan hasil pengujian dan perhitungan biaya dari analis |
 | **Form Dinamis** | Form yang bisa dikonfigurasi oleh admin tanpa coding |
 | **Locked Field** | Field form yang tidak bisa dihapus karena terintegrasi dengan sistem |

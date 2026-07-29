@@ -44,7 +44,7 @@ function getSampleStatus(ba: BeritaAcara): string {
 
 function getSampleNames(ba: BeritaAcara): string {
   if (!ba.samples || ba.samples.length === 0) return '-'
-  return ba.samples.map(s => s.name || 'Sampel').join(', ')
+  return ba.samples.map(s => s.name || 'Hasil Pengujian').join(', ')
 }
 
 const filtered = computed(() => {
@@ -82,7 +82,7 @@ function getJudul(item: BeritaAcara) {
   <AppLayout>
     <div>
       <div class="page-header">
-        <h1>Sampel</h1>
+        <h1>Hasil Pengujian</h1>
       </div>
 
       <Card>
@@ -111,8 +111,8 @@ function getJudul(item: BeritaAcara) {
                 <th class="th-nomor">No</th>
                 <th>Judul Penelitian</th>
                 <th>Pemohon</th>
-                <th>Status Sampel</th>
-                <th>Nama Sampel</th>
+                <th>Status Hasil Pengujian</th>
+                <th>Nama Hasil Pengujian</th>
                 <th class="th-aksi">Aksi</th>
               </tr>
             </thead>
@@ -127,7 +127,7 @@ function getJudul(item: BeritaAcara) {
                     :text="sampleStatusText[getSampleStatus(item)]"
                   />
                 </td>
-                <td class="td-sampel">{{ getSampleNames(item) }}</td>
+                <td class="td-hasil pengujian">{{ getSampleNames(item) }}</td>
                 <td class="td-aksi">
                   <button class="eye-btn" @click="goToDetail(item.id)" title="Lihat Detail">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -170,7 +170,7 @@ function getJudul(item: BeritaAcara) {
 .th-nomor, .td-nomor { width: 50px; text-align: center; }
 .th-aksi, .td-aksi { width: 60px; text-align: center; }
 .td-judul { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.td-sampel { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #64748b; }
+.td-hasil pengujian { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #64748b; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 
 .eye-btn {

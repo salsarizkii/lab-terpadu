@@ -124,6 +124,12 @@ export interface Sample {
     analyst_id?: number
     user?: User
     analyst?: User
+    rekap_analis_data?: Record<string, any>
+    custom_items?: Array<{ name: string; amount: number }>
+    biaya?: string
+    keterangan?: string
+    formula?: { id: number; name: string; expression: string; unit: string }
+    payment?: Payment
   }
 }
 
@@ -163,3 +169,27 @@ export interface FormTemplate {
   created_at: string
   updated_at: string
 }
+
+export interface PdfVariable {
+  key: string
+  label: string
+  example: string
+}
+
+export interface PdfTemplate {
+  id: number
+  type: 'berita_acara' | 'rekap_analis' | 'tagihan' | 'sertifikat'
+  name: string
+  html_content: string
+  docx_path?: string | null
+  paper_size: 'a4' | 'letter' | 'legal'
+  orientation: 'portrait' | 'landscape'
+  margin_top: number
+  margin_bottom: number
+  margin_left: number
+  margin_right: number
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+

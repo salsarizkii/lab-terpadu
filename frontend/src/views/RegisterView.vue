@@ -29,7 +29,7 @@ async function handleRegister(data: { name: string; email: string; password: str
     <div class="register-card">
       <div class="register-header">
         <h1>Daftar Akun</h1>
-        <p>UPT Lab Terpadu - Pemesanan Data Sampel</p>
+        <p>UPT Lab Terpadu - Pemesanan Data Hasil Pengujian</p>
       </div>
       <RegisterForm @submit="handleRegister" :loading="loading" />
       <p class="register-footer">

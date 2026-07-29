@@ -12,10 +12,16 @@ class DiscountController extends Controller
 {
     public function index(Request $request)
     {
-        $beritaAcaras = BeritaAcara::with(['user', 'payment', 'samples'])
+        $user = auth()->user();
+        $query = BeritaAcara::with(['user', 'payment', 'samples'])
             ->where('status', 'approved')
-            ->whereNotNull('biaya')
-            ->orderByDesc('created_at')
+            ->whereNotNull('biaya');
+
+        if (!$user->hasPermission('discount_riwayat_semua')) {
+            $query->where('user_id', $user->id);
+        }
+
+        $beritaAcaras = $query->orderByDesc('created_at')
             ->get()
             ->map(function ($ba) {
                 return [
@@ -104,7 +110,6 @@ class DiscountController extends Controller
             'discount_type' => 'combined',
             'discount_percent' => $percentValue > 0 ? $percentValue : null,
             'discount_nominal' => $nominalValue > 0 ? $nominalValue : null,
-            'status' => 'approved',
         ]);
 
         DiscountHistory::create([
@@ -189,7 +194,6 @@ class DiscountController extends Controller
                 'discount_type' => 'combined',
                 'discount_percent' => $percentValue > 0 ? $percentValue : null,
                 'discount_nominal' => $nominalValue > 0 ? $nominalValue : null,
-                'status' => 'approved',
             ]
         );
 
@@ -231,7 +235,6 @@ class DiscountController extends Controller
             'discount_type' => 'combined',
             'discount_percent' => $percentValue > 0 ? $percentValue : null,
             'discount_nominal' => $nominalValue > 0 ? $nominalValue : null,
-            'status' => 'approved',
         ]);
 
         return response()->json([

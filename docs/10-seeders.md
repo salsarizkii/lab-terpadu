@@ -49,12 +49,12 @@ Menggunakan `Permission::firstOrCreate(['name' => ...])` — idempotent, aman di
 | Grup | Count | Permissions |
 |---|---|---|
 | **Umum** | 1 | `dashboard` |
-| **Berita Acara** | 6 | `berita_acara_view`, `berita_acara_create`, `berita_acara_verify`, `berita_acara_assign`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua` |
-| **Pembayaran** | 4 | `payment_view`, `payment_upload`, `payment_discount`, `payment_confirm` |
-| **Sampel** | 6 | `sample_view`, `sample_input`, `sample_rekap`, `sample_status`, `sample_riwayat_personal`, `sample_riwayat_semua` |
+| **Berita Acara** | 6 | `berita_acara_riwayat_personal`, `berita_acara_create`, `berita_acara_verify`, `berita_acara_assign`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua` |
+| **Pembayaran** | 4 | `payment_riwayat_personal`, `payment_upload`, `payment_discount`, `payment_confirm` |
+| **Hasil Pengujian** | 6 | `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua` |
 | **Sertifikat** | 2 | `certificate_view`, `certificate_download` |
 | **Pengguna** | 2 | `user_view`, `user_verify` |
-| **Role** | 1 | `role_manage` |
+| **Role** | 1 | `(superadmin only)` |
 | **Form** | 4 | `form_manage_berita_acara`, `form_manage_rekap_analis`, `form_manage_perhitungan_biaya`, `form_manage_kelola_harga_instrumen` |
 | **Diskon** | 3 | `discount_verifikasi`, `discount_riwayat_semua`, `discount_riwayat_personal` |
 
@@ -63,27 +63,27 @@ Menggunakan `Permission::firstOrCreate(['name' => ...])` — idempotent, aman di
 | # | name | display_name | group |
 |---|---|---|---|
 | 1 | `dashboard` | Dashboard | Umum |
-| 2 | `berita_acara_view` | Melihat Berita Acara | Berita Acara |
+| 2 | `berita_acara_riwayat_personal` | Melihat Berita Acara | Berita Acara |
 | 3 | `berita_acara_create` | Buat Berita Acara | Berita Acara |
 | 4 | `berita_acara_verify` | Verifikasi Berita Acara | Berita Acara |
 | 5 | `berita_acara_assign` | Menugaskan Analis | Berita Acara |
 | 6 | `berita_acara_riwayat_personal` | Personal Riwayat Berita Acara | Berita Acara |
 | 7 | `berita_acara_riwayat_semua` | Riwayat Seluruh Berita Acara | Berita Acara |
-| 8 | `payment_view` | Melihat Pembayaran | Pembayaran |
+| 8 | `payment_riwayat_personal` | Melihat Pembayaran | Pembayaran |
 | 9 | `payment_upload` | Upload Bukti Bayar | Pembayaran |
 | 10 | `payment_discount` | Diskon Pembayaran | Pembayaran |
 | 11 | `payment_confirm` | Konfirmasi Pembayaran | Pembayaran |
-| 12 | `sample_view` | Melihat Sampel | Sampel |
-| 13 | `sample_input` | Input Data Sampel | Sampel |
-| 14 | `sample_rekap` | Buat Rekap Analis | Sampel |
-| 15 | `sample_status` | Update Status Sampel | Sampel |
-| 16 | `sample_riwayat_personal` | Personal Riwayat Rekap Analisis | Sampel |
-| 17 | `sample_riwayat_semua` | Riwayat Seluruh Rekap Analisis | Sampel |
+| 12 | `hasil_pengujian_rekap` | Melihat Hasil Pengujian | Hasil Pengujian |
+| 13 | `hasil_pengujian_rekap` | Input Data Hasil Pengujian | Hasil Pengujian |
+| 14 | `hasil_pengujian_rekap` | Buat Rekap Analis | Hasil Pengujian |
+| 15 | `hasil_pengujian_rekap` | Update Status Hasil Pengujian | Hasil Pengujian |
+| 16 | `hasil_pengujian_riwayat_personal` | Personal Riwayat Rekap Analisis | Hasil Pengujian |
+| 17 | `hasil_pengujian_riwayat_semua` | Riwayat Seluruh Rekap Analisis | Hasil Pengujian |
 | 18 | `certificate_view` | Melihat Sertifikat | Sertifikat |
 | 19 | `certificate_download` | Download Sertifikat | Sertifikat |
 | 20 | `user_view` | Melihat Pengguna | Pengguna |
 | 21 | `user_verify` | Verifikasi Pengguna | Pengguna |
-| 22 | `role_manage` | Kelola Role | Role |
+| 22 | `(superadmin only)` | Kelola Role | Role |
 | 23 | `form_manage_berita_acara` | Kelola Form Berita Acara | Form |
 | 24 | `form_manage_rekap_analis` | Kelola Form Rekap Analis | Form |
 | 25 | `form_manage_perhitungan_biaya` | Kelola Form Perhitungan Biaya | Form |
@@ -118,13 +118,13 @@ is_system: false
 requires_verification: true
 permissions: 10 permissions —
   • dashboard
-  • berita_acara_view
+  • berita_acara_riwayat_personal
   • berita_acara_riwayat_semua
-  • sample_view
-  • sample_input
-  • sample_rekap
-  • sample_status
-  • sample_riwayat_personal
+  • hasil_pengujian_rekap
+  • hasil_pengujian_rekap
+  • hasil_pengujian_rekap
+  • hasil_pengujian_rekap
+  • hasil_pengujian_riwayat_personal
   • certificate_view
   • certificate_download
 ```
@@ -135,11 +135,11 @@ is_system: false
 requires_verification: false
 permissions: 10 permissions —
   • berita_acara_create
-  • berita_acara_view
   • berita_acara_riwayat_personal
-  • sample_riwayat_personal
-  • sample_rekap
-  • payment_view
+  • berita_acara_riwayat_personal
+  • hasil_pengujian_riwayat_personal
+  • hasil_pengujian_rekap
+  • payment_riwayat_personal
   • payment_upload
   • payment_discount
   • certificate_view
@@ -174,42 +174,42 @@ Menggunakan `InstrumentPrice::create()` — **tidak idempotent**, akan duplikat 
 
 | # | Nama Instrumen | Unit | Harga Reguler | Harga UNS | Note |
 |---|---|---|---|---|---|
-| 1 | Analisis Kadar Gula-Gula pereduksi metode Luff Shrool | Per sampel | 200.000 | - | - |
-| 2 | Analisis Kadar Gula-Gula pereduksi metode Lane-Eynon | Per sampel | 150.000 | - | - |
-| 3 | Analisis Sukrosa (Luff Shrool) | Per sampel | 200.000 | - | - |
-| 4 | Analisis Sukrosa (Lane-Eynon) | Per sampel | 150.000 | - | - |
-| 5 | Analisis Kadar Protein (Kjehldal) | Per sampel | 150.000 | - | - |
-| 6 | Analisis Vitamin C | Per sampel | 100.000 | - | - |
-| 7 | Analisis Kadar Air | Per sampel | 150.000 | 100.000 | - |
-| 8 | Analisis Kadar Garam | Per sampel | 150.000 | 100.000 | - |
-| 9 | Pengujian Anti Bakteri (Metode difusi cakram) | 4 sampel/cawan | 300.000 | 200.000 | - |
-| 10 | Pengujian Anti Bakteri (Metode difusi sumuran) | 4 sampel/cawan | 300.000 | 200.000 | - |
-| 11 | Pengujian ALT | Per sampel | 200.000 | 150.000 | - |
-| 12 | Pengujian E Coli metode Most Probable Number (MPN) | Per sampel | 200.000 | 150.000 | - |
-| 13 | Pengujian E Coli metode Filtrasi Membran | Per sampel | 300.000 | - | - |
-| 14 | Pengujian Lignin (metode chesson) | Per sampel | 150.000 | - | - |
-| 15 | Selulosa (metode chesson) | Per sampel | 110.000 | - | - |
-| 16 | Hemiselulosa (metode chesson) | Per sampel | 110.000 | - | - |
-| 17 | Lignin, Selulosa, dan Hemiselulosa (chesson) | Per sampel | 300.000 | - | - |
-| 18 | Analisis antioksidan (Quercetin & DPPH) | Per sampel | 250.000 | - | - |
-| 19 | Analisis Fitokimia metabolit sekunder (Flavonoid) | Per sampel | 120.000 | - | - |
-| 20 | Analisis dengan GC | Per sampel | 100.000 | 60.000 | - |
-| 21 | Analisis dengan GC-MS | Per sampel | 500.000 | 400.000 | - |
-| 22 | Analisis dengan HPLC | Per sampel | 100.000 | 60.000 | - |
-| 23 | Analisis UV-VIS Spektrometer (kualitatif, 200-900 nm) | Per sampel | 60.000 | 50.000 | - |
-| 24 | Analisis UV-VIS Spektrometer (kuantitatif) | Per sampel | 25.000 | 5.000 | - |
-| 25 | Analisis Mercury/Hg dengan DMA (cair, padat, gas) | Per sampel | 300.000 | 200.000 | - |
-| 26 | Pengukuran Ukuran Partikel | Per sampel | 300.000 | 200.000 | PSA Nano |
-| 27 | Pengukuran Zeta Potensial | Per sampel | 300.000 | 200.000 | PSA Nano |
-| 28 | Pengukuran Bobot Molekul | Per sampel | 600.000 | 500.000 | PSA Nano |
-| 29 | Analisis kualitatif ATR FTIR | Per sampel | 100.000 | 50.000 | - |
+| 1 | Analisis Kadar Gula-Gula pereduksi metode Luff Shrool | Per hasil pengujian | 200.000 | - | - |
+| 2 | Analisis Kadar Gula-Gula pereduksi metode Lane-Eynon | Per hasil pengujian | 150.000 | - | - |
+| 3 | Analisis Sukrosa (Luff Shrool) | Per hasil pengujian | 200.000 | - | - |
+| 4 | Analisis Sukrosa (Lane-Eynon) | Per hasil pengujian | 150.000 | - | - |
+| 5 | Analisis Kadar Protein (Kjehldal) | Per hasil pengujian | 150.000 | - | - |
+| 6 | Analisis Vitamin C | Per hasil pengujian | 100.000 | - | - |
+| 7 | Analisis Kadar Air | Per hasil pengujian | 150.000 | 100.000 | - |
+| 8 | Analisis Kadar Garam | Per hasil pengujian | 150.000 | 100.000 | - |
+| 9 | Pengujian Anti Bakteri (Metode difusi cakram) | 4 hasil pengujian/cawan | 300.000 | 200.000 | - |
+| 10 | Pengujian Anti Bakteri (Metode difusi sumuran) | 4 hasil pengujian/cawan | 300.000 | 200.000 | - |
+| 11 | Pengujian ALT | Per hasil pengujian | 200.000 | 150.000 | - |
+| 12 | Pengujian E Coli metode Most Probable Number (MPN) | Per hasil pengujian | 200.000 | 150.000 | - |
+| 13 | Pengujian E Coli metode Filtrasi Membran | Per hasil pengujian | 300.000 | - | - |
+| 14 | Pengujian Lignin (metode chesson) | Per hasil pengujian | 150.000 | - | - |
+| 15 | Selulosa (metode chesson) | Per hasil pengujian | 110.000 | - | - |
+| 16 | Hemiselulosa (metode chesson) | Per hasil pengujian | 110.000 | - | - |
+| 17 | Lignin, Selulosa, dan Hemiselulosa (chesson) | Per hasil pengujian | 300.000 | - | - |
+| 18 | Analisis antioksidan (Quercetin & DPPH) | Per hasil pengujian | 250.000 | - | - |
+| 19 | Analisis Fitokimia metabolit sekunder (Flavonoid) | Per hasil pengujian | 120.000 | - | - |
+| 20 | Analisis dengan GC | Per hasil pengujian | 100.000 | 60.000 | - |
+| 21 | Analisis dengan GC-MS | Per hasil pengujian | 500.000 | 400.000 | - |
+| 22 | Analisis dengan HPLC | Per hasil pengujian | 100.000 | 60.000 | - |
+| 23 | Analisis UV-VIS Spektrometer (kualitatif, 200-900 nm) | Per hasil pengujian | 60.000 | 50.000 | - |
+| 24 | Analisis UV-VIS Spektrometer (kuantitatif) | Per hasil pengujian | 25.000 | 5.000 | - |
+| 25 | Analisis Mercury/Hg dengan DMA (cair, padat, gas) | Per hasil pengujian | 300.000 | 200.000 | - |
+| 26 | Pengukuran Ukuran Partikel | Per hasil pengujian | 300.000 | 200.000 | PSA Nano |
+| 27 | Pengukuran Zeta Potensial | Per hasil pengujian | 300.000 | 200.000 | PSA Nano |
+| 28 | Pengukuran Bobot Molekul | Per hasil pengujian | 600.000 | 500.000 | PSA Nano |
+| 29 | Analisis kualitatif ATR FTIR | Per hasil pengujian | 100.000 | 50.000 | - |
 | 30 | Analisis dengan TLC Scanner (20x20) | Per plate | 300.000 | 150.000 | KLT |
 | 31 | Analisis dengan TLC Scanner (10x10) | Per plate | 200.000 | 100.000 | KLT |
-| 32 | Pengukuran Viskometer | Per sampel | 75.000 | 50.000 | - |
-| 33 | Impact tester | Per sampel | 60.000 | 50.000 | - |
-| 34 | AAS | Per sampel | 25.000 | 10.000 | - |
-| 35 | Konduktivitas Termal | Per sampel | 120.000 | 100.000 | - |
-| 36 | XRF | Per sampel | 300.000 | 200.000 | - |
+| 32 | Pengukuran Viskometer | Per hasil pengujian | 75.000 | 50.000 | - |
+| 33 | Impact tester | Per hasil pengujian | 60.000 | 50.000 | - |
+| 34 | AAS | Per hasil pengujian | 25.000 | 10.000 | - |
+| 35 | Konduktivitas Termal | Per hasil pengujian | 120.000 | 100.000 | - |
+| 36 | XRF | Per hasil pengujian | 300.000 | 200.000 | - |
 | 37 | Oral/Hewan Coba | Per ekor | 1.000 | - | - |
 | 38 | Cek Kolesterol/Cek Glukosa Hewan coba | Per ekor | 2.000 | - | - |
 | 39 | Pengambilan Darah Hewan Coba | Per ekor | 4.000 | - | - |
@@ -223,10 +223,10 @@ Menggunakan `InstrumentPrice::create()` — **tidak idempotent**, akan duplikat 
 | 47 | Pembuatan model hewan coba Anemia | Per ekor | 20.000 | - | - |
 | 48 | Pembuatan ekstrak Simplisia 0-100 gram | gram | 400.000 | 350.000 | - |
 | 49 | Penanganan limbah Hewan Coba | Per ekor | 2.000 | - | - |
-| 50 | Pengambilan sampel kotoran Hewan Coba | Per ekor | 2.000 | - | - |
+| 50 | Pengambilan hasil pengujian kotoran Hewan Coba | Per ekor | 2.000 | - | - |
 | 51 | Pemisahan serum Hewan Coba menggunakan centrifuge | Per tube | 2.000 | - | - |
 | 52 | Perawatan Kandang, Tempat pakan dan Minum Hewan coba | Per minggu | 20.000 | - | - |
-| 53 | Daya serap Iod (Titrimetri) | Per sampel | 100.000 | - | Dalam UNS |
+| 53 | Daya serap Iod (Titrimetri) | Per hasil pengujian | 100.000 | - | Dalam UNS |
 
 ---
 
@@ -241,7 +241,7 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 
 | Name | Formulir Berita Acara |
 |---|---|
-| Description | Formulir standar untuk pengajuan berita acara pengujian sampel |
+| Description | Formulir standar untuk pengajuan berita acara pengujian hasil pengujian |
 
 | # | Label | Type | Required | Locked |
 |---|---|---|---|---|
@@ -259,9 +259,9 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 | 11 | Bahan / Contoh Uji | textarea | No | No |
 | 12 | Kemasan / Packing | textarea | No | No |
 | 13 | Metode / Instrumen | text | No | No |
-| 14 | Jumlah Sampel | number | No | No |
-| 15 | Kode / Nama Sampel | text | No | No |
-| 16 | Keterangan Sampel | textarea | No | No |
+| 14 | Jumlah Hasil Pengujian | number | No | No |
+| 15 | Kode / Nama Hasil Pengujian | text | No | No |
+| 16 | Keterangan Hasil Pengujian | textarea | No | No |
 | 17 | Keterangan Tambahan | textarea | No | No |
 
 > **`locked: true`** pada "Judul Penelitian" — field ini tidak bisa dihapus/diubah oleh admin di Form Builder.
@@ -278,10 +278,10 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 | 1 | Nama Analis | text | **Yes** |
 | 2 | Lab / Unit | text | No |
 | 3 | Tanggal Pengujian | date | **Yes** |
-| 4 | Data Sampel | heading | No |
-| 5 | Kode Sampel | text | **Yes** |
-| 6 | Jenis Sampel | text | No |
-| 7 | Jumlah Sampel | number | No |
+| 4 | Data Hasil Pengujian | heading | No |
+| 5 | Kode Hasil Pengujian | text | **Yes** |
+| 6 | Jenis Hasil Pengujian | text | No |
+| 7 | Jumlah Hasil Pengujian | number | No |
 | 8 | Hasil Pengujian | heading | No |
 | 9 | Parameter Uji | text | **Yes** |
 | 10 | Metode Pengujian | text | No |
@@ -298,8 +298,8 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 |---|---|---|---|
 | 0 | Informasi Pengujian | heading | No |
 | 1 | Nama Pengujian | text | **Yes** |
-| 2 | Jenis Sampel | text | No |
-| 3 | Jumlah Sampel | number | **Yes** |
+| 2 | Jenis Hasil Pengujian | text | No |
+| 3 | Jumlah Hasil Pengujian | number | **Yes** |
 | 4 | Biaya Pengujian | number | **Yes** |
 | 5 | Diskon | number | No |
 | 6 | Total Biaya | number | **Yes** |
@@ -318,7 +318,7 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 | 2 | Merk / Tipe | text | No |
 | 3 | Lokasi | text | No |
 | 4 | Harga Sewa per Jam | number | **Yes** |
-| 5 | Harga Sewa per Sampel | number | No |
+| 5 | Harga Sewa per Hasil Pengujian | number | No |
 | 6 | Keterangan | textarea | No |
 
 ---

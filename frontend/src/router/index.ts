@@ -22,15 +22,15 @@ const routes = [
       if (!auth.hasPermission('dashboard')) {
         if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/admin/berita-acara'
         if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal') || auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/user/berita-acara'
-        if (auth.hasPermission('sample_view') || auth.hasPermission('sample_rekap') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('sample_riwayat_personal')) return '/admin/samples'
-        if (auth.hasPermission('payment_view') || auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount')) return '/user/payments'
+        if (auth.hasPermission('hasil_pengujian_rekap') || auth.hasPermission('hasil_pengujian_riwayat_semua')) return '/admin/samples'
+        if (auth.hasPermission('hasil_pengujian_riwayat_personal')) return '/user/samples'
+        if (auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount') || auth.hasPermission('payment_riwayat_personal')) return '/user/payments'
         if (auth.hasPermission('certificate_view') || auth.hasPermission('certificate_download')) return '/user/certificates'
         if (auth.hasPermission('user_view')) return '/admin/users'
-        if (auth.hasPermission('role_manage')) return '/admin/roles'
         return '/user/berita-acara'
       }
-      if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('role_manage') || auth.hasPermission('user_view')) return '/admin/dashboard'
-      if (auth.hasPermission('sample_rekap')) return '/analyst/dashboard'
+      if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('user_view')) return '/admin/dashboard'
+      if (auth.hasPermission('hasil_pengujian_rekap')) return '/analyst/dashboard'
       return '/user/dashboard'
     },
   },
@@ -77,6 +77,12 @@ const routes = [
     meta: { auth: true },
   },
   {
+    path: '/user/samples',
+    name: 'UserSamples',
+    component: () => import('../views/UserSamples.vue'),
+    meta: { auth: true },
+  },
+  {
     path: '/user/certificates',
     name: 'UserCertificate',
     component: () => import('../views/UserCertificate.vue'),
@@ -110,13 +116,13 @@ const routes = [
     path: '/admin/samples',
     name: 'AdminSamples',
     component: () => import('../views/AdminSamples.vue'),
-    meta: { auth: true, permission: 'sample_view', permissionOr: 'sample_rekap,sample_riwayat_personal,sample_riwayat_semua' },
+    meta: { auth: true, permission: 'hasil_pengujian_rekap', permissionOr: 'hasil_pengujian_riwayat_personal,hasil_pengujian_riwayat_semua' },
   },
   {
     path: '/admin/roles',
     name: 'AdminRoles',
     component: () => import('../views/AdminRoles.vue'),
-    meta: { auth: true, permission: 'role_manage' },
+    meta: { auth: true },
   },
   {
     path: '/admin/users',
@@ -134,7 +140,7 @@ const routes = [
     path: '/admin/discounts',
     name: 'AdminDiscounts',
     component: () => import('../views/AdminDiscounts.vue'),
-    meta: { auth: true, permission: 'discount_verifikasi' },
+    meta: { auth: true, permission: 'discount_verifikasi', permissionOr: 'discount_riwayat_semua,discount_riwayat_personal' },
   },
   {
     path: '/analyst/dashboard',
@@ -146,19 +152,19 @@ const routes = [
     path: '/analyst/samples',
     name: 'AnalystSamples',
     component: () => import('../views/AnalystSamples.vue'),
-    meta: { auth: true, permission: 'sample_rekap', permissionOr: 'berita_acara_riwayat_semua' },
+    meta: { auth: true, permission: 'hasil_pengujian_rekap', permissionOr: 'berita_acara_riwayat_semua' },
   },
   {
     path: '/analyst/samples/:id',
     name: 'AnalystSampleDetail',
     component: () => import('../views/AnalystAssigned.vue'),
-    meta: { auth: true, permission: 'sample_rekap', permissionOr: 'berita_acara_riwayat_semua' },
+    meta: { auth: true, permission: 'hasil_pengujian_rekap', permissionOr: 'berita_acara_riwayat_semua' },
   },
   {
     path: '/analyst/samples/:id/rekap',
     name: 'AnalystRekapAnalis',
     component: () => import('../views/AnalystRekapAnalis.vue'),
-    meta: { auth: true, permission: 'sample_rekap', permissionOr: 'berita_acara_riwayat_semua' },
+    meta: { auth: true, permission: 'hasil_pengujian_rekap', permissionOr: 'berita_acara_riwayat_semua' },
   },
   {
     path: '/:pathMatch(.*)*',

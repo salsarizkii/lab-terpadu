@@ -44,7 +44,7 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
       <div class="dashboard-header">
         <div>
           <h1>Dashboard</h1>
-          <p>Selamat datang di sistem pemesanan sampel penelitian</p>
+          <p>Selamat datang di sistem pemesanan hasil pengujian penelitian</p>
         </div>
         <Button @click="router.push('/user/berita-acara/create')">
           + Buat Berita Acara
@@ -65,7 +65,7 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
           </Card>
           <Card class="stat-card" hover>
             <div class="stat-value">{{ readyCount }}</div>
-            <div class="stat-label">Sampel Siap</div>
+            <div class="stat-label">Hasil Pengujian Siap</div>
           </Card>
           <Card class="stat-card" hover @click="router.push('/user/certificates')">
             <div class="stat-value">{{ certCount }}</div>

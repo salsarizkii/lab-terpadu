@@ -43,8 +43,8 @@ Role-Based Access Control — granular permission management.
 
 | Name | Display Name | Description |
 |---|---|---|
-| `sample_read` | Lihat Sampel | View samples |
-| `sample_update` | Update Sampel | Update sample status/result |
+| `sample_read` | Lihat Hasil Pengujian | View samples |
+| `sample_update` | Update Hasil Pengujian | Update sample status/result |
 
 ### Group: sertifikat (2)
 
@@ -74,7 +74,7 @@ Role-Based Access Control — granular permission management.
 | Name | Display Name | Description |
 |---|---|---|
 | `role_read` | Lihat Role | View roles |
-| `role_manage` | Kelola Role | Create/edit/delete roles |
+| `(superadmin only)` | Kelola Role | Create/edit/delete roles |
 
 ### Group: form_template (2)
 

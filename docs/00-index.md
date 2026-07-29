@@ -1,6 +1,6 @@
 # LAB TERPADU - Dokumentasi Proyek
 
-Sistem Manajemen Laboratorium Terpadu (LIMS) untuk pengelolaan pengujian sampel penelitian.
+Sistem Manajemen Laboratorium Terpadu (LIMS) untuk pengelolaan pengujian hasil pengujian penelitian.
 
 ## 01. Arsitektur
 
@@ -81,7 +81,7 @@ php artisan db:seed
 
 1. **Pengajuan** — User membuat Berita Acara (form pengajuan lab 20+ field)
 2. **Pembayaran** — Admin setujui → User upload bukti bayar → Admin konfirmasi
-3. **Pengambilan** — Analyst proses sampel → Admin tandai sampel diambil
+3. **Pengambilan** — Analyst proses hasil pengujian → Admin tandai hasil pengujian diambil
 4. **Sertifikat** — User download sertifikat hasil pengujian
 
 ## 05. Role System
@@ -90,7 +90,7 @@ php artisan db:seed
 |---|---|---|
 | `superadmin` | Full access | Bypass semua role check, kelola role/user |
 | `admin` | Verifikasi BA, pembayaran, assign analyst | CRUD form template |
-| `analyst` | Lihat tugas, update hasil sampel | Input pengujian |
+| `analyst` | Lihat tugas, update hasil hasil pengujian | Input pengujian |
 | `user` | Buat pengajuan, bayar, download sertifikat | Akses terbatas |
 
 ## 06. Codebase Quirks

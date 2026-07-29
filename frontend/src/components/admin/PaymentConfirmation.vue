@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Button from '../common/Button.vue'
 import type { Payment } from '../../types'
 import { toast } from 'vue-sonner'
@@ -8,13 +8,13 @@ import {
   XCircle,
   FileText,
   RefreshCw,
-  ExternalLink,
   Download,
   CreditCard,
   User,
   MessageSquare,
   Calculator,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from '@lucide/vue'
 
 const props = defineProps<{
@@ -27,9 +27,17 @@ const emit = defineEmits<{
 }>()
 
 const submittingStatus = ref<string | null>(null)
-const showRejectField = ref(false)
+const selectedAction = ref<string>('')
 const rejectionReason = ref('')
 const rejectionError = ref('')
+const showProofPreview = ref(false)
+
+watch(selectedAction, (val) => {
+  if (val !== 'rejected') {
+    rejectionReason.value = ''
+    rejectionError.value = ''
+  }
+})
 
 function formatPrice(val: number | string) {
   return new Intl.NumberFormat('id-ID').format(Math.round(Number(val)))
@@ -68,36 +76,25 @@ const isReadonlyMode = computed(() => {
   return props.payment.status === 'approved' || props.payment.status === 'rejected'
 })
 
-function handleApprove() {
-  showRejectField.value = false
-  rejectionError.value = ''
-  submittingStatus.value = 'approved'
-  emit('confirm', {
-    status: 'approved',
-    discount_approved: props.payment.discount_approved || undefined,
-  })
-}
-
-function handleReject() {
-  if (!showRejectField.value) {
-    showRejectField.value = true
-    rejectionError.value = 'Wajib mengisikan alasan penolakan pembayaran di bawah ini.'
-    toast.error('Silakan isi alasan penolakan pembayaran terlebih dahulu.')
-    return
+function handleConfirm() {
+  if (selectedAction.value === 'rejected') {
+    if (!rejectionReason.value.trim()) {
+      rejectionError.value = 'Alasan penolakan pembayaran wajib diisi!'
+      return
+    }
+    rejectionError.value = ''
+    submittingStatus.value = 'rejected'
+    emit('confirm', {
+      status: 'rejected',
+      rejection_reason: rejectionReason.value.trim(),
+    })
+  } else if (selectedAction.value === 'approved') {
+    submittingStatus.value = 'approved'
+    emit('confirm', {
+      status: 'approved',
+      discount_approved: props.payment.discount_approved || undefined,
+    })
   }
-
-  if (!rejectionReason.value.trim()) {
-    rejectionError.value = 'Alasan penolakan pembayaran wajib diisi!'
-    toast.error('Alasan penolakan pembayaran wajib diisi!')
-    return
-  }
-
-  rejectionError.value = ''
-  submittingStatus.value = 'rejected'
-  emit('confirm', {
-    status: 'rejected',
-    rejection_reason: rejectionReason.value.trim(),
-  })
 }
 </script>
 
@@ -154,16 +151,7 @@ function handleReject() {
       </div>
     </div>
 
-    <!-- 3. Catatan Pembeli / Pengirim (Dipindah tepat di bawah Total yang Harus Dibayar) -->
-    <div v-if="payment.keterangan" class="keterangan-box">
-      <div class="keterangan-label">
-        <MessageSquare :size="14" />
-        <span>Catatan Pembeli / Pengirim:</span>
-      </div>
-      <div class="keterangan-text">{{ payment.keterangan }}</div>
-    </div>
-
-    <!-- 4. Uploaded Proof Section with Active Preview & Download Button -->
+    <!-- 3. Uploaded Proof Section with Active Preview & Download Button -->
     <div class="proof-section">
       <div class="proof-header">
         <span class="proof-title">Bukti Transfer / Pembayaran</span>
@@ -179,17 +167,6 @@ function handleReject() {
           >
             <Download :size="14" />
             <span>Download</span>
-          </a>
-          <a
-            v-if="proofUrl"
-            :href="proofUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn-open-external"
-            title="Buka di Tab Baru"
-          >
-            <ExternalLink :size="14" />
-            <span>Buka Tab Baru</span>
           </a>
         </div>
       </div>
@@ -214,7 +191,16 @@ function handleReject() {
       </div>
     </div>
 
-    <!-- Rejection reason display if payment was rejected -->
+    <!-- 4. Catatan Pembeli / Pengirim -->
+    <div v-if="payment.keterangan" class="keterangan-box">
+      <div class="keterangan-label">
+        <MessageSquare :size="14" />
+        <span>Catatan Pembeli / Pengirim:</span>
+      </div>
+      <div class="keterangan-text">{{ payment.keterangan }}</div>
+    </div>
+
+    <!-- 5. Rejection reason display if payment was rejected -->
     <div v-if="payment.rejection_reason" class="keterangan-box reject-reason-display">
       <div class="keterangan-label text-danger">
         <XCircle :size="14" />
@@ -223,14 +209,24 @@ function handleReject() {
       <div class="keterangan-text">{{ payment.rejection_reason }}</div>
     </div>
 
-    <!-- 5. Action Buttons: Detail Mode (Tutup saja) vs Pending Mode (Approve & Reject) -->
+    <!-- 6. Action: Detail Mode (Tutup saja) vs Pending Mode (Dropdown + Confirm) -->
     <div v-if="isReadonlyMode" class="confirm-actions">
       <Button variant="outline" @click="emit('close')">Tutup</Button>
     </div>
 
-    <template v-else>
-      <!-- Field Alasan Penolakan Pembayaran (Wajib Jika Ditolak & Status Pending) -->
-      <div v-if="showRejectField" class="reject-reason-box">
+    <div v-else class="action-section">
+      <div class="action-select-wrapper">
+        <label class="action-select-label">Pilih aksi untuk pembayaran ini</label>
+        <ChevronDown :size="16" class="action-select-icon" />
+        <select v-model="selectedAction" class="action-select">
+          <option value="" disabled>Pilih Aksi</option>
+          <option value="approved">Terima</option>
+          <option value="rejected">Tolak</option>
+        </select>
+      </div>
+
+      <!-- Field Alasan Penolakan (muncul jika dropdown pilih Tolak) -->
+      <div v-if="selectedAction === 'rejected'" class="reject-reason-box">
         <label class="reject-label">
           <AlertCircle :size="16" class="icon-danger" />
           <span>Alasan Penolakan Pembayaran <span class="required-tag">*Wajib Isi</span></span>
@@ -247,28 +243,17 @@ function handleReject() {
 
       <div class="confirm-actions">
         <Button
-          variant="outline"
-          class="btn-reject"
-          :disabled="!!submittingStatus"
-          @click="handleReject"
-        >
-          <RefreshCw v-if="submittingStatus === 'rejected'" class="spinner" :size="16" />
-          <XCircle v-else :size="16" />
-          <span>{{ showRejectField ? 'Konfirmasi Penolakan' : 'Tolak Pembayaran' }}</span>
-        </Button>
-
-        <Button
           variant="primary"
-          class="btn-approve"
-          :disabled="!!submittingStatus"
-          @click="handleApprove"
+          class="btn-confirm"
+          :disabled="!selectedAction || !!submittingStatus"
+          @click="handleConfirm"
         >
-          <RefreshCw v-if="submittingStatus === 'approved'" class="spinner" :size="16" />
+          <RefreshCw v-if="submittingStatus" class="spinner" :size="16" />
           <CheckCircle2 v-else :size="16" />
-          <span>Terima & Konfirmasi</span>
+          <span>Konfirmasi</span>
         </Button>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -452,6 +437,26 @@ function handleReject() {
   align-items: center;
   gap: 8px;
 }
+.btn-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.btn-preview-toggle:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
 .btn-download {
   display: inline-flex;
   align-items: center;
@@ -594,28 +599,76 @@ function handleReject() {
 }
 
 /* Actions */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .confirm-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 4px;
+  align-items: center;
   padding-top: 14px;
   border-top: 1px solid #f1f5f9;
 }
-.btn-reject {
-  border-color: #fca5a5 !important;
-  color: #dc2626 !important;
+
+.action-select-wrapper {
+  position: relative;
 }
-.btn-reject:hover {
-  background: #fef2f2 !important;
+.action-select-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
 }
-.btn-approve {
-  background: #16a34a !important;
-  border-color: #16a34a !important;
+.action-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  pointer-events: none;
+}
+.action-select {
+  width: 100%;
+  padding: 12px 40px 12px 14px;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  background: #eff6ff;
+  cursor: pointer;
+  appearance: none;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.action-select:focus {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+.action-select:invalid,
+.action-select option[value=""] {
+  color: #94a3b8;
+}
+
+.btn-confirm {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
   color: #fff !important;
+  white-space: nowrap;
 }
-.btn-approve:hover {
-  background: #15803d !important;
+.btn-confirm:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+}
+.btn-confirm:disabled {
+  background: #93c5fd !important;
+  border-color: #93c5fd !important;
+  opacity: 1;
 }
 
 .spinner {

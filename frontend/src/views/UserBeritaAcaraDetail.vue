@@ -14,6 +14,7 @@ import { beritaAcaraApi } from '../api/beritaAcara'
 import { paymentApi } from '../api/payment'
 import { certificateApi } from '../api/certificate'
 import { formTemplateApi } from '../api/formTemplate'
+import { pdfTemplateApi } from '../api/pdfTemplate'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
@@ -130,6 +131,21 @@ async function handleDownload(certificateId: number) {
   }
 }
 
+function downloadPdfBeritaAcara() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDownloadUrl('berita_acara', item.value.id), '_blank')
+}
+
+function downloadPdfTagihan() {
+  if (!item.value?.payment) return
+  window.open(pdfTemplateApi.getDownloadUrl('tagihan', item.value.payment.id), '_blank')
+}
+
+function downloadPdfSertifikat() {
+  if (!item.value?.certificate) return
+  window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
+}
+
 function handlePerbaiki() {
   if (!item.value) return
   hasClickedPerbaiki.value = true
@@ -167,9 +183,18 @@ function getRevisionDiff(rev: any) {
       <SkeletonDetail v-if="loading" />
 
       <template v-else-if="item">
-        <div class="page-header">
-          <div>
+        <div class="page-header flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-2">
             <Button variant="outline" @click="router.push('/user/berita-acara')">Kembali</Button>
+            <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
+              📄 Download PDF Berita Acara
+            </Button>
+            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
+              💳 Download PDF Tagihan
+            </Button>
+            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
+              📜 Download PDF Sertifikat
+            </Button>
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
         </div>
@@ -205,12 +230,12 @@ function getRevisionDiff(rev: any) {
             <tr><td class="label">Bahan Contoh Uji</td><td>{{ item.bahan_contoh_uji || '-' }}</td></tr>
             <tr><td class="label">Kemasan/Packing</td><td>{{ item.kemasan_packing || '-' }}</td></tr>
             <tr><td class="label">Permintaan Analisa</td><td>{{ item.permintaan_analisa || '-' }}</td></tr>
-            <tr><td class="label">Jumlah Sampel</td><td>{{ item.jumlah_sampel || '-' }}</td></tr>
-            <tr><td class="label">Kode/Nama Sampel</td><td>{{ item.kode_nama_sampel || '-' }}</td></tr>
-            <tr><td class="label">Keterangan Sampel</td><td>{{ item.keterangan_sampel || '-' }}</td></tr>
+            <tr><td class="label">Jumlah Hasil Pengujian</td><td>{{ item.jumlah_sampel || '-' }}</td></tr>
+            <tr><td class="label">Kode/Nama Hasil Pengujian</td><td>{{ item.kode_nama_sampel || '-' }}</td></tr>
+            <tr><td class="label">Keterangan Hasil Pengujian</td><td>{{ item.keterangan_sampel || '-' }}</td></tr>
             <tr><td class="label">Keterangan Tambahan</td><td>{{ item.keterangan_tambahan || '-' }}</td></tr>
-            <tr><td class="label">Pengukuran/Sampel</td><td>{{ item.pengukuran_per_sampel || '-' }}</td></tr>
-            <tr><td class="label">Sisa Sampel</td><td>{{ item.sisa_sampel || '-' }}</td></tr>
+            <tr><td class="label">Pengukuran/Hasil Pengujian</td><td>{{ item.pengukuran_per_sampel || '-' }}</td></tr>
+            <tr><td class="label">Sisa Hasil Pengujian</td><td>{{ item.sisa_sampel || '-' }}</td></tr>
             <tr><td class="label">Masa Berlaku Akses</td><td>{{ item.masa_berlaku_akses || '-' }}</td></tr>
           </table>
         </Card>
@@ -265,7 +290,7 @@ function getRevisionDiff(rev: any) {
         </div>
 
         <div v-if="item.samples && item.samples.length" class="section">
-          <Card title="Sampel">
+          <Card title="Hasil Pengujian">
             <div v-for="s in item.samples" :key="s.id" class="sample-item">
               <div class="sample-name">{{ s.name }}</div>
               <Badge :type="s.status === 'ready' ? 'success' : s.status === 'taken' ? 'info' : 'default'" :text="s.status" />

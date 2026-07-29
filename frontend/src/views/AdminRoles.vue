@@ -37,6 +37,26 @@ const groupedPermissions = computed(() => {
   return groups
 })
 
+const permissionDependencies: Record<string, string> = {
+  'berita_acara_verify': 'berita_acara_riwayat_semua',
+  'berita_acara_assign': 'berita_acara_verify',
+  'hasil_pengujian_rekap': 'hasil_pengujian_riwayat_semua',
+  'payment_upload': 'payment_riwayat_personal',
+  'payment_discount': 'payment_upload',
+  'payment_confirm': 'payment_riwayat_semua',
+  'user_verify': 'user_view',
+  'certificate_download': 'certificate_view',
+  'discount_verifikasi': 'discount_riwayat_semua',
+}
+
+function isPermissionDisabled(p: Permission): boolean {
+  const prereq = permissionDependencies[p.name]
+  if (!prereq) return false
+  const prereqPerm = allPermissions.value.find(perm => perm.name === prereq)
+  if (!prereqPerm) return false
+  return !formPermissionIds.value.includes(prereqPerm.id)
+}
+
 async function fetchRoles() {
   loading.value = true
   try {
@@ -64,12 +84,30 @@ onMounted(() => {
 
 function togglePermission(id: number) {
   const idx = formPermissionIds.value.indexOf(id)
-  if (idx === -1) formPermissionIds.value.push(id)
-  else formPermissionIds.value.splice(idx, 1)
+  if (idx === -1) {
+    formPermissionIds.value.push(id)
+  } else {
+    formPermissionIds.value.splice(idx, 1)
+    // Uncheck all dependent permissions when prerequisite is unchecked
+    const perm = allPermissions.value.find(p => p.id === id)
+    if (perm) {
+      for (const [dep, prereq] of Object.entries(permissionDependencies)) {
+        if (prereq === perm.name) {
+          const depPerm = allPermissions.value.find(p => p.name === dep)
+          if (depPerm) {
+            const depIdx = formPermissionIds.value.indexOf(depPerm.id)
+            if (depIdx !== -1) formPermissionIds.value.splice(depIdx, 1)
+          }
+        }
+      }
+    }
+  }
 }
 
 function toggleGroup(groupName: string) {
-  const permIds = (groupedPermissions.value[groupName] || []).map(p => p.id)
+  const permIds = (groupedPermissions.value[groupName] || [])
+    .filter(p => !isPermissionDisabled(p))
+    .map(p => p.id)
   const allChecked = permIds.every(id => formPermissionIds.value.includes(id))
   if (allChecked) {
     formPermissionIds.value = formPermissionIds.value.filter(id => !permIds.includes(id))
@@ -248,7 +286,7 @@ async function deleteRole() {
               </label>
               <div class="perm-group__items">
                 <label v-for="p in perms" :key="p.id" class="perm-check">
-                  <input type="checkbox" :checked="formPermissionIds.includes(p.id)" @change="togglePermission(p.id)" />
+                  <input type="checkbox" :checked="formPermissionIds.includes(p.id)" :disabled="isPermissionDisabled(p)" @change="togglePermission(p.id)" />
                   <span>{{ p.display_name }}</span>
                 </label>
               </div>
@@ -284,7 +322,7 @@ async function deleteRole() {
               </label>
               <div class="perm-group__items">
                 <label v-for="p in perms" :key="p.id" class="perm-check">
-                  <input type="checkbox" :checked="formPermissionIds.includes(p.id)" @change="togglePermission(p.id)" />
+                  <input type="checkbox" :checked="formPermissionIds.includes(p.id)" :disabled="isPermissionDisabled(p)" @change="togglePermission(p.id)" />
                   <span>{{ p.display_name }}</span>
                 </label>
               </div>
@@ -357,6 +395,7 @@ async function deleteRole() {
 .perm-group__name { text-transform: capitalize; }
 .perm-group__items { display: flex; flex-direction: column; gap: 4px; padding-left: 24px; }
 .perm-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; cursor: pointer; padding: 3px 0; user-select: none; }
+.perm-check:has(input:disabled) { color: #cbd5e1; cursor: not-allowed; }
 .perm-check input[type="checkbox"] { accent-color: #2563eb; width: 15px; height: 15px; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }

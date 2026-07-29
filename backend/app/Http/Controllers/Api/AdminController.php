@@ -73,7 +73,7 @@ class AdminController extends Controller
 
         $validAnalysts = User::whereIn('id', $request->analyst_ids)
             ->whereHas('roleModel.permissions', function ($q) {
-                $q->whereIn('name', ['sample_rekap', 'sample_input', 'sample_status']);
+                $q->whereIn('name', ['hasil_pengujian_rekap']);
             })->pluck('id');
 
         if ($validAnalysts->isEmpty()) {
@@ -125,10 +125,12 @@ class AdminController extends Controller
 
     public function sampleIndex()
     {
-        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.analysts');
+        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.analysts', 'beritaAcara.payment', 'beritaAcara.formula')
+            ->whereHas('beritaAcara.payment', function ($q) {
+                $q->where('status', 'approved');
+            });
 
-        // Jika hanya punya permission riwayat personal, filter milik sendiri
-        if (!auth()->user()->hasPermission('sample_riwayat_semua')) {
+        if (!auth()->user()->hasPermission('hasil_pengujian_riwayat_semua')) {
             $query->whereHas('beritaAcara', function ($q) {
                 $q->where('user_id', auth()->id());
             });

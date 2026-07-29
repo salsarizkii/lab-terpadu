@@ -12,6 +12,7 @@ import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import { adminApi } from '../api/admin'
 import { formTemplateApi } from '../api/formTemplate'
+import { pdfTemplateApi } from '../api/pdfTemplate'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara, User, FormField } from '../types'
 import { toast } from 'vue-sonner'
@@ -162,6 +163,26 @@ function getRevisionDiff(rev: any) {
   }
   return diffs
 }
+
+function downloadPdfBeritaAcara() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDownloadUrl('berita_acara', item.value.id), '_blank')
+}
+
+function downloadPdfRekapAnalis() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDownloadUrl('rekap_analis', item.value.id), '_blank')
+}
+
+function downloadPdfTagihan() {
+  if (!item.value?.payment) return
+  window.open(pdfTemplateApi.getDownloadUrl('tagihan', item.value.payment.id), '_blank')
+}
+
+function downloadPdfSertifikat() {
+  if (!item.value?.certificate) return
+  window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
+}
 </script>
 
 <template>
@@ -170,10 +191,21 @@ function getRevisionDiff(rev: any) {
       <SkeletonDetail v-if="loading" />
 
       <template v-else-if="item">
-        <div class="page-header">
-          <div class="page-header__left">
+        <div class="page-header flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="page-header__left flex items-center gap-2">
             <Button variant="outline" @click="router.push('/admin/berita-acara')">Kembali</Button>
-            <h1>Detail Berita Acara</h1>
+            <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
+              📄 PDF Berita Acara
+            </Button>
+            <Button variant="secondary" size="sm" @click="downloadPdfRekapAnalis">
+              🧪 PDF Rekap Analis
+            </Button>
+            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
+              💳 PDF Tagihan
+            </Button>
+            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
+              📜 PDF Sertifikat
+            </Button>
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
         </div>

@@ -59,6 +59,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
+const showProofPreview = ref(false)
 const discountStatus = computed(() => (payment.value as any)?.discount_status)
 
 const parsedCustomItems = computed(() => {
@@ -102,6 +103,23 @@ function getStorageUrl(path?: string) {
   const cleanPath = path.replace(/^public\//, '')
   return `http://localhost:8000/storage/${cleanPath}`
 }
+
+const proofUrl = computed(() => getStorageUrl(payment.value?.payment_proof))
+
+const isProofImage = computed(() => {
+  if (!payment.value?.payment_proof) return false
+  return /\.(jpg|jpeg|png|webp)$/i.test(payment.value.payment_proof)
+})
+
+const isProofPdf = computed(() => {
+  if (!payment.value?.payment_proof) return false
+  return /\.pdf$/i.test(payment.value.payment_proof)
+})
+
+const proofFileName = computed(() => {
+  if (!payment.value?.payment_proof) return ''
+  return payment.value.payment_proof.split('/').pop() || 'Bukti Pembayaran'
+})
 
 const fileSizeBytes = computed(() => proofFile.value?.size || 0)
 const isValidFileSize = computed(() => fileSizeBytes.value > 0 && fileSizeBytes.value <= MAX_FILE_SIZE_BYTES)
@@ -280,7 +298,7 @@ async function handleUploadProof() {
     <div>
       <PageHeader
         title="Detail Pembayaran"
-        subtitle="Rincian tagihan, bukti transfer, dan status pembayaran sampel"
+        subtitle="Rincian tagihan, bukti transfer, dan status pembayaran hasil pengujian"
         show-back
         back-to="/user/payments"
       >
@@ -351,15 +369,35 @@ async function handleUploadProof() {
                     <CheckCircle2 class="icon-success" :size="20" />
                     <span>Bukti Pembayaran Terunggah</span>
                   </div>
-                  <a
-                    :href="getStorageUrl(payment.payment_proof)"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn-view-proof"
-                  >
-                    <Eye :size="15" />
-                    <span>Lihat Bukti</span>
-                  </a>
+                  <div class="btn-proof-group">
+                    <a
+                      :href="getStorageUrl(payment.payment_proof)"
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn-proof-download"
+                    >
+                      <Download :size="15" />
+                      <span>Download</span>
+                    </a>
+                    <button class="btn-preview-toggle" @click="showProofPreview = !showProofPreview">
+                      <Eye :size="15" />
+                      <span>{{ showProofPreview ? 'Sembunyikan' : 'Preview' }}</span>
+                    </button>
+                  </div>
+                </div>
+                <!-- Preview File Bukti -->
+                <div v-if="showProofPreview" class="proof-preview-box">
+                  <div v-if="isProofImage" class="proof-image-box">
+                    <img :src="proofUrl" alt="Bukti Pembayaran" class="proof-image" />
+                  </div>
+                  <div v-else-if="isProofPdf" class="proof-pdf-box">
+                    <iframe :src="proofUrl" class="proof-iframe" title="Bukti PDF"></iframe>
+                  </div>
+                  <div v-else class="proof-generic-box">
+                    <FileText :size="36" class="proof-generic-icon" />
+                    <span class="proof-generic-name">{{ proofFileName }}</span>
+                  </div>
                 </div>
                 <div v-if="payment.keterangan" class="uploaded-proof-ket">
                   <span class="uploaded-proof-ket-label">Catatan:</span> {{ payment.keterangan }}
@@ -786,6 +824,96 @@ async function handleUploadProof() {
   background: #dcfce7;
   border-color: #4ade80;
   color: #166534;
+}
+.btn-proof-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-proof-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #166534;
+  border: 1px solid #15803d;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn-proof-download:hover {
+  background: #14532d;
+  border-color: #166534;
+  color: #ffffff;
+}
+.btn-preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn-preview-toggle:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+.proof-preview-box {
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+}
+.proof-image-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+.proof-image {
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+.proof-pdf-box {
+  width: 100%;
+  height: 450px;
+}
+.proof-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.proof-generic-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+}
+.proof-generic-icon {
+  color: #6b7280;
+}
+.proof-generic-name {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+  word-break: break-all;
+  text-align: center;
 }
 .uploaded-proof-ket {
   margin-top: 8px;

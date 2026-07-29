@@ -21,20 +21,16 @@ class PermissionsSeeder extends Seeder
             ['name' => 'berita_acara_riwayat_semua', 'display_name' => 'Riwayat Seluruh Berita Acara', 'group' => 'Berita Acara'],
 
             // Payment
-            ['name' => 'payment_view', 'display_name' => 'Melihat Pembayaran', 'group' => 'Pembayaran'],
             ['name' => 'payment_upload', 'display_name' => 'Upload Bukti Bayar', 'group' => 'Pembayaran'],
-            ['name' => 'payment_discount', 'display_name' => 'Diskon Pembayaran', 'group' => 'Pembayaran'],
+            ['name' => 'payment_discount', 'display_name' => 'Ajukan Diskon Pembayaran', 'group' => 'Pembayaran'],
             ['name' => 'payment_confirm', 'display_name' => 'Konfirmasi Pembayaran', 'group' => 'Pembayaran'],
             ['name' => 'payment_riwayat_personal', 'display_name' => 'Personal Riwayat Pembayaran', 'group' => 'Pembayaran'],
             ['name' => 'payment_riwayat_semua', 'display_name' => 'Riwayat Seluruh Pembayaran', 'group' => 'Pembayaran'],
 
-            // Sample
-            ['name' => 'sample_view', 'display_name' => 'Melihat Sampel', 'group' => 'Sampel'],
-            ['name' => 'sample_input', 'display_name' => 'Input Data Sampel', 'group' => 'Sampel'],
-            ['name' => 'sample_rekap', 'display_name' => 'Buat Rekap Analis', 'group' => 'Sampel'],
-            ['name' => 'sample_status', 'display_name' => 'Update Status Sampel', 'group' => 'Sampel'],
-            ['name' => 'sample_riwayat_personal', 'display_name' => 'Personal Riwayat Rekap Analisis', 'group' => 'Sampel'],
-            ['name' => 'sample_riwayat_semua', 'display_name' => 'Riwayat Seluruh Rekap Analisis', 'group' => 'Sampel'],
+            // Hasil Pengujian
+            ['name' => 'hasil_pengujian_rekap', 'display_name' => 'Buat Rekap Analis', 'group' => 'Hasil Pengujian'],
+            ['name' => 'hasil_pengujian_riwayat_personal', 'display_name' => 'Personal Riwayat Rekap Analisis', 'group' => 'Hasil Pengujian'],
+            ['name' => 'hasil_pengujian_riwayat_semua', 'display_name' => 'Riwayat Seluruh Rekap Analisis', 'group' => 'Hasil Pengujian'],
 
             // Certificate
             ['name' => 'certificate_view', 'display_name' => 'Melihat Sertifikat', 'group' => 'Sertifikat'],
@@ -44,9 +40,6 @@ class PermissionsSeeder extends Seeder
             ['name' => 'user_view', 'display_name' => 'Melihat Pengguna', 'group' => 'Pengguna'],
             ['name' => 'user_verify', 'display_name' => 'Verifikasi Pengguna', 'group' => 'Pengguna'],
 
-            // Roles
-            ['name' => 'role_manage', 'display_name' => 'Kelola Role', 'group' => 'Role'],
-
             // Form
             ['name' => 'form_manage_berita_acara', 'display_name' => 'Kelola Form Berita Acara', 'group' => 'Form'],
             ['name' => 'form_manage_rekap_analis', 'display_name' => 'Kelola Form Rekap Analis', 'group' => 'Form'],
@@ -55,7 +48,6 @@ class PermissionsSeeder extends Seeder
 
             // Discount
             ['name' => 'discount_verifikasi', 'display_name' => 'Verifikasi Diskon', 'group' => 'Diskon'],
-            ['name' => 'discount_manage', 'display_name' => 'Kelola Diskon', 'group' => 'Diskon'],
             ['name' => 'discount_riwayat_semua', 'display_name' => 'Riwayat Seluruh Diskon', 'group' => 'Diskon'],
             ['name' => 'discount_riwayat_personal', 'display_name' => 'Personal Riwayat Diskon', 'group' => 'Diskon'],
         ];

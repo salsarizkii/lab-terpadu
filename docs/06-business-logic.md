@@ -71,7 +71,7 @@ if (!isset($validTransitions[$currentStatus][$newStatus])) {
 
 | Status | Keterangan |
 |---|---|
-| `pending` | Sampel baru, belum diproses |
+| `pending` | Hasil Pengujian baru, belum diproses |
 | `processing` | Analyst sedang memproses |
 | `ready` | Selesai diproses, siap diambil |
 | `taken` | Sudah diambil oleh user/admin |

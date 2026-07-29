@@ -170,7 +170,7 @@
 | `sertifikat` | certificate_read, certificate_download |
 | `pengujian` | pengujian_read, pengujian_create, pengujian_update |
 | `user` | user_read, user_verify, user_manage |
-| `role` | role_read, role_manage |
+| `role` | role_read, (superadmin only) |
 | `form_template` | form_read, form_manage |
 
 ---
@@ -207,13 +207,13 @@
 | `bahan_contoh_uji` | text | null | Bahan / contoh uji |
 | `kemasan_packing` | varchar(255) | null | Jenis kemasan |
 | `permintaan_analisa` | text | null | Permintaan analisa |
-| `jumlah_sampel` | varchar(50) | null | Jumlah sampel |
-| `kode_nama_sampel` | varchar(255) | null | Kode / nama sampel |
-| `keterangan_sampel` | text | null | Keterangan sampel |
+| `jumlah_sampel` | varchar(50) | null | Jumlah hasil pengujian |
+| `kode_nama_sampel` | varchar(255) | null | Kode / nama hasil pengujian |
+| `keterangan_sampel` | text | null | Keterangan hasil pengujian |
 | `keterangan_tambahan` | text | null | Keterangan tambahan |
 | `keterangan` | text | null | Keterangan umum |
-| `pengukuran_per_sampel` | varchar(255) | null | Pengukuran per sampel |
-| `sisa_sampel` | varchar(255) | null | Sisa sampel |
+| `pengukuran_per_sampel` | varchar(255) | null | Pengukuran per hasil pengujian |
+| `sisa_sampel` | varchar(255) | null | Sisa hasil pengujian |
 | `upload_akses` | varchar(255) | null | Upload file akses |
 | `masa_berlaku_akses` | varchar(255) | null | Masa berlaku akses |
 | `status_pelanggan` | varchar(100) | null | Status pelanggan (umum/UNS/non-UNS) |
@@ -299,14 +299,14 @@
 
 ---
 
-### 2.9 `samples` — Sampel
+### 2.9 `samples` — Hasil Pengujian
 
 | Kolom | Tipe | Default | Deskripsi |
 |---|---|---|---|
 | `id` | bigint (PK) | auto | Primary key |
 | `berita_acara_id` | bigint (FK → berita_acaras) | - | BA terkait |
-| `name` | varchar(255) | - | Nama sampel |
-| `description` | text | null | Deskripsi sampel |
+| `name` | varchar(255) | - | Nama hasil pengujian |
+| `description` | text | null | Deskripsi hasil pengujian |
 | `quantity` | varchar(50) | null | Jumlah |
 | `unit` | varchar(50) | null | Satuan (kg, liter, dll.) |
 | `test_result` | text | null | Hasil pengujian (diisi analyst) |
@@ -544,7 +544,7 @@ ADMIN                             SYSTEM                           USER
  │                                  ├─ Payment status = "approved"  │
 ```
 
-### 4.3 Step 3: Pengambilan Sampel
+### 4.3 Step 3: Pengambilan Hasil Pengujian
 
 ```
 ADMIN                             SYSTEM                           ANALYST
@@ -558,7 +558,7 @@ ADMIN                             SYSTEM                           ANALYST
  │                                  │                                ├─ Lihat assigned BA
  │                                  │ <──────────────────────────────│ GET /api/analyst/berita-acara
  │                                  │                                │
- │                                  │                                ├─ Proses sampel
+ │                                  │                                ├─ Proses hasil pengujian
  │                                  │ <──────────────────────────────│ POST /pengujian
  │                                  │                                ├─ Isi data pengujian
  │                                  │                                │
@@ -571,8 +571,8 @@ ADMIN                             SYSTEM                           ANALYST
  │                                  │                                ├─ Tandai sample siap
  │                                  │ <──────────────────────────────│ PUT /samples/{id}/ready
  │                                  │                                │
- ├─ Lihat sampel ready             │                                │
- ├─ Tandai sampel diambil          │                                │
+ ├─ Lihat hasil pengujian ready             │                                │
+ ├─ Tandai hasil pengujian diambil          │                                │
  │   ──────────────────────────────>│ PUT /samples/{id}/mark-taken  │
  │                                  ├─ Sample status = "taken"      │
 ```
@@ -637,7 +637,7 @@ Transisi valid:
 
 ```
   ┌──────────┐
-  │ pending   │  (sampel baru dibuat)
+  │ pending   │  (hasil pengujian baru dibuat)
   └────┬─────┘
        │ (default sekarang 'processing' langsung)
        ▼

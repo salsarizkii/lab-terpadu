@@ -43,7 +43,7 @@ function handleForgotPassword() {
     <div class="login-card">
       <div class="login-header">
         <h1>UPT Lab Terpadu</h1>
-        <p>Pemesanan Data Sampel Penelitian</p>
+        <p>Pemesanan Data Hasil Pengujian Penelitian</p>
       </div>
       <LoginForm @submit="handleLogin" :loading="loading" @forgot-password="handleForgotPassword" />
       <p class="login-footer">

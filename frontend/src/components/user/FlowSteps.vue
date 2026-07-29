@@ -43,7 +43,7 @@ const steps = computed(() => {
     {
       key: 'pengambilan',
       label: 'Pengambilan',
-      desc: 'Sampel siap diambil di lab',
+      desc: 'Hasil Pengujian siap diambil di lab',
       icon: 'sample',
       status: !ba.value.samples || ba.value.samples.length === 0 ? 'inactive' : (ba.value.samples.some(s => s.status === 'ready' || s.status === 'taken')) ? 'done' : (ba.value.samples.some(s => s.status === 'processing')) ? 'active' : 'inactive',
       badge: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'Siap Diambil' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'Sudah Diambil' : ''),

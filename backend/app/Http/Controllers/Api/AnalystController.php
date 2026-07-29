@@ -205,9 +205,19 @@ class AnalystController extends Controller
         $beritaAcara->update($updateData);
 
         // Update all related samples status to 'taken'
-        Sample::where('berita_acara_id', $beritaAcara->id)
+        $existingSamples = Sample::where('berita_acara_id', $beritaAcara->id)
             ->whereIn('status', ['processing', 'ready'])
             ->update(['status' => 'taken']);
+
+        // Auto-create sample if none exist yet
+        if (Sample::where('berita_acara_id', $beritaAcara->id)->count() === 0) {
+            Sample::create([
+                'berita_acara_id' => $beritaAcara->id,
+                'name' => $beritaAcara->judul_penelitian ?? 'Hasil Pengujian',
+                'quantity' => $beritaAcara->jumlah_sampel ?? '1',
+                'status' => 'taken',
+            ]);
+        }
 
         // Create or update payment amount
         $beritaAcara->refresh();

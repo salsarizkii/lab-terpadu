@@ -92,10 +92,10 @@ async function handleSampleUpdate(data: any) {
     await analystApi.updateSample(item.value.id, selectedSample.value.id, data)
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
     item.value = updated
-    toast.success('Data sampel diperbarui')
+    toast.success('Data hasil pengujian diperbarui')
     showSampleModal.value = false
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal update sampel')
+    toast.error(e.response?.data?.message || 'Gagal update hasil pengujian')
   }
 }
 
@@ -105,7 +105,7 @@ async function markReady(sampleId: number) {
     await analystApi.markSampleReady(item.value.id, sampleId)
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
     item.value = updated
-    toast.success('Sampel siap diambil')
+    toast.success('Hasil Pengujian siap diambil')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   }
@@ -163,13 +163,13 @@ async function handleRejectDiscount() {
   <AppLayout>
     <div>
       <PageHeader
-        title="Detail Sampel"
-        subtitle="Kelola laporan pengujian sampel dan rekap analis"
+        title="Detail Hasil Pengujian"
+        subtitle="Kelola laporan pengujian hasil pengujian dan rekap analis"
         show-back
         back-to="/analyst/samples"
       >
         <div v-if="item" class="page-header__status">
-          <span class="status-label">Status Sampel</span>
+          <span class="status-label">Status Hasil Pengujian</span>
           <Badge :type="getSampleBadgeType()" :text="getSampleBadgeText()" />
         </div>
       </PageHeader>
@@ -189,21 +189,21 @@ async function handleRejectDiscount() {
             <Card title="Laporan Pengujian">
               <div v-if="item.pengujians && item.pengujians.length">
                 <div class="pengujian-done">Sudah dilaporkan</div>
-                <Button v-if="auth.hasPermission('sample_rekap')" block variant="outline" @click="showPengujianModal = true">Edit Laporan</Button>
+                <Button v-if="auth.hasPermission('hasil_pengujian_rekap')" block variant="outline" @click="showPengujianModal = true">Edit Laporan</Button>
               </div>
               <div v-else>
                 <div v-if="item.samples && item.samples.length > 0 && item.samples.every(s => s.status === 'ready')">
-                  <p class="pengujian-desc">Semua sampel sudah siap.</p>
-                  <Button v-if="auth.hasPermission('sample_rekap')" block @click="showPengujianModal = true">Laporkan Pengujian</Button>
+                  <p class="pengujian-desc">Semua hasil pengujian sudah siap.</p>
+                  <Button v-if="auth.hasPermission('hasil_pengujian_rekap')" block @click="showPengujianModal = true">Laporkan Pengujian</Button>
                 </div>
-                <div v-else class="pengujian-pending">Tunggu semua sampel siap.</div>
+                <div v-else class="pengujian-pending">Tunggu semua hasil pengujian siap.</div>
               </div>
 
               <div class="sticky-divider" />
 
               <div v-if="hasRekap" class="rekap-done">Rekap sudah diisi</div>
               <div v-if="hasRekap && item.biaya" class="rekap-biaya">Jumlah Pembayaran: Rp {{ formatPrice(Number(item.biaya)) }}</div>
-              <Button v-if="!hasRekap && auth.hasPermission('sample_rekap')" block variant="primary" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
+              <Button v-if="!hasRekap && auth.hasPermission('hasil_pengujian_rekap')" block variant="primary" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
                 Buat Rekap Analis
               </Button>
             </Card>
@@ -228,7 +228,7 @@ async function handleRejectDiscount() {
                   </td>
                 </tr>
               </table>
-              <div v-if="auth.hasPermission('discount_manage')" class="discount-actions-row">
+              <div v-if="auth.hasPermission('discount_verifikasi')" class="discount-actions-row">
                 <Button variant="outline" size="sm" @click="handleApproveDiscount">Setujui</Button>
                 <Button variant="outline" size="sm" @click="handleRejectDiscount">Tolak</Button>
               </div>
@@ -237,7 +237,7 @@ async function handleRejectDiscount() {
         </div>
       </template>
 
-      <Modal :show="showSampleModal" title="Input Data Sampel" @close="showSampleModal = false">
+      <Modal :show="showSampleModal" title="Input Data Hasil Pengujian" @close="showSampleModal = false">
         <SampleDataForm
           v-if="selectedSample"
           :sample="selectedSample"

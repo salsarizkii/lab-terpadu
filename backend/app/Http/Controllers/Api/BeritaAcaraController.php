@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\FormField;
+use App\Models\Sample;
 use Illuminate\Http\Request;
 
 class BeritaAcaraController extends Controller
@@ -175,5 +176,20 @@ class BeritaAcaraController extends Controller
         }
 
         return null;
+    }
+
+    public function sampleIndex()
+    {
+        $user = auth()->user();
+
+        $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.payment', 'beritaAcara.formula')
+            ->whereHas('beritaAcara.payment', function ($q) {
+                $q->where('status', 'approved');
+            })
+            ->whereHas('beritaAcara', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+
+        return response()->json($query->get());
     }
 }

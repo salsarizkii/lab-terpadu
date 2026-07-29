@@ -43,17 +43,15 @@ class DatabaseSeeder extends Seeder
         $analystRole = Role::firstOrCreate(
             ['name' => 'analyst'],
             [
-                'description' => 'Analis laboratorium untuk pengelolaan sampel dan rekap analisis',
+                'description' => 'Analis laboratorium untuk pengelolaan hasil pengujian dan rekap analisis',
                 'is_system' => false,
                 'requires_verification' => true,
             ]
         );
         $analystRole->permissions()->sync(Permission::whereIn('name', [
             'dashboard',
-            'sample_input',
-            'sample_rekap',
-            'sample_status',
-            'sample_riwayat_personal',
+            'hasil_pengujian_rekap',
+            'hasil_pengujian_riwayat_personal',
             'certificate_view',
             'certificate_download',
         ])->pluck('id'));
@@ -62,7 +60,7 @@ class DatabaseSeeder extends Seeder
         $userRole = Role::firstOrCreate(
             ['name' => 'user'],
             [
-                'description' => 'Pengguna biasa untuk pengajuan pengujian sampel',
+                'description' => 'Pengguna biasa untuk pengajuan pengujian hasil pengujian',
                 'is_system' => false,
                 'requires_verification' => false,
             ]
@@ -71,8 +69,7 @@ class DatabaseSeeder extends Seeder
             'dashboard',
             'berita_acara_create',
             'berita_acara_riwayat_personal',
-            'sample_riwayat_personal',
-            'payment_view',
+            'hasil_pengujian_riwayat_personal',
             'payment_upload',
             'payment_discount',
             'payment_riwayat_personal',
@@ -96,18 +93,14 @@ class DatabaseSeeder extends Seeder
             'berita_acara_assign',
             'berita_acara_riwayat_semua',
             'berita_acara_riwayat_personal',
-            'sample_view',
-            'sample_rekap',
-            'sample_status',
-            'sample_riwayat_semua',
-            'sample_riwayat_personal',
-            'payment_view',
+            'hasil_pengujian_rekap',
+            'hasil_pengujian_riwayat_semua',
+            'hasil_pengujian_riwayat_personal',
             'payment_confirm',
             'payment_riwayat_semua',
             'certificate_view',
             'certificate_download',
             'discount_verifikasi',
-            'discount_manage',
             'discount_riwayat_semua',
             'user_view',
             'user_verify',
@@ -126,13 +119,9 @@ class DatabaseSeeder extends Seeder
             'dashboard',
             'berita_acara_riwayat_semua',
             'berita_acara_riwayat_personal',
-            'sample_view',
-            'sample_input',
-            'sample_rekap',
-            'sample_status',
-            'sample_riwayat_semua',
-            'sample_riwayat_personal',
-            'payment_view',
+            'hasil_pengujian_rekap',
+            'hasil_pengujian_riwayat_semua',
+            'hasil_pengujian_riwayat_personal',
             'payment_confirm',
             'payment_riwayat_semua',
             'certificate_view',
@@ -143,7 +132,6 @@ class DatabaseSeeder extends Seeder
             'form_manage_kelola_harga_instrumen',
             'user_view',
             'discount_verifikasi',
-            'discount_manage',
             'discount_riwayat_semua',
         ])->pluck('id'));
 

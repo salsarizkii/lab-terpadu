@@ -84,6 +84,8 @@ class PaymentController extends Controller
 
         $updateData = [
             'payment_proof' => $request->file('payment_proof')->store('payments', 'public'),
+            'status' => 'pending',
+            'rejection_reason' => null,
         ];
 
         if ($request->has('keterangan')) {

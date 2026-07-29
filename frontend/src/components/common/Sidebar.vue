@@ -31,9 +31,9 @@ const menuItems = computed(() => {
   // Dashboard — tentukan path dari level permission tertinggi
   if (auth.hasPermission('dashboard')) {
     let dashPath = '/user/dashboard'
-    if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('role_manage') || auth.hasPermission('user_view')) {
+    if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('user_view')) {
       dashPath = '/admin/dashboard'
-    } else if (auth.hasPermission('sample_rekap')) {
+    } else if (auth.hasPermission('hasil_pengujian_rekap')) {
       dashPath = '/analyst/dashboard'
     }
     items.push({ label: 'Dashboard', path: dashPath, icon: LayoutDashboard })
@@ -47,18 +47,15 @@ const menuItems = computed(() => {
   }
 
   // Pembayaran
-  if (auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('payment_view')) {
+  if (auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount') || auth.hasPermission('payment_riwayat_personal')) {
     const payPath = auth.hasPermission('payment_riwayat_semua') ? '/admin/payments' : '/user/payments'
-    items.push({ label: auth.hasPermission('payment_riwayat_semua') ? 'Riwayat Pembayaran' : 'Pembayaran', path: payPath, icon: CreditCard })
-  } else if (auth.hasPermission('payment_upload') || auth.hasPermission('payment_discount')) {
-    items.push({ label: 'Pembayaran', path: '/user/payments', icon: CreditCard })
+    items.push({ label: 'Pembayaran', path: payPath, icon: CreditCard })
   }
 
-  // Sampel / Tugas Sampel
-  if (auth.hasPermission('sample_view') || auth.hasPermission('sample_riwayat_semua')) {
-    items.push({ label: 'Sampel', path: '/admin/samples', icon: FlaskConical })
-  } else if (auth.hasPermission('sample_rekap')) {
-    items.push({ label: 'Tugas Sampel', path: '/analyst/samples', icon: FlaskConical })
+  // Hasil Pengujian
+  if (auth.hasPermission('hasil_pengujian_rekap') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_personal')) {
+    const samplePath = auth.hasPermission('hasil_pengujian_riwayat_semua') ? '/admin/samples' : (auth.hasPermission('hasil_pengujian_rekap') ? '/analyst/samples' : '/user/samples')
+    items.push({ label: 'Hasil Pengujian', path: samplePath, icon: FlaskConical })
   }
 
   // Sertifikat
@@ -67,7 +64,7 @@ const menuItems = computed(() => {
   }
 
   // Diskon
-  if (auth.hasPermission('discount_verifikasi') || auth.hasPermission('discount_manage') || auth.hasPermission('discount_riwayat_semua')) {
+  if (auth.hasPermission('discount_verifikasi') || auth.hasPermission('discount_riwayat_semua')) {
     items.push({ label: 'Ajuan Diskon', path: '/admin/discounts', icon: BadgePercent })
   }
 
@@ -77,7 +74,7 @@ const menuItems = computed(() => {
   }
 
   // Kelola Role
-  if (auth.hasPermission('role_manage')) {
+  if (auth.isSuperAdmin) {
     items.push({ label: 'Kelola Role', path: '/admin/roles', icon: KeyRound })
   }
 

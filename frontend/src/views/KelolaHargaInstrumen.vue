@@ -193,7 +193,7 @@ onMounted(loadItems)
         <div class="form-row">
           <div class="form-group">
             <label>Satuan</label>
-            <input v-model="addForm.unit" class="form-input" placeholder="Contoh: Per sampel" />
+            <input v-model="addForm.unit" class="form-input" placeholder="Contoh: Per hasil pengujian" />
           </div>
           <div class="form-group">
             <label>Catatan</label>

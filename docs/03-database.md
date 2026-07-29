@@ -83,7 +83,7 @@ MySQL — `db_lab_terpadu`
 | sertifikat | certificate_read, certificate_download |
 | pengujian | pengujian_read, pengujian_create, pengujian_update |
 | user | user_read, user_verify, user_manage |
-| role | role_read, role_manage |
+| role | role_read, (superadmin only) |
 | form_template | form_read, form_manage |
 
 ## Table: `role_permission`

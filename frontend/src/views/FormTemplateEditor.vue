@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Save, FileText, FlaskConical, Calculator, Settings } from '@lucide/vue'
+import { ArrowLeft, Save, FileText, FlaskConical, Calculator, Settings, Printer } from '@lucide/vue'
 import AppLayout from '../components/common/AppLayout.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonCard from '../components/common/SkeletonCard.vue'
 import FormBuilder from '../components/common/FormBuilder.vue'
+import PdfTemplateEditor from '../components/common/PdfTemplateEditor.vue'
 import { formTemplateApi } from '../api/formTemplate'
 import { instrumentPriceApi } from '../api/instrumentPrice'
 import { useAuthStore } from '../stores/authStore'
@@ -19,7 +20,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-type CardType = 'cards' | 'berita_acara' | 'rekap_analis' | 'perhitungan_biaya' | 'kelola_harga_instrumen'
+type CardType = 'cards' | 'berita_acara' | 'rekap_analis' | 'perhitungan_biaya' | 'kelola_harga_instrumen' | 'pdf_templates'
 const view = ref<CardType>('cards')
 const currentTemplate = ref<FormTemplate | null>(null)
 const currentFields = ref<FormField[]>([])
@@ -28,7 +29,7 @@ const saving = ref(false)
 
 onMounted(() => {
   const type = route.query.type as string
-  if (type && ['berita_acara', 'rekap_analis', 'perhitungan_biaya', 'kelola_harga_instrumen'].includes(type)) {
+  if (type && ['berita_acara', 'rekap_analis', 'perhitungan_biaya', 'kelola_harga_instrumen', 'pdf_templates'].includes(type)) {
     selectType(type as CardType)
   }
 })
@@ -40,6 +41,7 @@ const pageTitle = computed(() => {
     rekap_analis: currentTemplate.value?.name || 'Form Rekap Analis',
     perhitungan_biaya: 'Perhitungan Biaya',
     kelola_harga_instrumen: 'Kelola Harga Instrumen',
+    pdf_templates: 'Template Dokumen PDF',
   }
   return titles[view.value]
 })
@@ -50,12 +52,13 @@ const typeLabel = computed(() => {
     rekap_analis: 'Rekap Analis',
     perhitungan_biaya: 'Perhitungan Biaya',
     kelola_harga_instrumen: 'Kelola Harga Instrumen',
+    pdf_templates: 'Template PDF',
   }
   return labels[currentTemplate.value?.type || ''] || currentTemplate.value?.type || ''
 })
 
 async function selectType(type: CardType) {
-  if (type === 'perhitungan_biaya' || type === 'kelola_harga_instrumen') {
+  if (type === 'perhitungan_biaya' || type === 'kelola_harga_instrumen' || type === 'pdf_templates') {
     view.value = type
     return
   }
@@ -195,7 +198,7 @@ async function saveFields() {
               <FileText :size="28" />
             </div>
             <h3 class="ft-card__title">Form Berita Acara</h3>
-            <p class="ft-card__desc">Kelola pertanyaan dan formulir untuk berita acara pengujian sampel</p>
+            <p class="ft-card__desc">Kelola pertanyaan dan formulir untuk berita acara pengujian hasil pengujian</p>
           </div>
 
           <div
@@ -223,7 +226,7 @@ async function saveFields() {
           </div>
 
           <div
-            v-if="auth.hasPermission('form_manage_kelola_harga_instrumen')"
+            v-if="auth.hasPermission('form_manage_kelola_harga_instrumen') || auth.hasPermission('form_manage_berita_acara')"
             class="ft-card"
             @click="selectType('kelola_harga_instrumen')"
           >
@@ -232,6 +235,17 @@ async function saveFields() {
             </div>
             <h3 class="ft-card__title">Kelola Harga Instrumen</h3>
             <p class="ft-card__desc">Daftar dan harga instrumen analisis laboratorium</p>
+          </div>
+
+          <div
+            class="ft-card"
+            @click="selectType('pdf_templates')"
+          >
+            <div class="ft-card__icon ft-card__icon--teal">
+              <Printer :size="28" />
+            </div>
+            <h3 class="ft-card__title">Template Dokumen PDF</h3>
+            <p class="ft-card__desc">Kelola, edit WYSIWYG & import Word (.docx) untuk PDF Berita Acara, Tagihan, Rekap & Sertifikat</p>
           </div>
         </div>
 
@@ -263,6 +277,11 @@ async function saveFields() {
         <!-- View: Kelola Harga Instrumen -->
         <div v-else-if="view === 'kelola_harga_instrumen'" class="editor-section">
           <KelolaHargaInstrumen />
+        </div>
+
+        <!-- View: Template Dokumen PDF -->
+        <div v-else-if="view === 'pdf_templates'" class="editor-section">
+          <PdfTemplateEditor />
         </div>
       </template>
     </div>
@@ -307,6 +326,7 @@ async function saveFields() {
 .ft-card__icon--green { background: #ecfdf5; color: #059669; }
 .ft-card__icon--orange { background: #fff7ed; color: #ea580c; }
 .ft-card__icon--purple { background: #faf5ff; color: #9333ea; }
+.ft-card__icon--teal { background: #f0fdfa; color: #0d9488; }
 .ft-card__title { font-size: 17px; font-weight: 600; color: #1e293b; margin: 0; }
 .ft-card__desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; }
 
