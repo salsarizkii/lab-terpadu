@@ -246,7 +246,7 @@ async function saveFields() {
               <Printer :size="28" />
             </div>
             <h3 class="ft-card__title">Template Dokumen PDF</h3>
-            <p class="ft-card__desc">Kelola, edit WYSIWYG & import Word (.docx) untuk PDF Berita Acara, Tagihan, Rekap & Sertifikat</p>
+            <p class="ft-card__desc">Kelola template PDF: upload Word (.docx), panduan variabel &lt;&lt;nama_variabel&gt;&gt;, preview & unduh template untuk Berita Acara, Tagihan, Rekap & Sertifikat</p>
           </div>
         </div>
 

@@ -11,6 +11,11 @@ class PdfTemplate extends Model
         'name',
         'html_content',
         'docx_path',
+        'show_kop',
+        'show_ttd',
+        'show_rincian',
+        'catatan',
+        'settings',
         'paper_size',
         'orientation',
         'margin_top',
@@ -25,10 +30,14 @@ class PdfTemplate extends Model
     {
         return [
             'is_active' => 'boolean',
+            'show_kop' => 'boolean',
+            'show_ttd' => 'boolean',
+            'show_rincian' => 'boolean',
             'margin_top' => 'integer',
             'margin_bottom' => 'integer',
             'margin_left' => 'integer',
             'margin_right' => 'integer',
+            'settings' => 'array',
         ];
     }
 

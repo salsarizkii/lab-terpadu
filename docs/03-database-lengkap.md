@@ -465,6 +465,28 @@
 | `sessions` | Laravel sessions (extra) |
 | `password_reset_tokens` | Laravel password reset |
 
+### 2.17 `pdf_templates` — Template Dokumen PDF
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `id` | bigint PK | |
+| `type` | string | `berita_acara` / `rekap_analis` / `tagihan` / `sertifikat` |
+| `name` | string | Nama template |
+| `html_content` | longtext | HTML hasil konversi Word — sumber render PDF |
+| `docx_path` | string null | File .docx asli (informasi saja) |
+| `show_kop` | boolean | Tampilkan kop surat (default true) |
+| `show_ttd` | boolean | Tampilkan area tanda tangan (default true) |
+| `show_rincian` | boolean | Tampilkan tabel rincian biaya (default true) |
+| `catatan` | text null | Catatan tambahan di bawah dokumen |
+| `settings` | json null | Identitas: `kop_nama_lab`, `kop_alamat`, `kop_email`, `kop_telepon`, `kepala_upt`, `nip_kepala_upt`, `nama_admin`, `nama_bendahara` |
+| `paper_size` / `orientation` | string | `a4|letter|legal` / `portrait|landscape` |
+| `margin_*` | integer | Margin mm (top/bottom/left/right) |
+| `is_active` | boolean | Aktif/tidak |
+| `created_by` | bigint FK users | Pembuat template |
+| `created_at` / `updated_at` | timestamp | |
+
+Blok bagian (kop/ttd/rincian) ditandai marker komentar `<!-- KOP_START -->` ... `<!-- KOP_END -->` di `html_content`; dihapus otomatis saat toggle mati.
+
 ---
 
 ## 3. Relasi Lengkap

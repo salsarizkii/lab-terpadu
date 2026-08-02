@@ -1,61 +1,82 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { FileText, Save, Eye, Upload, Copy, Check, Sliders, Sparkles, FileCode, Layers, RefreshCw } from '@lucide/vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { FileText, Save, Eye, CloudUpload, FileCode, PenLine, RotateCcw, FileDown, BookOpen, RefreshCw } from '@lucide/vue'
 import Button from './Button.vue'
 import { pdfTemplateApi } from '../../api/pdfTemplate'
-import type { PdfTemplate, PdfVariable } from '../../types'
+import type { PdfTemplate, PdfVariableGroup } from '../../types'
 import { toast } from 'vue-sonner'
-import api from '../../api/axios'
 
-const props = defineProps<{
-  initialType?: string
-}>()
-
-const activeType = ref<string>(props.initialType || 'berita_acara')
+const activeType = ref<string>('berita_acara')
+const activeTab = ref<string>('upload')
 const template = ref<PdfTemplate | null>(null)
-const variables = ref<PdfVariable[]>([])
+const variableGroups = ref<PdfVariableGroup[]>([])
 const loading = ref(false)
 const saving = ref(false)
-const importing = ref(false)
-const copiedKey = ref<string | null>(null)
-const previewModalOpen = ref(false)
+const uploading = ref(false)
+const resetting = ref(false)
+const downloading = ref(false)
+const previewUrl = ref<string | null>(null)
+const previewLoading = ref(false)
 const variableSearch = ref('')
+const copiedKey = ref<string | null>(null)
 
 const docTypes = [
-  { type: 'berita_acara', label: 'Berita Acara', desc: 'Form pengajuan & data pemohon', icon: FileText, color: 'blue' },
-  { type: 'rekap_analis', label: 'Rekap Analisis', desc: 'Hasil pengujian & lembar analis', icon: Layers, color: 'green' },
-  { type: 'tagihan', label: 'Tagihan Pembayaran', desc: 'Nota, subtotal & rincian biaya', icon: FileCode, color: 'orange' },
-  { type: 'sertifikat', label: 'Sertifikat (LHU)', desc: 'Laporan Hasil Uji (TTD basah)', icon: Sparkles, color: 'purple' },
+  { type: 'berita_acara', label: 'Berita Acara', desc: 'Form pengajuan & data pemohon', color: 'blue' },
+  { type: 'rekap_analis', label: 'Rekap Analisis', desc: 'Hasil pengujian & lembar analis', color: 'green' },
+  { type: 'tagihan', label: 'Tagihan Pembayaran', desc: 'Nota, subtotal & rincian biaya', color: 'orange' },
+  { type: 'sertifikat', label: 'Sertifikat (LHU)', desc: 'Laporan Hasil Uji (TTD basah)', color: 'purple' },
 ]
 
-const paperSizes = [
-  { value: 'a4', label: 'A4 (210 x 297 mm)' },
-  { value: 'letter', label: 'Letter (216 x 279 mm)' },
-  { value: 'legal', label: 'Legal (216 x 356 mm)' },
+const tabs = [
+  { id: 'upload', label: 'Upload Template Word', icon: CloudUpload },
+  { id: 'preview', label: 'Preview', icon: Eye },
+  { id: 'notes', label: 'Catatan Tambahan', icon: PenLine },
 ]
 
-const orientations = [
-  { value: 'portrait', label: 'Portrait (Tegak)' },
-  { value: 'landscape', label: 'Landscape (Mendatar)' },
-]
+const filteredGroups = computed(() => {
+  if (!variableSearch.value) return variableGroups.value
+  const q = variableSearch.value.toLowerCase()
+  return variableGroups.value
+    .map(g => ({
+      ...g,
+      variables: g.variables.filter(v => v.key.toLowerCase().includes(q) || v.label.toLowerCase().includes(q)),
+    }))
+    .filter(g => g.variables.length > 0)
+})
 
 onMounted(() => {
   loadTemplate(activeType.value)
 })
 
-watch(() => props.initialType, (newType) => {
-  if (newType && newType !== activeType.value) {
-    activeType.value = newType
-    loadTemplate(newType)
+onBeforeUnmount(() => {
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'preview' && template.value) {
+    refreshPreview()
   }
 })
+
+function handleTypeChange(type: string) {
+  activeType.value = type
+  activeTab.value = 'upload'
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = null
+  }
+  loadTemplate(type)
+}
 
 async function loadTemplate(type: string) {
   loading.value = true
   try {
     const res = await pdfTemplateApi.getByType(type)
-    template.value = res.data
-    variables.value = res.available_variables || []
+    template.value = {
+      ...res.data,
+      catatan: res.data.catatan ?? '',
+    }
+    variableGroups.value = res.available_variables || []
   } catch (err: any) {
     toast.error(err.response?.data?.message || 'Gagal memuat template PDF')
   } finally {
@@ -63,25 +84,38 @@ async function loadTemplate(type: string) {
   }
 }
 
-function handleTypeChange(type: string) {
-  activeType.value = type
-  loadTemplate(type)
+function buildPreviewPayload(): Partial<PdfTemplate> {
+  const t = template.value!
+  return {
+    html_content: t.html_content,
+    catatan: t.catatan,
+  }
+}
+
+async function refreshPreview() {
+  if (!template.value) return
+  previewLoading.value = true
+  try {
+    const blob = await pdfTemplateApi.preview(activeType.value, buildPreviewPayload())
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = URL.createObjectURL(blob)
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || 'Gagal memuat pratinjau PDF')
+  } finally {
+    previewLoading.value = false
+  }
 }
 
 async function handleSave() {
   if (!template.value) return
   saving.value = true
   try {
-    await pdfTemplateApi.update(activeType.value, {
+    const payload: any = {
       html_content: template.value.html_content,
-      paper_size: template.value.paper_size,
-      orientation: template.value.orientation,
-      margin_top: template.value.margin_top,
-      margin_bottom: template.value.margin_bottom,
-      margin_left: template.value.margin_left,
-      margin_right: template.value.margin_right,
       is_active: template.value.is_active,
-    })
+      catatan: template.value.catatan,
+    }
+    await pdfTemplateApi.update(activeType.value, payload)
     toast.success('Template PDF berhasil disimpan!')
   } catch (err: any) {
     toast.error(err.response?.data?.message || 'Gagal menyimpan template PDF')
@@ -90,871 +124,394 @@ async function handleSave() {
   }
 }
 
-async function handleImportDocx(event: Event) {
+async function handleReset() {
+  if (!confirm('Kembalikan template ini ke versi awal? Semua perubahan pada template ini akan hilang.')) return
+  resetting.value = true
+  try {
+    await pdfTemplateApi.reset(activeType.value)
+    toast.success('Template dikembalikan ke versi awal')
+    await loadTemplate(activeType.value)
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || 'Gagal mengembalikan template')
+  } finally {
+    resetting.value = false
+  }
+}
+
+async function handleDownloadDocx() {
+  downloading.value = true
+  try {
+    const blob = await pdfTemplateApi.downloadDocx(activeType.value)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `template_${activeType.value}.docx`
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (err: any) {
+    toast.error(err.response?.data?.message || 'Gagal mengunduh template Word')
+  } finally {
+    downloading.value = false
+  }
+}
+
+async function handleUploadDocx(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  
-  importing.value = true
+  if (!file) return
+
+  uploading.value = true
   try {
     const res = await pdfTemplateApi.importDocx(activeType.value, file)
     if (template.value) {
-      template.value.html_content = res.html_content
+      template.value = { ...template.value, ...res.data, html_content: res.html_content }
+      toast.success('Template Word berhasil diunggah!')
     }
-    toast.success('Berhasil mengimpor file Word (.docx) ke template editor!')
   } catch (err: any) {
-    toast.error(err.response?.data?.message || 'Gagal mengimpor file Word')
+    toast.error(err.response?.data?.message || 'Gagal mengunggah file Word')
   } finally {
-    importing.value = false
-    input.value = ''
+    uploading.value = false
+    if (input) input.value = ''
   }
 }
 
-function copyVariable(key: string) {
-  navigator.clipboard.writeText(key)
+function handleDropUpload(e: DragEvent) {
+  e.preventDefault()
+  const file = e.dataTransfer?.files?.[0]
+  if (!file) return
+  const input = document.createElement('input')
+  input.type = 'file'
+  const dt = new DataTransfer()
+  dt.items.add(file)
+  input.files = dt.files
+  handleUploadDocx({ target: input } as any)
+}
+
+function cleanVarKey(key: string): string {
+  return key.replace(/\{\{\s*|\s*\}\}/g, '')
+}
+
+function copyVariableKey(key: string) {
+  navigator.clipboard.writeText('<<' + cleanVarKey(key) + '>>')
   copiedKey.value = key
-  toast.success(`Variabel ${key} berhasil disalin`)
-  setTimeout(() => {
-    copiedKey.value = null
-  }, 2000)
-}
-
-function insertVariableToEditor(key: string) {
-  if (!template.value) return
-  template.value.html_content += ` ${key} `
-  toast.info(`Variabel ${key} ditambahkan ke template`)
-}
-
-const previewBlobUrl = ref<string | null>(null)
-
-async function triggerPreviewModal() {
-  if (template.value) {
-    await handleSave()
-  }
-  loading.value = true
-  try {
-    const res = await api.post(`/admin/pdf-templates/${activeType.value}/preview`, null, {
-      responseType: 'blob',
-    })
-    if (previewBlobUrl.value) URL.revokeObjectURL(previewBlobUrl.value)
-    previewBlobUrl.value = URL.createObjectURL(res.data)
-    previewModalOpen.value = true
-  } catch (err: any) {
-    toast.error('Gagal memuat preview PDF')
-  } finally {
-    loading.value = false
-  }
-}
-
-function closePreviewModal() {
-  previewModalOpen.value = false
-  if (previewBlobUrl.value) {
-    URL.revokeObjectURL(previewBlobUrl.value)
-    previewBlobUrl.value = null
-  }
-}
-
-const filteredVariables = () => {
-  if (!variableSearch.value) return variables.value
-  const q = variableSearch.value.toLowerCase()
-  return variables.value.filter(v => v.key.toLowerCase().includes(q) || v.label.toLowerCase().includes(q))
+  setTimeout(() => (copiedKey.value = null), 1500)
 }
 </script>
 
 <template>
-  <div class="pdf-editor-container">
-    <!-- Top Selector Tabs -->
-    <div class="pdf-tabs-grid">
+  <div class="pte-root">
+    <!-- Type Selector -->
+    <div class="pte-type-selector">
       <button
-        v-for="doc in docTypes"
-        :key="doc.type"
-        @click="handleTypeChange(doc.type)"
-        class="pdf-tab-card"
-        :class="{ 'pdf-tab-card--active': activeType === doc.type }"
+        v-for="dt in docTypes"
+        :key="dt.type"
+        :class="['pte-type-btn', `pte-type-btn--${dt.color}`, { 'pte-type-btn--active': activeType === dt.type }]"
+        @click="handleTypeChange(dt.type)"
       >
-        <div class="pdf-tab-icon" :class="`pdf-tab-icon--${doc.color}`">
-          <component :is="doc.icon" :size="22" />
-        </div>
-        <div class="pdf-tab-info">
-          <span class="pdf-tab-title">{{ doc.label }}</span>
-          <span class="pdf-tab-desc">{{ doc.desc }}</span>
-        </div>
+        <FileText :size="18" />
+        <span class="pte-type-label">{{ dt.label }}</span>
       </button>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="pdf-loading-state">
-      <div class="spinner"></div>
-      <p>Memuat konfigurasi template PDF...</p>
-    </div>
+    <!-- Loading -->
+    <div v-if="loading" class="pte-loading">Memuat template...</div>
 
-    <!-- Main Workspace Layout -->
-    <div v-else-if="template" class="pdf-workspace">
-      <!-- Left Main Editor Column -->
-      <div class="pdf-editor-card">
-        <div class="pdf-card-header">
-          <div class="pdf-card-title-group">
-            <FileCode :size="22" class="text-accent" />
-            <div>
-              <h3>HTML Template Editor</h3>
-              <p>Sesuaikan struktur visual, kop surat, styling CSS, dan tag <code>&#123;&#123; variabel &#125;&#125;</code></p>
-            </div>
-          </div>
-
-          <div class="pdf-card-actions">
-            <!-- Import Word Button -->
-            <label class="btn-import-word" :class="{ 'btn-import-word--loading': importing }">
-              <Upload :size="15" />
-              <span>{{ importing ? 'Mengimpor...' : 'Import Word (.docx)' }}</span>
-              <input type="file" accept=".docx" class="hidden-file-input" @change="handleImportDocx" :disabled="importing" />
-            </label>
-
-            <!-- Live Preview Button -->
-            <button class="btn-preview" @click="triggerPreviewModal">
-              <Eye :size="15" />
-              <span>Live Preview</span>
-            </button>
-
-            <!-- Save Button -->
-            <button class="btn-save" @click="handleSave" :disabled="saving">
-              <Save v-if="!saving" :size="15" />
-              <RefreshCw v-else :size="15" class="spin-icon" />
-              <span>{{ saving ? 'Menyimpan...' : 'Simpan Template' }}</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="pdf-card-body">
-          <div class="editor-textarea-wrapper">
-            <div class="editor-code-header">
-              <span class="code-badge">HTML / Blade Template</span>
-              <span class="code-info">Gunakan sintaks HTML standar dengan inline CSS styling</span>
-            </div>
-            <textarea
-              v-model="template.html_content"
-              class="code-textarea"
-              placeholder="Masukkan HTML/CSS template dokumen di sini..."
-              spellcheck="false"
-            ></textarea>
-          </div>
-        </div>
+    <template v-else-if="template">
+      <!-- Tabs -->
+      <div class="pte-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          :class="['pte-tab', { 'pte-tab--active': activeTab === tab.id }]"
+          @click="activeTab = tab.id"
+        >
+          <component :is="tab.icon" :size="16" />
+          <span>{{ tab.label }}</span>
+        </button>
       </div>
 
-      <!-- Right Config & Variables Column -->
-      <div class="pdf-sidebar">
-        <!-- Paper Config Card -->
-        <div class="pdf-sidebar-card">
-          <div class="sidebar-card-header">
-            <Sliders :size="18" class="text-accent" />
-            <h4>Pengaturan Kertas & Layout</h4>
+      <!-- Tab 1: Upload Word -->
+      <div v-if="activeTab === 'upload'" class="pte-panel">
+        <div class="pte-upload-section">
+          <h3 class="pte-section-title">
+            <CloudUpload :size="18" /> Upload File Template Word (.docx)
+          </h3>
+          <p class="pte-section-desc">
+            Unggah file Word yang berisi tata letak dokumen. Gunakan tag <code>&lt;&lt;nama_variabel&gt;&gt;</code> agar data terisi otomatis.
+          </p>
+
+          <label
+            class="pte-dropzone"
+            @dragover.prevent
+            @drop.prevent="handleDropUpload"
+          >
+            <input type="file" accept=".docx" class="pte-hidden-input" @change="handleUploadDocx" />
+            <CloudUpload :size="36" class="pte-dropzone-icon" />
+            <div class="pte-dropzone-text">
+              <strong>Klik untuk pilih file</strong> atau tarik & lepas di sini
+            </div>
+            <span class="pte-dropzone-hint">Format .docx, maks 10 MB</span>
+          </label>
+
+          <div v-if="template.docx_path" class="pte-file-info">
+            <FileText :size="16" />
+            <span>{{ template.docx_path.split('/').pop() || template.docx_path }}</span>
+            <span class="pte-file-ok">✓ Terunggah</span>
           </div>
-          <div class="sidebar-card-body">
-            <div class="form-group-sm">
-              <label>Ukuran Kertas</label>
-              <select v-model="template.paper_size" class="custom-select">
-                <option v-for="size in paperSizes" :key="size.value" :value="size.value">{{ size.label }}</option>
-              </select>
-            </div>
 
-            <div class="form-group-sm">
-              <label>Orientasi Halaman</label>
-              <div class="orientation-options">
-                <button
-                  v-for="ori in orientations"
-                  :key="ori.value"
-                  type="button"
-                  class="ori-btn"
-                  :class="{ 'ori-btn--active': template.orientation === ori.value }"
-                  @click="template.orientation = ori.value as any"
-                >
-                  {{ ori.label }}
-                </button>
-              </div>
-            </div>
-
-            <div class="margin-grid">
-              <div class="margin-input-group">
-                <label>Margin Atas</label>
-                <div class="input-with-unit">
-                  <input v-model.number="template.margin_top" type="number" min="0" max="100" />
-                  <span>mm</span>
-                </div>
-              </div>
-              <div class="margin-input-group">
-                <label>Margin Bawah</label>
-                <div class="input-with-unit">
-                  <input v-model.number="template.margin_bottom" type="number" min="0" max="100" />
-                  <span>mm</span>
-                </div>
-              </div>
-              <div class="margin-input-group">
-                <label>Margin Kiri</label>
-                <div class="input-with-unit">
-                  <input v-model.number="template.margin_left" type="number" min="0" max="100" />
-                  <span>mm</span>
-                </div>
-              </div>
-              <div class="margin-input-group">
-                <label>Margin Kanan</label>
-                <div class="input-with-unit">
-                  <input v-model.number="template.margin_right" type="number" min="0" max="100" />
-                  <span>mm</span>
-                </div>
-              </div>
-            </div>
+          <div class="pte-download-row">
+            <Button variant="outline" size="sm" @click="handleDownloadDocx" :loading="downloading">
+              <FileDown :size="16" /> Unduh Template Word
+            </Button>
+            <span class="pte-download-hint">
+              Download template untuk diedit di Word, lalu upload lagi.
+            </span>
           </div>
         </div>
 
-        <!-- Dynamic Variables Palette Card -->
-        <div class="pdf-sidebar-card">
-          <div class="sidebar-card-header justify-between">
-            <div class="flex-align-gap">
-              <Sparkles :size="18" class="text-amber" />
-              <h4>Variabel Dinamis</h4>
-            </div>
-            <span class="var-count-badge">{{ filteredVariables().length }} Variabel</span>
-          </div>
+        <!-- Panduan -->
+        <div class="pte-guide">
+          <h3 class="pte-section-title">
+            <BookOpen :size="18" /> Panduan Menggunakan Template Word
+          </h3>
+          <ol class="pte-guide-list">
+            <li>
+              Klik <strong>"Unduh Template Word"</strong> untuk mengambil file template.
+            </li>
+            <li>
+              Buka file di <strong>Microsoft Word</strong>, lalu tulis
+              <code>&lt;&lt;nama_variabel&gt;&gt;</code> di posisi yang diinginkan.
+              <div class="pte-guide-example">
+                Contoh: untuk menampilkan jawaban pertanyaan <em>Nama Pemohon</em>, ketik
+                <code>&lt;&lt;nama_pemohon&gt;&gt;</code>. Saat PDF dibuat, tag ini akan diganti dengan jawaban user.
+              </div>
+            </li>
+            <li>
+              <strong>Simpan</strong> file Word, lalu <strong>upload</strong> kembali di atas.
+            </li>
+            <li>
+              Buka tab <strong>"Preview"</strong> untuk melihat hasil dokumennya, lalu klik <strong>"Simpan Template"</strong>.
+            </li>
+          </ol>
+        </div>
 
-          <div class="sidebar-card-body">
-            <input
-              v-model="variableSearch"
-              type="text"
-              placeholder="Cari variabel..."
-              class="var-search-input"
-            />
-
-            <div class="variables-scroll-list">
-              <div
-                v-for="v in filteredVariables()"
+        <!-- Daftar Variabel -->
+        <div class="pte-variables-section">
+          <h3 class="pte-section-title">
+            <FileCode :size="18" /> Daftar Variabel yang Didukung
+          </h3>
+          <p class="pte-section-desc">
+            Semua pertanyaan pada form Berita Acara & Rekap Analis plus variabel pembayaran. Klik variabel untuk menyalin.
+          </p>
+          <input
+            v-model="variableSearch"
+            class="pte-search"
+            placeholder="Cari variabel..."
+          />
+          <div v-for="g in filteredGroups" :key="g.group" class="pte-variable-group">
+            <h4 class="pte-group-title">{{ g.group }} <span class="pte-group-count">{{ g.variables.length }}</span></h4>
+            <div class="pte-variable-list">
+              <button
+                v-for="v in g.variables"
                 :key="v.key"
-                class="var-item"
+                class="pte-variable-item"
+                @click="copyVariableKey(v.key)"
               >
-                <div class="var-item-header">
-                  <code class="var-key">{{ v.key }}</code>
-                  <div class="var-actions">
-                    <button class="var-btn-insert" @click="insertVariableToEditor(v.key)" title="Insert ke editor">
-                      + Insert
-                    </button>
-                    <button class="var-btn-copy" @click="copyVariable(v.key)" title="Salin tag">
-                      <Check v-if="copiedKey === v.key" :size="13" class="text-success" />
-                      <Copy v-else :size="13" />
-                    </button>
-                  </div>
+                <div class="pte-var-header">
+                  <code class="pte-var-key" v-text="'<<' + cleanVarKey(v.key) + '>>'"></code>
+                  <span class="pte-var-copy">{{ copiedKey === v.key ? '✓' : 'Salin' }}</span>
                 </div>
-                <div class="var-label">{{ v.label }}</div>
-                <div class="var-example">Contoh: {{ v.example }}</div>
-              </div>
+                <span class="pte-var-label">{{ v.label }}</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Live Preview Modal -->
-    <div v-if="previewModalOpen" class="pdf-modal-backdrop" @click.self="closePreviewModal">
-      <div class="pdf-modal-container">
-        <div class="pdf-modal-header">
-          <div class="pdf-modal-title">
-            <Eye :size="20" class="text-accent" />
-            <span>Pratinjau Hasil PDF: {{ template?.name }}</span>
+      <!-- Tab 2: Preview -->
+      <div v-if="activeTab === 'preview'" class="pte-panel">
+        <div class="pte-preview-header">
+          <div class="pte-preview-title">
+            <Eye :size="18" />
+            <div>
+              <h3 class="pte-section-title">Pratinjau Dokumen: {{ template.name }}</h3>
+              <p class="pte-section-desc pte-preview-sub">Tampilan PDF menggunakan data contoh. Perbarui setelah mengubah template atau catatan.</p>
+            </div>
           </div>
-          <button class="pdf-modal-close" @click="closePreviewModal">&times;</button>
+          <div class="pte-preview-actions">
+            <button class="pte-icon-btn" title="Segarkan pratinjau" @click="refreshPreview">
+              <RefreshCw :size="14" :class="{ 'pte-spin': previewLoading }" />
+            </button>
+            <Button variant="outline" size="sm" @click="handleDownloadDocx" :loading="downloading">
+              <FileDown :size="14" /> Unduh Template Word
+            </Button>
+          </div>
         </div>
-        <div class="pdf-modal-body">
-          <iframe v-if="previewBlobUrl" :src="previewBlobUrl" class="pdf-iframe-preview"></iframe>
+        <div class="pte-preview-frame">
+          <iframe v-if="previewUrl" :src="previewUrl" class="pte-iframe-inline" title="Pratinjau PDF"></iframe>
+          <div v-else class="pte-preview-empty">
+            <Eye :size="32" />
+            <p>Pratinjau akan muncul di sini...</p>
+          </div>
+          <div v-if="previewLoading" class="pte-preview-loading">
+            <RefreshCw :size="16" class="pte-spin" /> Memperbarui pratinjau...
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- Tab 3: Catatan Tambahan -->
+      <div v-if="activeTab === 'notes'" class="pte-panel">
+        <h3 class="pte-section-title"><PenLine :size="18" /> Catatan Tambahan</h3>
+        <p class="pte-section-desc">Teks catatan yang akan muncul di bagian bawah dokumen PDF.</p>
+        <textarea
+          v-model="template.catatan"
+          class="pte-textarea"
+          rows="6"
+          placeholder="Tulis catatan tambahan di sini..."
+        ></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="pte-actions">
+        <Button variant="outline" @click="handleReset" :loading="resetting" class="pte-action-btn">
+          <RotateCcw :size="16" /> Kembalikan ke Template Awal
+        </Button>
+        <Button variant="primary" @click="handleSave" :loading="saving" class="pte-action-btn">
+          <Save :size="16" /> Simpan Template
+        </Button>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.pdf-editor-container {
-  width: 100%;
-  font-family: var(--font-primary, sans-serif);
+.pte-root { display: flex; flex-direction: column; gap: 16px; }
+
+/* Type Selector */
+.pte-type-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.pte-type-btn {
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0;
+  background: #fff; color: #475569; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+}
+.pte-type-btn:hover { border-color: #93c5fd; background: #eff6ff; }
+.pte-type-btn--active { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+.pte-type-label { white-space: nowrap; }
+
+/* Loading */
+.pte-loading { text-align: center; padding: 40px; color: #94a3b8; }
+
+/* Tabs */
+.pte-tabs { display: flex; gap: 4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; flex-wrap: wrap; }
+.pte-tab {
+  display: flex; align-items: center; gap: 6px; padding: 10px 16px; border: none; background: transparent;
+  color: #64748b; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -2px; transition: all 0.15s;
+}
+.pte-tab:hover { color: #1e293b; }
+.pte-tab--active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
+
+/* Panel */
+.pte-panel { padding: 16px 0; }
+
+/* Section */
+.pte-section-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+.pte-section-desc { font-size: 13px; color: #64748b; margin: 0 0 12px; }
+.pte-section-desc code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+/* Upload */
+.pte-upload-section { margin-bottom: 24px; }
+.pte-dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 32px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #f8fafc;
+  cursor: pointer; transition: all 0.15s;
+}
+.pte-dropzone:hover { border-color: #93c5fd; background: #eff6ff; }
+.pte-hidden-input { display: none; }
+.pte-dropzone-icon { color: #94a3b8; }
+.pte-dropzone-text { font-size: 14px; color: #475569; text-align: center; }
+.pte-dropzone-hint { font-size: 12px; color: #94a3b8; }
+.pte-file-info { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 13px; color: #166534; }
+.pte-file-ok { color: #16a34a; font-weight: 600; }
+.pte-download-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pte-download-hint { font-size: 12px; color: #94a3b8; }
+
+/* Guide */
+.pte-guide {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 14px 18px; margin-bottom: 24px;
+}
+.pte-guide-list { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.pte-guide-list li { font-size: 13px; color: #334155; line-height: 1.6; }
+.pte-guide-list code { background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.pte-guide-example {
+  margin-top: 6px; padding: 8px 12px; background: #eef2ff; border-left: 3px solid #6366f1;
+  border-radius: 6px; font-size: 12px; color: #4338ca;
 }
 
-/* Document Type Tabs */
-.pdf-tabs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
+/* Variables */
+.pte-variables-section { border-top: 1px solid #e2e8f0; padding-top: 16px; }
+.pte-search { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; margin-bottom: 14px; outline: none; box-sizing: border-box; }
+.pte-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.pte-variable-group { margin-bottom: 18px; }
+.pte-group-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 0 0 8px;
 }
-
-.pdf-tab-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--color-surface, #ffffff);
-  border: 1.5px solid var(--color-border, #e2e8f0);
-  border-radius: var(--radius-lg, 16px);
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04));
+.pte-group-count { background: #e2e8f0; color: #475569; border-radius: 999px; padding: 0 8px; font-size: 11px; }
+.pte-variable-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.pte-variable-item {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: #f8fafc;
+  border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  min-width: 200px; flex: 1; max-width: 300px; text-align: left;
 }
+.pte-variable-item:hover { border-color: #93c5fd; background: #eff6ff; }
+.pte-var-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pte-var-key { font-size: 12px; color: #2563eb; font-weight: 600; }
+.pte-var-copy { font-size: 10px; color: #64748b; white-space: nowrap; }
+.pte-var-label { font-size: 12px; color: #475569; }
 
-.pdf-tab-card:hover {
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md, 0 4px 14px rgba(0,0,0,0.08));
+/* Notes */
+.pte-textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+  font-size: 13px; font-family: inherit; resize: vertical; outline: none; box-sizing: border-box;
 }
+.pte-textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
-.pdf-tab-card--active {
-  border-color: var(--color-accent, #2563eb);
-  background: #f8fafc;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
-}
+/* Actions */
+.pte-actions { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.pte-action-btn { display: flex; align-items: center; gap: 6px; }
 
-.pdf-tab-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md, 12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.pdf-tab-icon--blue { background: #eff6ff; color: #2563eb; }
-.pdf-tab-icon--green { background: #f0fdf4; color: #16a34a; }
-.pdf-tab-icon--orange { background: #fff7ed; color: #ea580c; }
-.pdf-tab-icon--purple { background: #faf5ff; color: #9333ea; }
-
-.pdf-tab-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.pdf-tab-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text, #0f172a);
-}
-
-.pdf-tab-desc {
-  font-size: 12px;
-  color: var(--color-text-secondary, #64748b);
-  margin-top: 2px;
-}
-
-/* Loading State */
-.pdf-loading-state {
-  padding: 60px;
-  text-align: center;
-  background: #ffffff;
-  border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--color-border, #e2e8f0);
-  color: #64748b;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e2e8f0;
-  border-top-color: var(--color-accent, #2563eb);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 12px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Workspace Grid */
-.pdf-workspace {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
-}
-
-@media (max-width: 1024px) {
-  .pdf-workspace {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Main Editor Card */
-.pdf-editor-card {
-  background: #ffffff;
-  border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--color-border, #e2e8f0);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.pdf-card-header {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  background: #fafafa;
-}
-
-.pdf-card-title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pdf-card-title-group h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.pdf-card-title-group p {
-  font-size: 12px;
-  color: #64748b;
-  margin: 2px 0 0 0;
-}
-
-.pdf-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Action Buttons */
-.hidden-file-input {
-  display: none;
-}
-
-.btn-import-word {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  border-radius: var(--radius-sm, 8px);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+/* Preview Tab */
+.pte-preview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.pte-preview-title { display: flex; align-items: flex-start; gap: 10px; }
+.pte-preview-sub { margin: 2px 0 0; }
+.pte-preview-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pte-icon-btn {
+  display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+  border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #475569; cursor: pointer;
   transition: all 0.15s;
 }
-
-.btn-import-word:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+.pte-icon-btn:hover { border-color: #93c5fd; color: #2563eb; }
+.pte-preview-frame {
+  position: relative; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff;
+  height: 70vh; min-height: 480px; overflow: hidden;
 }
-
-.btn-preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius-sm, 8px);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
+.pte-iframe-inline { width: 100%; height: 100%; border: none; }
+.pte-preview-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; height: 100%; color: #94a3b8; font-size: 13px;
 }
-
-.btn-preview:hover {
-  background: #dbeafe;
+.pte-preview-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(248,250,252,0.85); color: #475569; font-size: 13px; font-weight: 500;
 }
+.pte-spin { animation: pte-spin 0.8s linear infinite; }
+@keyframes pte-spin { to { transform: rotate(360deg); } }
 
-.btn-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  background: var(--color-accent, #2563eb);
-  color: #ffffff;
-  border: none;
-  border-radius: var(--radius-sm, 8px);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
-}
-
-.btn-save:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.btn-save:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.spin-icon {
-  animation: spin 0.8s linear infinite;
-}
-
-/* Editor Body & Textarea */
-.pdf-card-body {
-  padding: 20px;
-}
-
-.editor-textarea-wrapper {
-  border: 1px solid #334155;
-  border-radius: var(--radius-md, 12px);
-  overflow: hidden;
-  background: #0f172a;
-}
-
-.editor-code-header {
-  padding: 10px 16px;
-  background: #1e293b;
-  border-bottom: 1px solid #334155;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.code-badge {
-  font-size: 11px;
-  font-weight: 700;
-  color: #38bdf8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.code-info {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.code-textarea {
-  width: 100%;
-  height: 520px;
-  padding: 16px;
-  background: #0f172a;
-  color: #f8fafc;
-  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  border: none;
-  outline: none;
-  resize: vertical;
-}
-
-/* Sidebar Cards */
-.pdf-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.pdf-sidebar-card {
-  background: #ffffff;
-  border-radius: var(--radius-lg, 16px);
-  border: 1px solid var(--color-border, #e2e8f0);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
-  overflow: hidden;
-}
-
-.sidebar-card-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #fafafa;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sidebar-card-header h4 {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.sidebar-card-body {
-  padding: 18px;
-}
-
-.form-group-sm {
-  margin-bottom: 14px;
-}
-
-.form-group-sm label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
-
-.custom-select {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 12px;
-  background: #ffffff;
-  color: #0f172a;
-  outline: none;
-}
-
-.orientation-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.ori-btn {
-  padding: 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #ffffff;
-  font-size: 11px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.ori-btn--active {
-  background: #eff6ff;
-  border-color: #2563eb;
-  color: #2563eb;
-}
-
-.margin-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.margin-input-group label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.input-with-unit {
-  display: flex;
-  align-items: center;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.input-with-unit input {
-  width: 100%;
-  padding: 6px 10px;
-  border: none;
-  font-size: 12px;
-  outline: none;
-  color: #0f172a;
-}
-
-.input-with-unit span {
-  padding: 6px 8px;
-  background: #f1f5f9;
-  font-size: 10px;
-  font-weight: 600;
-  color: #64748b;
-  border-left: 1px solid #e2e8f0;
-}
-
-/* Variable Palette */
-.flex-align-gap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.var-count-badge {
-  font-size: 11px;
-  font-weight: 700;
-  background: #fef3c7;
-  color: #b45309;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.var-search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 12px;
-  margin-bottom: 12px;
-  outline: none;
-}
-
-.variables-scroll-list {
-  max-height: 380px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-right: 4px;
-}
-
-.var-item {
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  transition: all 0.15s;
-}
-
-.var-item:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.var-item-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.var-key {
-  font-family: monospace;
-  font-size: 11px;
-  font-weight: 700;
-  color: #2563eb;
-  background: #eff6ff;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.var-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.var-btn-insert {
-  font-size: 10px;
-  font-weight: 700;
-  color: #2563eb;
-  background: #ffffff;
-  border: 1px solid #bfdbfe;
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.var-btn-insert:hover {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-.var-btn-copy {
-  padding: 3px 5px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.var-btn-copy:hover {
-  color: #0f172a;
-}
-
-.var-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.var-example {
-  font-size: 10px;
-  color: #94a3b8;
-  margin-top: 2px;
-}
-
-.text-accent { color: #2563eb; }
-.text-amber { color: #d97706; }
-.text-success { color: #16a34a; }
-
-/* Modal Preview */
-.pdf-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.pdf-modal-container {
-  background: #ffffff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 1000px;
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-  overflow: hidden;
-}
-
-.pdf-modal-header {
-  padding: 16px 24px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pdf-modal-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.pdf-modal-close {
-  background: transparent;
-  border: none;
-  font-size: 24px;
-  font-weight: bold;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.pdf-modal-close:hover {
-  color: #0f172a;
-}
-
-.pdf-modal-body {
-  flex: 1;
-  background: #64748b;
-  padding: 12px;
-}
-
-.pdf-iframe-preview {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 10px;
-  background: #ffffff;
+@media (max-width: 768px) {
+  .pte-actions { flex-direction: column-reverse; align-items: stretch; }
+  .pte-preview-header { flex-direction: column; }
+  .pte-preview-frame { height: 60vh; min-height: 400px; }
 }
 </style>

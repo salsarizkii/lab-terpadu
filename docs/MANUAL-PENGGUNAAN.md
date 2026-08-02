@@ -303,6 +303,12 @@ Superadmin bisa melihat **semua** berita acara dari seluruh pengguna.
 
 Lihat [Bagian 9: Manajemen Form Dinamis](#9-manajemen-form-dinamis) untuk panduan lengkap.
 
+### 5.5a Verifikasi Berita Acara (Nomor Agenda)
+
+**URL:** `/admin/berita-acara/{id}` → kartu "Aksi"
+
+Sebelum menyetujui pengajuan, admin wajib mengisi **Nomor Agenda** (tersimpan otomatis saat selesai mengetik). Tombol **Verifikasi** baru bisa diklik setelah nomor agenda terisi. Aksi **Perlu Perbaikan (revisi)** dan **Ditolak** tetap bisa dilakukan tanpa nomor agenda.
+
 ### 5.6 Mengelola Harga Instrumen
 
 **URL:** `/admin/form-instruments`
@@ -312,6 +318,26 @@ Lihat [Bagian 10: Manajemen Harga Instrumen](#10-manajemen-harga-instrumen) untu
 ### 5.7 Melihat Semua Riwayat
 
 Superadmin dengan permission `berita_acara_riwayat_semua` dan `hasil_pengujian_riwayat_semua` bisa melihat riwayat lengkap dari semua pengguna.
+
+### 5.8 Mengelola Template Dokumen PDF
+
+**URL:** `/admin/forms` → kartu **"Template Dokumen PDF"**
+
+Superadmin bisa menyesuaikan tampilan 4 jenis dokumen PDF (Berita Acara, Rekap Analisis, Tagihan, Sertifikat) **tanpa perlu coding**:
+
+1. **Unduh Template Word** — klik "Unduh Template Word" untuk mengambil file .docx template saat ini.
+2. **Edit di Microsoft Word** — tulis `<<nama_variabel>>` di posisi yang diinginkan. Contoh: untuk menampilkan jawaban pertanyaan "Nama Pemohon", ketik `<<nama_pemohon>>`. Saat PDF dibuat, tag diganti dengan jawaban user.
+3. **Upload kembali** — unggah file yang sudah diedit di kolom "Upload Template Word".
+4. **Pratinjau** — klik "Pratinjau Layar Penuh" untuk melihat hasilnya (di modal juga ada tombol "Unduh Word").
+5. **Simpan Template** — simpan perubahan. Tombol "Kembalikan ke Template Awal" mengembalikan template bawaan.
+
+**Daftar Variabel yang Didukung** menampilkan 4 kelompok (klik variabel untuk menyalin):
+- **Pertanyaan Form Berita Acara** — semua pertanyaan di form BA aktif (misal `<<nama_pemohon>>`, `<<nim>>`)
+- **Pertanyaan Form Rekap Analis** — semua pertanyaan form rekap (misal `<<nama_analis>>`, `<<parameter_uji>>`)
+- **Pembayaran & Diskon** — `<<no_tagihan>>`, `<<subtotal>>`, `<<diskon>>`, `<<total_bayar>>`, `<<rincian_biaya_tabel>>`, dll.
+- **Data Dokumen** — `<<tanggal_cetak>>`, `<<kop_nama_lab>>`, `<<kepala_upt>>`, `<<tabel_sampel>>`, dll.
+
+**Catatan Tambahan** menampilkan teks di bagian bawah dokumen.
 
 ---
 

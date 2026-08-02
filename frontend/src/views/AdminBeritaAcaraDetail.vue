@@ -32,6 +32,8 @@ const showRevisionDetail = ref(false)
 const selectedRevision = ref<any>(null)
 const templateFields = ref<FormField[]>([])
 const showAssignForm = ref(false)
+const nomorAgenda = ref('')
+const savingAgenda = ref(false)
 
 const currentAnalystIds = computed(() =>
  item.value?.analysts?.map(a => a.id) || (item.value?.analyst_id ? [item.value.analyst_id] : [])
@@ -62,6 +64,7 @@ onMounted(async () => {
     ])
     item.value = baData
     analysts.value = analystsData
+    nomorAgenda.value = baData.nomor_agenda || ''
     if (item.value?.form_template_id) {
       try {
         const tpl = await formTemplateApi.getPublicTemplate(item.value.form_template_id)
@@ -77,9 +80,16 @@ onMounted(async () => {
 
 async function handleVerify(data: any) {
   if (!item.value) return
+  if (!nomorAgenda.value.trim()) {
+    toast.error('Nomor agenda wajib diisi sebelum verifikasi')
+    return
+  }
   saving.value = true
   try {
-    const updated = await adminApi.updateStatus(item.value.id, data)
+    const updated = await adminApi.updateStatus(item.value.id, {
+      ...data,
+      nomor_agenda: nomorAgenda.value.trim(),
+    })
     item.value = updated
     showVerification.value = false
     toast.success('Status Berita Acara diperbarui')
@@ -87,6 +97,23 @@ async function handleVerify(data: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   } finally {
     saving.value = false
+  }
+}
+
+async function saveNomorAgenda() {
+  if (!item.value) return
+  const value = nomorAgenda.value.trim()
+  if (value === (item.value.nomor_agenda || '')) return
+  savingAgenda.value = true
+  try {
+    const updated = await adminApi.updateNomorAgenda(item.value.id, value)
+    if (item.value) {
+      item.value = { ...item.value, nomor_agenda: updated.nomor_agenda || value }
+    }
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menyimpan nomor agenda')
+  } finally {
+    savingAgenda.value = false
   }
 }
 
@@ -221,10 +248,25 @@ function downloadPdfSertifikat() {
             <Card title="Aksi">
               <div class="action-stack">
                 <template v-if="auth.hasPermission('berita_acara_verify')">
+                  <div class="agenda-field">
+                    <label class="agenda-label" for="nomor-agenda">Nomor Agenda</label>
+                    <input
+                      id="nomor-agenda"
+                      v-model="nomorAgenda"
+                      class="agenda-input"
+                      type="text"
+                      placeholder="Contoh: AGD-2026-001"
+                      @blur="saveNomorAgenda"
+                      @keyup.enter="saveNomorAgenda"
+                    />
+                    <span v-if="savingAgenda" class="agenda-saving">Menyimpan...</span>
+                    <span class="agenda-hint">Wajib diisi sebelum verifikasi.</span>
+                  </div>
+
                   <Button
                     block
                     @click="showVerification = true"
-                    :disabled="item.status === 'draft' || item.status === 'approved'"
+                    :disabled="item.status === 'draft' || item.status === 'approved' || !nomorAgenda.trim()"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>
                     Verifikasi
@@ -337,7 +379,7 @@ function downloadPdfSertifikat() {
 
       <!-- Verification Modal -->
       <Modal :show="showVerification" title="Verifikasi Berita Acara" @close="showVerification = false">
-        <BeritaAcaraVerification :berita-acara="item" @submit="handleVerify" />
+        <BeritaAcaraVerification :berita-acara="item!" @submit="handleVerify" />
       </Modal>
     </div>
   </AppLayout>
@@ -510,4 +552,42 @@ function downloadPdfSertifikat() {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 .revision-textarea::placeholder { color: #94a3b8; }
+
+/* Nomor Agenda */
+.agenda-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+.agenda-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.agenda-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.agenda-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+.agenda-input::placeholder { color: #94a3b8; }
+.agenda-hint { font-size: 11px; color: #94a3b8; }
+.agenda-saving { font-size: 11px; color: #2563eb; }
 </style>

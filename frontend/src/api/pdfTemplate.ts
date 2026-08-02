@@ -1,10 +1,10 @@
 import api from './axios'
-import type { PdfTemplate, PdfVariable } from '../types'
+import type { PdfTemplate, PdfVariableGroup } from '../types'
 
 export interface GetPdfTemplateResponse {
   status: string
   data: PdfTemplate
-  available_variables: PdfVariable[]
+  available_variables: PdfVariableGroup[]
 }
 
 export const pdfTemplateApi = {
@@ -32,6 +32,25 @@ export const pdfTemplateApi = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    })
+    return data
+  },
+
+  async reset(type: string): Promise<{ message: string; data: PdfTemplate }> {
+    const { data } = await api.post(`/admin/pdf-templates/${type}/reset`)
+    return data
+  },
+
+  async downloadDocx(type: string): Promise<Blob> {
+    const { data } = await api.get(`/admin/pdf-templates/${type}/download-docx`, {
+      responseType: 'blob',
+    })
+    return data
+  },
+
+  async preview(type: string, payload: Partial<PdfTemplate>): Promise<Blob> {
+    const { data } = await api.post(`/admin/pdf-templates/${type}/preview`, payload, {
+      responseType: 'blob',
     })
     return data
   },

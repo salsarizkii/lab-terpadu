@@ -62,6 +62,8 @@ Route::middleware('api.token')->group(function () {
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus'])
             ->middleware('permission:berita_acara_verify');
+        Route::put('/berita-acara/{id}/nomor-agenda', [AdminController::class, 'updateNomorAgenda'])
+            ->middleware('permission:berita_acara_verify');
         Route::put('/berita-acara/{id}/assign-analyst', [AdminController::class, 'assignAnalyst'])
             ->middleware('permission:berita_acara_assign');
         Route::get('/payments', [AdminController::class, 'paymentIndex'])
@@ -129,6 +131,10 @@ Route::middleware('api.token')->group(function () {
         Route::put('/pdf-templates/{type}', [PdfTemplateController::class, 'update'])
             ->middleware('permission:form_manage_berita_acara');
         Route::post('/pdf-templates/{type}/import-docx', [PdfTemplateController::class, 'importDocx'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::get('/pdf-templates/{type}/download-docx', [PdfTemplateController::class, 'downloadDocx'])
+            ->middleware('permission:form_manage_berita_acara');
+        Route::post('/pdf-templates/{type}/reset', [PdfTemplateController::class, 'reset'])
             ->middleware('permission:form_manage_berita_acara');
         Route::post('/pdf-templates/{type}/preview', [PdfTemplateController::class, 'preview'])
             ->middleware('permission:form_manage_berita_acara');

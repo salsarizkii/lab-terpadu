@@ -19,7 +19,13 @@ class PdfTemplateSeeder extends Seeder
                 'margin_bottom' => 15,
                 'margin_left' => 15,
                 'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
                 'html_content' => <<<HTML
+<!-- KOP_START -->
 <div class="kop-surat">
     <table class="kop-table">
         <tr>
@@ -27,13 +33,14 @@ class PdfTemplateSeeder extends Seeder
                 <strong style="font-size: 16pt;">LAB</strong>
             </td>
             <td style="width: 85%; text-align: center;">
-                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">UPT LABORATORIUM TERPADU</h3>
+                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">{{ kop_nama_lab }}</h3>
                 <p style="margin: 2px 0; font-size: 10pt;">KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI</p>
-                <p style="margin: 0; font-size: 9pt; color: #475569;">Jl. Prof. Dr. Sumantri Brojonegoro No. 1 | Email: labterpadu@univ.ac.id</p>
+                <p style="margin: 0; font-size: 9pt; color: #475569;">{{ kop_alamat }} | Email: {{ kop_email }} | Telp: {{ kop_telepon }}</p>
             </td>
         </tr>
     </table>
 </div>
+<!-- KOP_END -->
 
 <h3 class="text-center" style="text-decoration: underline; margin-bottom: 5px;">BERITA ACARA PENGAJUAN PENGUJIEN</h3>
 <p class="text-center" style="margin-top: 0; font-size: 10pt; color: #475569;">No. Pengajuan: {{ id }}</p>
@@ -45,19 +52,23 @@ class PdfTemplateSeeder extends Seeder
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Dosen Pembimbing</td><td style="border: none;">: {{ dosen_pembimbing }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">No. Telepon / HP</td><td style="border: none;">: {{ telp_hp }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Email</td><td style="border: none;">: {{ email }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Alamat</td><td style="border: none;">: {{ alamat }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Judul Penelitian</td><td style="border: none;">: {{ judul_penelitian }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Bahan / Contoh Uji</td><td style="border: none;">: {{ bahan_contoh_uji }}</td></tr>
      <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Hasil Pengujian</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Tanggal Pengajuan</td><td style="border: none;">: {{ tanggal_pengajuan }}</td></tr>
 </table>
 
+<!-- RINCIAN_START -->
 <h4 style="margin-top: 20px; margin-bottom: 8px;">Daftar Hasil Pengujian & Parameter Uji:</h4>
 {{ tabel_sampel }}
 
 <div style="margin-top: 15px; font-weight: bold; font-size: 11pt;">
     Total Biaya Estimasi: <span style="color: #2563eb;">{{ total_biaya }}</span>
 </div>
+<!-- RINCIAN_END -->
 
+<!-- TTD_START -->
 <div style="margin-top: 40px;">
     <table style="border: none;">
         <tr style="border: none;">
@@ -69,11 +80,12 @@ class PdfTemplateSeeder extends Seeder
             <td style="border: none; text-align: center; width: 50%;">
                 <p>Petugas Penerima Hasil Pengujian,</p>
                 <div class="ttd-space"></div>
-                <p><strong>(Admin UPT Lab Terpadu)</strong></p>
+                <p><strong>({{ nama_admin }})</strong></p>
             </td>
         </tr>
     </table>
 </div>
+<!-- TTD_END -->
 HTML
             ],
             [
@@ -85,17 +97,24 @@ HTML
                 'margin_bottom' => 15,
                 'margin_left' => 15,
                 'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
                 'html_content' => <<<HTML
+<!-- KOP_START -->
 <div class="kop-surat">
     <table class="kop-table">
         <tr>
             <td style="width: 85%; text-align: center;">
-                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">UPT LABORATORIUM TERPADU</h3>
+                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">{{ kop_nama_lab }}</h3>
                 <p style="margin: 2px 0; font-size: 10pt;">LEMBAR KERJA & REKAP ANALISIS PENGUJIEN</p>
             </td>
         </tr>
     </table>
 </div>
+<!-- KOP_END -->
 
 <h3 class="text-center" style="margin-bottom: 15px;">REKAP HASIL ANALISIS LABORATORIUM</h3>
 
@@ -107,14 +126,17 @@ HTML
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Status Pengujian</td><td style="border: none;">: {{ status }}</td></tr>
 </table>
 
+<!-- RINCIAN_START -->
 <h4>Hasil Pengujian Parameter:</h4>
 {{ tabel_pengujian }}
+<!-- RINCIAN_END -->
 
 <div style="margin-top: 15px; padding: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
     <strong>Catatan / Keterangan Analis:</strong>
     <p style="margin: 5px 0 0 0;">{{ keterangan_analis }}</p>
 </div>
 
+<!-- TTD_START -->
 <div style="margin-top: 40px; text-align: right;">
     <div style="display: inline-block; width: 240px; text-align: center;">
         <p>Analis Laboratorium,</p>
@@ -122,6 +144,7 @@ HTML
         <p><strong>({{ nama_analyst }})</strong></p>
     </div>
 </div>
+<!-- TTD_END -->
 HTML
             ],
             [
@@ -133,17 +156,24 @@ HTML
                 'margin_bottom' => 15,
                 'margin_left' => 15,
                 'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
                 'html_content' => <<<HTML
+<!-- KOP_START -->
 <div class="kop-surat">
     <table class="kop-table">
         <tr>
             <td style="width: 85%; text-align: center;">
-                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">UPT LABORATORIUM TERPADU</h3>
+                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">{{ kop_nama_lab }}</h3>
                 <p style="margin: 2px 0; font-size: 10pt;">NOTA PERHITUNGAN BIAYA & TAGIHAN PENGUJIEN</p>
             </td>
         </tr>
     </table>
 </div>
+<!-- KOP_END -->
 
 <h3 class="text-center" style="margin-bottom: 5px;">NOTA PEMBAYARAN</h3>
 <p class="text-center" style="margin-top: 0; font-size: 10pt; color: #475569;">No: {{ no_tagihan }}</p>
@@ -155,6 +185,7 @@ HTML
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Status Pembayaran</td><td style="border: none;">: <span style="font-weight: bold; color: #16a34a;">{{ status_pembayaran }}</span></td></tr>
 </table>
 
+<!-- RINCIAN_START -->
 <h4 style="margin-top: 20px; margin-bottom: 8px;">Rincian Biaya Pengujian:</h4>
 {{ rincian_biaya_tabel }}
 
@@ -164,7 +195,9 @@ HTML
     <tr style="border: top 2px solid #000;"><td style="border: none; font-weight: bold; font-size: 12pt;">TOTAL BAYAR:</td><td style="border: none; text-align: right; font-weight: bold; font-size: 12pt; color: #2563eb;">{{ total_bayar }}</td></tr>
 </table>
 <div style="clear: both;"></div>
+<!-- RINCIAN_END -->
 
+<!-- TTD_START -->
 <div style="margin-top: 40px;">
     <table style="border: none;">
         <tr style="border: none;">
@@ -176,11 +209,12 @@ HTML
             <td style="border: none; text-align: center; width: 50%;">
                 <p>Bendahara / Admin UPT,</p>
                 <div class="ttd-space"></div>
-                <p><strong>(Petugas Keuangan)</strong></p>
+                <p><strong>({{ nama_bendahara }})</strong></p>
             </td>
         </tr>
     </table>
 </div>
+<!-- TTD_END -->
 HTML
             ],
             [
@@ -192,18 +226,25 @@ HTML
                 'margin_bottom' => 15,
                 'margin_left' => 15,
                 'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
                 'html_content' => <<<HTML
+<!-- KOP_START -->
 <div class="kop-surat">
     <table class="kop-table">
         <tr>
             <td style="width: 85%; text-align: center;">
-                <h3 style="margin: 0; font-size: 15pt; text-transform: uppercase; letter-spacing: 1px;">UPT LABORATORIUM TERPADU</h3>
+                <h3 style="margin: 0; font-size: 15pt; text-transform: uppercase; letter-spacing: 1px;">{{ kop_nama_lab }}</h3>
                 <p style="margin: 2px 0; font-size: 10pt;">KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI</p>
-                <p style="margin: 0; font-size: 9pt; color: #475569;">SERTIFIKAT / LAPORAN HASIL UJI (LHU)</p>
+                <p style="margin: 0; font-size: 9pt; color: #475569;">{{ kop_alamat }} | Email: {{ kop_email }} | Telp: {{ kop_telepon }}</p>
             </td>
         </tr>
     </table>
 </div>
+<!-- KOP_END -->
 
 <h3 class="text-center" style="margin-bottom: 5px; font-size: 14pt;">LAPORAN HASIL UJI</h3>
 <p class="text-center" style="margin-top: 0; font-size: 10pt; color: #475569;">No. LHU: {{ no_sertifikat }}</p>
@@ -217,11 +258,14 @@ HTML
     <tr style="border: none;"><td style="border: none; font-weight: bold;">Tanggal Selesai Uji</td><td style="border: none;">: {{ tanggal_selesai }}</td></tr>
 </table>
 
+<!-- RINCIAN_START -->
 <h4 style="margin-top: 20px; margin-bottom: 10px;">HASIL PENGUJIAN LABORATORIUM:</h4>
 {{ tabel_hasil_uji }}
+<!-- RINCIAN_END -->
 
-<p style="font-size: 9pt; color: #64748b; margin-top: 15px;">* Laporan Hasil Uji ini hanya berlaku untuk hasil pengujian yang diuji di UPT Laboratorium Terpadu.</p>
+<p style="font-size: 9pt; color: #64748b; margin-top: 15px;">* Laporan Hasil Uji ini hanya berlaku untuk hasil pengujian yang diuji di {{ kop_nama_lab }}.</p>
 
+<!-- TTD_START -->
 <!-- Area Tanda Tangan Basah Kepala UPT (Dikosongkan untuk TTD Manual) -->
 <div style="margin-top: 40px; text-align: right;">
     <div style="display: inline-block; width: 280px; text-align: center;">
@@ -230,10 +274,11 @@ HTML
         <div style="height: 90px; border-bottom: 1px dashed #cbd5e1; margin: 10px 0;">
             <span style="font-size: 8pt; color: #94a3b8; line-height: 90px;">(Area Tanda Tangan Basah)</span>
         </div>
-        <p style="margin-top: 5px;"><strong>Prof. Dr. Kepala UPT, M.Si</strong></p>
-        <p style="margin-top: 2px; font-size: 9pt; color: #475569;">NIP. 197501012000121001</p>
+        <p style="margin-top: 5px;"><strong>{{ kepala_upt }}</strong></p>
+        <p style="margin-top: 2px; font-size: 9pt; color: #475569;">NIP. {{ nip_kepala_upt }}</p>
     </div>
 </div>
+<!-- TTD_END -->
 HTML
             ],
         ];

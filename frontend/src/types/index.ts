@@ -36,6 +36,7 @@ export interface BeritaAcara {
   user_id: number
   analyst_id?: number
   status: 'draft' | 'pending' | 'revision' | 'approved' | 'rejected'
+  nomor_agenda?: string
   nama_pemohon?: string
   nim?: string
   prodi_fakultas_instansi?: string
@@ -176,12 +177,33 @@ export interface PdfVariable {
   example: string
 }
 
+export interface PdfVariableGroup {
+  group: string
+  variables: PdfVariable[]
+}
+
+export interface PdfTemplateSettings {
+  kop_nama_lab: string
+  kop_alamat: string
+  kop_email: string
+  kop_telepon: string
+  kepala_upt: string
+  nip_kepala_upt: string
+  nama_admin: string
+  nama_bendahara: string
+}
+
 export interface PdfTemplate {
   id: number
   type: 'berita_acara' | 'rekap_analis' | 'tagihan' | 'sertifikat'
   name: string
   html_content: string
   docx_path?: string | null
+  show_kop: boolean
+  show_ttd: boolean
+  show_rincian: boolean
+  catatan?: string | null
+  settings?: Partial<PdfTemplateSettings> | null
   paper_size: 'a4' | 'letter' | 'legal'
   orientation: 'portrait' | 'landscape'
   margin_top: number

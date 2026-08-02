@@ -168,7 +168,7 @@ class BeritaAcaraController extends Controller
     private function extractJudulPenelitian(array $formData, int $templateId): ?string
     {
         $field = FormField::where('form_template_id', $templateId)
-            ->where('label', 'LIKE', '%Judul Penelitian%')
+            ->where('label', 'LIKE', '%Judul%Penelitian%')
             ->first();
 
         if ($field && isset($formData["field_{$field->id}"])) {

@@ -39,11 +39,16 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:approved,revision,rejected',
             'note' => 'required_if:status,revision|string',
+            'nomor_agenda' => 'required_if:status,approved|nullable|string|max:100',
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
         $data = ['status' => $request->status];
+
+        if ($request->filled('nomor_agenda')) {
+            $data['nomor_agenda'] = $request->nomor_agenda;
+        }
 
         $beritaAcara->update($data);
 
@@ -59,6 +64,25 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'Status updated successfully',
             'data' => $beritaAcara->load(['revisions', 'payment', 'samples', 'certificate']),
+        ]);
+    }
+
+    /**
+     * Simpan nomor agenda tanpa mengubah status (dipanggil saat admin mengetik).
+     */
+    public function updateNomorAgenda(Request $request, $id)
+    {
+        $request->validate([
+            'nomor_agenda' => 'nullable|string|max:100',
+        ]);
+
+        $beritaAcara = BeritaAcara::findOrFail($id);
+        $beritaAcara->nomor_agenda = $request->nomor_agenda;
+        $beritaAcara->save();
+
+        return response()->json([
+            'message' => 'Nomor agenda diperbarui',
+            'data' => $beritaAcara,
         ]);
     }
 

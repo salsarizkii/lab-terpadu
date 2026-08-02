@@ -59,7 +59,7 @@ class PdfTemplateController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string',
-            'html_content' => 'required|string',
+            'html_content' => 'sometimes|string',
             'paper_size' => 'sometimes|string|in:a4,letter,legal',
             'orientation' => 'sometimes|string|in:portrait,landscape',
             'margin_top' => 'sometimes|integer|min:0|max:100',
@@ -67,6 +67,11 @@ class PdfTemplateController extends Controller
             'margin_left' => 'sometimes|integer|min:0|max:100',
             'margin_right' => 'sometimes|integer|min:0|max:100',
             'is_active' => 'sometimes|boolean',
+            'show_kop' => 'sometimes|boolean',
+            'show_ttd' => 'sometimes|boolean',
+            'show_rincian' => 'sometimes|boolean',
+            'catatan' => 'nullable|string|max:5000',
+            'settings' => 'sometimes|array',
         ]);
 
         $template = PdfTemplate::updateOrCreate(
@@ -133,6 +138,41 @@ class PdfTemplateController extends Controller
         }
     }
 
+    /**
+     * Unduh template saat ini dalam bentuk Word (.docx).
+     * Jika ada file asli yang di-upload → kirim file tersebut; jika tidak → generate dari HTML.
+     */
+    public function downloadDocx($type)
+    {
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Tipe template tidak valid'], 400);
+        }
+
+        $template = PdfTemplate::where('type', $type)->first();
+        if (!$template) {
+            (new PdfTemplateSeeder())->run();
+            $template = PdfTemplate::where('type', $type)->first();
+        }
+
+        $filename = 'template_' . $type . '.docx';
+
+        if ($template->docx_path) {
+            $path = storage_path('app/public/' . $template->docx_path);
+            if (file_exists($path)) {
+                return response()->download($path, $filename);
+            }
+        }
+
+        $content = PdfGeneratorService::generateDocxFromHtml($template->html_content ?? '');
+
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
+    }
+
     public function preview(Request $request, $type)
     {
         $template = PdfTemplate::where('type', $type)->first();
@@ -141,33 +181,67 @@ class PdfTemplateController extends Controller
         }
 
         // Terapkan override dari request jika user sedang mengedit di frontend
-        if ($request->has('html_content')) {
-            $template->html_content = $request->input('html_content');
-        }
-        if ($request->has('paper_size')) {
-            $template->paper_size = $request->input('paper_size');
-        }
-        if ($request->has('orientation')) {
-            $template->orientation = $request->input('orientation');
-        }
-        if ($request->has('margin_top')) {
-            $template->margin_top = (int)$request->input('margin_top');
-        }
-        if ($request->has('margin_bottom')) {
-            $template->margin_bottom = (int)$request->input('margin_bottom');
-        }
-        if ($request->has('margin_left')) {
-            $template->margin_left = (int)$request->input('margin_left');
-        }
-        if ($request->has('margin_right')) {
-            $template->margin_right = (int)$request->input('margin_right');
-        }
+        $this->applyPreviewOverrides($request, $template);
 
         $dummyData = $this->getDummyData($type);
 
         $pdf = PdfGeneratorService::generatePdf($template, $dummyData);
 
         return $pdf->stream("preview_{$type}.pdf");
+    }
+
+    /**
+     * Terapkan pengaturan dari request ke template (untuk preview tanpa simpan).
+     */
+    private function applyPreviewOverrides(Request $request, PdfTemplate $template): void
+    {
+        $fields = [
+            'html_content', 'paper_size', 'orientation', 'catatan',
+        ];
+        foreach ($fields as $field) {
+            if ($request->has($field)) {
+                $template->{$field} = $request->input($field);
+            }
+        }
+
+        $intFields = ['margin_top', 'margin_bottom', 'margin_left', 'margin_right'];
+        foreach ($intFields as $field) {
+            if ($request->has($field)) {
+                $template->{$field} = (int)$request->input($field);
+            }
+        }
+
+        $boolFields = ['show_kop', 'show_ttd', 'show_rincian'];
+        foreach ($boolFields as $field) {
+            if ($request->has($field)) {
+                $template->{$field} = filter_var($request->input($field), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        if ($request->has('settings') && is_array($request->input('settings'))) {
+            $template->settings = $request->input('settings');
+        }
+    }
+
+    /**
+     * Kembalikan template ke versi awal (seeder) untuk satu tipe dokumen.
+     */
+    public function reset($type)
+    {
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Tipe template tidak valid'], 400);
+        }
+
+        (new PdfTemplateSeeder())->run();
+
+        $template = PdfTemplate::where('type', $type)->first();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Template PDF dikembalikan ke versi awal',
+            'data' => $template,
+        ]);
     }
 
     public function generate(Request $request, $type, $id)
@@ -192,7 +266,7 @@ class PdfTemplateController extends Controller
 
         switch ($type) {
             case 'berita_acara':
-                return [
+                $data = [
                     '{{ id }}' => 'BA-2026-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ nim }}' => '200101099',
@@ -210,9 +284,10 @@ class PdfTemplateController extends Controller
                     '{{ total_biaya }}' => 'Rp 750.000',
                     '{{ tabel_sampel }}' => $sampleTableHtml,
                 ];
+                break;
 
             case 'rekap_analis':
-                return [
+                $data = [
                     '{{ id }}' => 'BA-2026-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Teknik Kimia / Universitas X',
@@ -222,9 +297,10 @@ class PdfTemplateController extends Controller
                     '{{ tabel_pengujian }}' => '<table><thead><tr><th>Parameter</th><th>Metode</th><th>Satuan</th><th>Hasil</th></tr></thead><tbody><tr><td>pH</td><td>pH Meter ISO 10523</td><td>-</td><td>7.2</td></tr><tr><td>Kadar Air</td><td>Gravimetri</td><td>%</td><td>4.5 %</td></tr></tbody></table>',
                     '{{ keterangan_analis }}' => 'Semua hasil pengujian memenuhi batas kriteria pengujian baku mutu.',
                 ];
+                break;
 
             case 'tagihan':
-                return [
+                $data = [
                     '{{ no_tagihan }}' => 'INV/2026/07/0042',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Fakultas Teknik',
@@ -235,9 +311,10 @@ class PdfTemplateController extends Controller
                     '{{ tanggal_pembayaran }}' => date('d F Y'),
                     '{{ rincian_biaya_tabel }}' => '<table><thead><tr><th>Deskripsi Pengujian</th><th>Jumlah</th><th>Harga Satuan</th><th>Total</th></tr></thead><tbody><tr><td>Uji pH & Viskositas</td><td>2 Hasil Pengujian</td><td>Rp 250.000</td><td>Rp 500.000</td></tr><tr><td>Uji Kadar Air</td><td>2 Hasil Pengujian</td><td>Rp 125.000</td><td>Rp 250.000</td></tr></tbody></table>',
                 ];
+                break;
 
             case 'sertifikat':
-                return [
+                $data = [
                     '{{ no_sertifikat }}' => 'LHU/UPT-LAB/2026/07-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Fakultas Teknik Universitas X',
@@ -247,10 +324,18 @@ class PdfTemplateController extends Controller
                     '{{ tanggal_selesai }}' => date('d F Y'),
                     '{{ tabel_hasil_uji }}' => '<table><thead><tr><th>No</th><th>Parameter Uji</th><th>Satuan</th><th>Baku Mutu</th><th>Hasil Uji</th></tr></thead><tbody><tr><td>1</td><td>Derajat Keasaman (pH)</td><td>-</td><td>6.5 - 8.5</td><td>7.20</td></tr><tr><td>2</td><td>Kadar Air</td><td>% (b/b)</td><td>Maks 10.0</td><td>4.50</td></tr></tbody></table>',
                 ];
+                break;
 
             default:
-                return [];
+                $data = [];
         }
+
+        // Gabungkan contoh jawaban dari pertanyaan form BA & Rekap Analis
+        return array_merge(
+            $data,
+            PdfGeneratorService::formFieldDummyValues('berita_acara'),
+            PdfGeneratorService::formFieldDummyValues('rekap_analis')
+        );
     }
 
     private function getRealData($type, $id): array
@@ -269,7 +354,7 @@ class PdfTemplateController extends Controller
                 }
                 $samplesHtml .= '</tbody></table>';
 
-                return [
+                $data = [
                     '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ nim }}' => $ba->nim ?? '-',
@@ -287,6 +372,7 @@ class PdfTemplateController extends Controller
                     '{{ total_biaya }}' => $ba->biaya ? 'Rp ' . number_format((float)$ba->biaya, 0, ',', '.') : 'Rp 0',
                     '{{ tabel_sampel }}' => $samplesHtml,
                 ];
+                break;
 
             case 'tagihan':
                 $payment = Payment::with(['beritaAcara.user'])->findOrFail($id);
@@ -300,7 +386,7 @@ class PdfTemplateController extends Controller
                 $diskon = (float)($payment->discount_approved ?? 0);
                 $totalBayar = max(0, $subtotal - $diskon);
 
-                return [
+                $data = [
                     '{{ no_tagihan }}' => 'INV-' . date('Ym') . '-' . str_pad($payment->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -311,6 +397,7 @@ class PdfTemplateController extends Controller
                     '{{ tanggal_pembayaran }}' => $payment->updated_at ? $payment->updated_at->format('d F Y') : '-',
                     '{{ rincian_biaya_tabel }}' => $rincianTabel,
                 ];
+                break;
 
             case 'rekap_analis':
                 $ba = BeritaAcara::with(['analyst', 'user'])->findOrFail($id);
@@ -326,7 +413,7 @@ class PdfTemplateController extends Controller
                 }
                 $tabelHasil .= '</tbody></table>';
 
-                return [
+                $data = [
                     '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -336,6 +423,7 @@ class PdfTemplateController extends Controller
                     '{{ tabel_pengujian }}' => $tabelHasil,
                     '{{ keterangan_analis }}' => $ba->keterangan ?? 'Pengujian telah diselesaikan sesuai standar operasional laboratorium.',
                 ];
+                break;
 
             case 'sertifikat':
                 $cert = Certificate::with(['beritaAcara.user'])->findOrFail($id);
@@ -352,7 +440,7 @@ class PdfTemplateController extends Controller
                 }
                 $tabelHasil .= '</tbody></table>';
 
-                return [
+                $data = [
                     '{{ no_sertifikat }}' => $cert->certificate_number ?? ('LHU/' . date('Y') . '/' . str_pad($cert->id, 4, '0', STR_PAD_LEFT)),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -362,9 +450,16 @@ class PdfTemplateController extends Controller
                     '{{ tanggal_selesai }}' => $cert->issued_at ? date('d F Y', strtotime($cert->issued_at)) : date('d F Y'),
                     '{{ tabel_hasil_uji }}' => $tabelHasil,
                 ];
+                break;
 
             default:
-                return [];
+                $data = [];
         }
+
+        // Gabungkan jawaban form BA & Rekap Analis sebagai variabel <<slug>> dinamis
+        $formData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->form_data ?? [], 'berita_acara') : [];
+        $rekapData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->rekap_analis_data ?? [], 'rekap_analis') : [];
+
+        return array_merge($data, $formData, $rekapData);
     }
 }

@@ -117,7 +117,8 @@ backend/
 |---|---|---|---|
 | GET | `api/admin/berita-acara` | AdminBeritaAcaraController@index | All BA |
 | GET | `api/admin/berita-acara/{id}` | AdminBeritaAcaraController@show | BA detail |
-| PUT | `api/admin/berita-acara/{id}/status` | AdminBeritaAcaraController@updateStatus | Approve/reject/revision |
+| PUT | `api/admin/berita-acara/{id}/status` | AdminBeritaAcaraController@updateStatus | Approve/reject/revision (approve wajib `nomor_agenda`) |
+| PUT | `api/admin/berita-acara/{id}/nomor-agenda` | AdminController@updateNomorAgenda | Simpan nomor agenda tanpa ubah status |
 | PUT | `api/admin/berita-acara/{id}/assign-analyst` | AdminBeritaAcaraController@assignAnalyst | Assign analyst |
 | GET | `api/admin/payments` | AdminPaymentController@index | All payments |
 | PUT | `api/admin/payments/{id}/confirm` | AdminPaymentController@confirm | Confirm payment |
@@ -146,6 +147,36 @@ backend/
 | GET | `api/admin/form-templates/{id}` | FormTemplateController@show | Template detail |
 | PUT | `api/admin/form-templates/{id}` | FormTemplateController@update | Update metadata |
 | PUT | `api/admin/form-templates/{id}/fields` | FormTemplateController@syncFields | Full field sync |
+
+### PDF Template Routes (permission: `form_manage_berita_acara`)
+
+| Method | URI | Controller | Purpose |
+|---|---|---|---|
+| GET | `api/admin/pdf-templates` | PdfTemplateController@index | List all templates (auto-seed jika kosong) |
+| GET | `api/admin/pdf-templates/{type}` | PdfTemplateController@show | Detail + daftar variabel (`available_variables`) |
+| PUT | `api/admin/pdf-templates/{type}` | PdfTemplateController@update | Update pengaturan (layout, toggle, catatan, settings) |
+| POST | `api/admin/pdf-templates/{type}/import-docx` | PdfTemplateController@importDocx | Import .docx → HTML |
+| GET | `api/admin/pdf-templates/{type}/download-docx` | PdfTemplateController@downloadDocx | Unduh template sebagai .docx (file asli jika ada, atau generate dari HTML) |
+| POST | `api/admin/pdf-templates/{type}/preview` | PdfTemplateController@preview | Preview tanpa simpan (terima override semua pengaturan) |
+| POST | `api/admin/pdf-templates/{type}/reset` | PdfTemplateController@reset | Kembalikan ke template seeder |
+| GET | `api/pdf-generate/{type}/{id}` | PdfTemplateController@generate | Download PDF data nyata |
+
+Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
+
+**Kolom `pdf_templates`:** `show_kop`, `show_ttd`, `show_rincian` (boolean toggle), `catatan` (teks), `settings` (JSON identitas: `kop_nama_lab`, `kop_alamat`, `kop_email`, `kop_telepon`, `kepala_upt`, `nip_kepala_upt`, `nama_admin`, `nama_bendahara`).
+
+**Variabel dinamis (`getAvailableVariables`) — berkelompok:**
+- `Pertanyaan Form Berita Acara` & `Pertanyaan Form Rekap Analis` — diambil otomatis dari form template aktif; key = slug label pertanyaan (`<<nama_pemohon>>`), label duplikat diberi suffix `_2`, label tak bisa di-slug → `field_{id}`.
+- `Pembayaran & Diskon` — `no_tagihan`, `subtotal`, `diskon`, `total_bayar`, `status_pembayaran`, `tanggal_pembayaran`, `rincian_biaya_tabel`.
+- `Data Dokumen` — `tanggal_cetak`, `id`, `kop_*`, `kepala_upt`, dst.
+
+**Cara kerja `PdfGeneratorService`:**
+- PDF selalu dirender dari `html_content` (hasil konversi Word), `docx_path` hanya informasi.
+- `normalizePlaceholders()` mendukung 3 format placeholder: `<<nama>>`, `${nama}`, `{{ nama }}` (plus versi entity `&lt;&lt;nama&gt;&gt;`) → dinormalisasi ke `{{ nama }}`.
+- Jawaban form (`form_data` / `rekap_analis_data` dengan key `field_{id}`) dipetakan ke variabel slug via `formDataToKeys()` dan diganti nilainya di PDF (checkbox di-join koma).
+- `applySettings()` mengisi variabel identitas dari kolom `settings` (fallback ke `defaultSettings()`).
+- `catatan` selalu ditambahkan di bagian bawah dokumen.
+- `generateDocxFromHtml()` membuat .docx dari HTML (placeholder `{{ }}` → `<<>>`), lalu meng-escape `<<`/`>>`/`&` di document.xml agar XML valid.
 
 ### Analyst Routes (role: analyst)
 
