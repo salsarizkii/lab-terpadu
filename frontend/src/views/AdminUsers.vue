@@ -13,6 +13,7 @@ import { adminApi } from '../api/admin'
 import { roleApi } from '../api/role'
 import type { User, Role } from '../types'
 import { toast } from 'vue-sonner'
+import { formatDateTime } from '../utils/date'
 
 const users = ref<User[]>([])
 const roles = ref<Role[]>([])
@@ -101,7 +102,7 @@ const modalConfig = {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  return formatDateTime(dateStr)
 }
 </script>
 

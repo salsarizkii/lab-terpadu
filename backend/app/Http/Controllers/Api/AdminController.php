@@ -8,13 +8,15 @@ use App\Models\BeritaAcaraRevision;
 use App\Models\Payment;
 use App\Models\Sample;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
     public function beritaAcaraIndex()
     {
-        $query = BeritaAcara::with(['user', 'analyst', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+        $query = BeritaAcara::with(['user', 'analyst', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
 
         // Jika hanya punya permission riwayat personal, filter milik sendiri
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
@@ -28,7 +30,7 @@ class AdminController extends Controller
 
     public function beritaAcaraShow($id)
     {
-        $beritaAcara = BeritaAcara::with(['user', 'analyst', 'analysts', 'revisions', 'payment', 'samples', 'certificate'])
+        $beritaAcara = BeritaAcara::with(['user', 'analyst', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'activityLogs.user'])
             ->findOrFail($id);
 
         return response()->json($beritaAcara);
@@ -39,7 +41,13 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:approved,revision,rejected',
             'note' => 'required_if:status,revision|string',
-            'nomor_agenda' => 'required_if:status,approved|nullable|string|max:100',
+            'nomor_agenda' => [
+                'required_if:status,approved',
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('berita_acaras', 'nomor_agenda')->ignore($id),
+            ],
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
@@ -53,17 +61,41 @@ class AdminController extends Controller
         $beritaAcara->update($data);
 
         if ($request->status === 'revision') {
-            BeritaAcaraRevision::create([
+            $revision = BeritaAcaraRevision::create([
                 'berita_acara_id' => $beritaAcara->id,
                 'note' => $request->note,
                 'previous_form_data' => $beritaAcara->form_data,
                 'created_by' => auth()->id(),
             ]);
+            ActivityLogService::log($beritaAcara->id, 'revision_requested', $request->note, null, $revision->id);
+        } elseif ($request->status === 'approved') {
+            ActivityLogService::log($beritaAcara->id, 'verified', 'Menyetujui berita acara');
+        } elseif ($request->status === 'rejected') {
+            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara');
         }
 
         return response()->json([
             'message' => 'Status updated successfully',
-            'data' => $beritaAcara->load(['revisions', 'payment', 'samples', 'certificate']),
+            'data' => $beritaAcara->load(['revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']),
+        ]);
+    }
+
+    /**
+     * Cek apakah nomor agenda sudah dipakai oleh berita acara lain.
+     */
+    public function checkNomorAgenda(Request $request)
+    {
+        $request->validate([
+            'nomor' => 'required|string|max:100',
+            'ignore_id' => 'nullable|integer',
+        ]);
+
+        $exists = BeritaAcara::where('nomor_agenda', $request->nomor)
+            ->when($request->filled('ignore_id'), fn ($q) => $q->where('id', '!=', $request->ignore_id))
+            ->exists();
+
+        return response()->json([
+            'available' => !$exists,
         ]);
     }
 
@@ -73,16 +105,28 @@ class AdminController extends Controller
     public function updateNomorAgenda(Request $request, $id)
     {
         $request->validate([
-            'nomor_agenda' => 'nullable|string|max:100',
+            'nomor_agenda' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('berita_acaras', 'nomor_agenda')->ignore($id),
+            ],
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
-        $beritaAcara->nomor_agenda = $request->nomor_agenda;
+
+        if ($beritaAcara->status === 'approved') {
+            return response()->json(['message' => 'Nomor agenda tidak dapat diubah setelah diverifikasi'], 422);
+        }
+
+        $beritaAcara->nomor_agenda = $request->nomor_agenda ?: null;
         $beritaAcara->save();
+
+        ActivityLogService::log($beritaAcara->id, 'nomor_agenda', 'Menetapkan nomor agenda: ' . ($beritaAcara->nomor_agenda ?: '-'));
 
         return response()->json([
             'message' => 'Nomor agenda diperbarui',
-            'data' => $beritaAcara,
+            'data' => $beritaAcara->load('activityLogs.user'),
         ]);
     }
 
@@ -104,17 +148,28 @@ class AdminController extends Controller
             return response()->json(['message' => 'Tidak ada analis valid yang dipilih'], 422);
         }
 
+        $newIds = $validAnalysts->sort()->values();
+        $currentIds = $beritaAcara->analysts->pluck('id')->sort()->values();
+        $changed = $newIds->diff($currentIds)->isNotEmpty() || $currentIds->diff($newIds)->isNotEmpty();
+
         $beritaAcara->analysts()->sync($validAnalysts);
 
+        if ($changed) {
+            $names = User::whereIn('id', $validAnalysts)->pluck('name')->implode(', ');
+            ActivityLogService::log($beritaAcara->id, 'analyst_assigned', 'Menugaskan analis: ' . $names);
+        }
+
         return response()->json([
-            'message' => 'Analis berhasil di-assign',
+            'message' => $changed ? 'Analis berhasil di-assign' : 'Tidak ada perubahan penugasan analis',
             'data' => $beritaAcara->load('analysts'),
         ]);
     }
 
     public function paymentIndex()
     {
-        $payments = Payment::with('beritaAcara.user')->get();
+        $payments = Payment::with('beritaAcara.user', 'beritaAcara.activityLogs.user')
+            ->orderByDesc('created_at')
+            ->get();
 
         return response()->json($payments);
     }
@@ -141,9 +196,15 @@ class AdminController extends Controller
 
         $payment->update($data);
 
+        ActivityLogService::log(
+            $payment->berita_acara_id,
+            $request->status === 'approved' ? 'payment_confirmed' : 'payment_rejected',
+            $request->status === 'approved' ? 'Menyetujui pembayaran' : 'Menolak pembayaran: ' . ($request->input('rejection_reason') ?? '')
+        );
+
         return response()->json([
             'message' => 'Payment confirmed successfully',
-            'data' => $payment->load('beritaAcara.user'),
+            'data' => $payment->load('beritaAcara.user', 'beritaAcara.activityLogs.user'),
         ]);
     }
 
@@ -160,7 +221,7 @@ class AdminController extends Controller
             });
         }
 
-        $samples = $query->get();
+        $samples = $query->orderByDesc('created_at')->get();
 
         return response()->json($samples);
     }
@@ -169,6 +230,8 @@ class AdminController extends Controller
     {
         $sample = Sample::findOrFail($id);
         $sample->update(['status' => 'taken']);
+
+        ActivityLogService::log($sample->berita_acara_id, 'sample_taken', 'Menandai sampel diambil');
 
         return response()->json([
             'message' => 'Sample marked as taken',
@@ -181,6 +244,94 @@ class AdminController extends Controller
         $analysts = User::where('role', 'analyst')->get();
 
         return response()->json($analysts);
+    }
+
+    /**
+     * Daftar user dengan role penyelia.
+     */
+    public function getPenyelias()
+    {
+        $penyelias = User::where('role', 'penyelia')->get();
+
+        return response()->json($penyelias);
+    }
+
+    public function assignPenyelia(Request $request, $id)
+    {
+        $request->validate([
+            'penyelia_ids' => 'required|array|min:1',
+            'penyelia_ids.*' => 'exists:users,id',
+        ]);
+
+        $beritaAcara = BeritaAcara::findOrFail($id);
+
+        $validPenyelias = User::whereIn('id', $request->penyelia_ids)
+            ->where('role', 'penyelia')
+            ->pluck('id');
+
+        if ($validPenyelias->isEmpty()) {
+            return response()->json(['message' => 'Tidak ada penyelia valid yang dipilih'], 422);
+        }
+
+        $newIds = $validPenyelias->sort()->values();
+        $currentIds = $beritaAcara->penyelias->pluck('id')->sort()->values();
+        $changed = $newIds->diff($currentIds)->isNotEmpty() || $currentIds->diff($newIds)->isNotEmpty();
+
+        $beritaAcara->penyelias()->sync($validPenyelias);
+
+        if ($changed) {
+            $names = User::whereIn('id', $validPenyelias)->pluck('name')->implode(', ');
+            ActivityLogService::log($beritaAcara->id, 'penyelia_assigned', 'Menugaskan penyelia: ' . $names);
+        }
+
+        return response()->json([
+            'message' => $changed ? 'Penyelia berhasil di-assign' : 'Tidak ada perubahan penugasan penyelia',
+            'data' => $beritaAcara->load('penyelias'),
+        ]);
+    }
+
+    /**
+     * Daftar user dengan role manager teknis.
+     */
+    public function getManagerTeknis()
+    {
+        $managerTeknis = User::where('role', 'manager_teknis')->get();
+
+        return response()->json($managerTeknis);
+    }
+
+    public function assignManagerTeknis(Request $request, $id)
+    {
+        $request->validate([
+            'manager_teknis_ids' => 'required|array|min:1',
+            'manager_teknis_ids.*' => 'exists:users,id',
+        ]);
+
+        $beritaAcara = BeritaAcara::findOrFail($id);
+
+        $validManagers = User::whereIn('id', $request->manager_teknis_ids)
+            ->where('role', 'manager_teknis')
+            ->pluck('id');
+
+        if ($validManagers->isEmpty()) {
+            return response()->json(['message' => 'Tidak ada manager teknis valid yang dipilih'], 422);
+        }
+
+        $newIds = $validManagers->sort()->values();
+        $currentIds = $beritaAcara->managerTeknis->pluck('id')->sort()->values();
+        $changed = $newIds->diff($currentIds)->isNotEmpty() || $currentIds->diff($newIds)->isNotEmpty();
+
+        $beritaAcara->managerTeknis()->sync($validManagers);
+
+        if ($changed) {
+            $names = User::whereIn('id', $validManagers)->pluck('name')->implode(', ');
+            ActivityLogService::log($beritaAcara->id, 'manager_teknis_assigned', 'Menugaskan manager teknis: ' . $names);
+        }
+
+        return response()->json([
+            'message' => $changed ? 'Manager teknis berhasil di-assign' : 'Tidak ada perubahan penugasan manager teknis',
+            'data' => $beritaAcara->load('managerTeknis'),
+        ]);
     }
 
     /**

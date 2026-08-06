@@ -70,6 +70,16 @@ class BeritaAcara extends Model
         return $this->belongsToMany(User::class, 'berita_acara_analysts', 'berita_acara_id', 'user_id');
     }
 
+    public function penyelias()
+    {
+        return $this->belongsToMany(User::class, 'berita_acara_penyelia', 'berita_acara_id', 'user_id');
+    }
+
+    public function managerTeknis()
+    {
+        return $this->belongsToMany(User::class, 'berita_acara_manager_teknis', 'berita_acara_id', 'user_id');
+    }
+
     public function revisions()
     {
         return $this->hasMany(BeritaAcaraRevision::class);
@@ -98,5 +108,10 @@ class BeritaAcara extends Model
     public function formula()
     {
         return $this->belongsTo(Formula::class);
+    }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class)->latest('created_at');
     }
 }

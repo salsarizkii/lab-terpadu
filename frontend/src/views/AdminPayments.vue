@@ -12,6 +12,7 @@ import PaymentConfirmation from '../components/admin/PaymentConfirmation.vue'
 import { adminApi } from '../api/admin'
 import type { Payment } from '../types'
 import { toast } from 'vue-sonner'
+import { formatDateTime } from '../utils/date'
 
 const statusOptions = [
   { value: '', label: 'Semua Status' },
@@ -89,23 +90,23 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
           <table class="table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Pemohon</th>
                 <th>Jumlah</th>
                 <th>Diskon Diminta</th>
                 <th>Alasan</th>
                 <th>Status</th>
+                <th>Diajukan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="p in filtered" :key="p.id">
-                <td>#{{ p.id }}</td>
                 <td>{{ (p as any).berita_acara?.user?.name || '-' }}</td>
                 <td>Rp {{ Number(p.amount).toLocaleString('id-ID') }}</td>
                 <td>{{ p.discount_request ? 'Rp ' + Number(p.discount_request).toLocaleString('id-ID') : '-' }}</td>
                 <td class="cell-reason">{{ p.discount_reason || '-' }}</td>
                 <td><Badge :type="statusTypeMap[p.status]" :text="p.status === 'approved' ? 'Lunas' : p.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td>
+                <td class="td-date">{{ formatDateTime(p.created_at) }}</td>
                 <td>
                   <Button v-if="p.status === 'approved' || p.status === 'rejected'" size="sm" variant="outline" @click="openConfirm(p)">Detail</Button>
                   <Button v-else-if="p.payment_proof" size="sm" variant="primary" @click="openConfirm(p)">Proses</Button>
@@ -135,5 +136,6 @@ async function handleConfirm(data: { status: string; discount_approved?: string 
 .table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .cell-reason { max-width: 200px; white-space: normal; word-break: break-word; font-size: 13px; }
+.td-date { white-space: nowrap; }
 .no-proof { font-size: 12px; color: #94a3b8; }
 </style>

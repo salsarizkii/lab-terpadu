@@ -24,11 +24,18 @@ export const adminApi = {
     return data.data || data
   },
 
-  async assignAnalyst(id: number, analystIds: number[]): Promise<BeritaAcara> {
+  async checkNomorAgenda(nomor: string, ignoreId?: number): Promise<{ available: boolean }> {
+    const { data } = await api.get<{ available: boolean }>('/admin/berita-acara/check-nomor-agenda', {
+      params: { nomor, ignore_id: ignoreId },
+    })
+    return data
+  },
+
+  async assignAnalyst(id: number, analystIds: number[]): Promise<{ message: string; data: BeritaAcara }> {
     const { data } = await api.put(`/admin/berita-acara/${id}/assign-analyst`, {
       analyst_ids: analystIds,
     })
-    return data.data || data
+    return data
   },
 
   async getPayments(params?: Record<string, any>): Promise<Payment[]> {
@@ -64,6 +71,30 @@ export const adminApi = {
 
   async getAnalysts(): Promise<User[]> {
     const { data } = await api.get<User[]>('/admin/analysts')
+    return data
+  },
+
+  async getPenyelias(): Promise<User[]> {
+    const { data } = await api.get<User[]>('/admin/penyelia')
+    return data
+  },
+
+  async assignPenyelia(id: number, penyeliaIds: number[]): Promise<{ message: string; data: BeritaAcara }> {
+    const { data } = await api.put(`/admin/berita-acara/${id}/assign-penyelia`, {
+      penyelia_ids: penyeliaIds,
+    })
+    return data
+  },
+
+  async getManagerTeknis(): Promise<User[]> {
+    const { data } = await api.get<User[]>('/admin/manager-teknis')
+    return data
+  },
+
+  async assignManagerTeknis(id: number, managerTeknisIds: number[]): Promise<{ message: string; data: BeritaAcara }> {
+    const { data } = await api.put(`/admin/berita-acara/${id}/assign-manager-teknis`, {
+      manager_teknis_ids: managerTeknisIds,
+    })
     return data
   },
 

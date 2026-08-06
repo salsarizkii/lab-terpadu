@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore'
 import type { Sample } from '../types'
 import { toast } from 'vue-sonner'
 import { Eye, Download } from '@lucide/vue'
+import { formatDateTime } from '../utils/date'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -93,6 +94,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 <th>Jumlah</th>
                 <th>Rekap</th>
                 <th>Status</th>
+                <th>Diajukan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -106,6 +108,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                   <span v-else class="text-muted">-</span>
                 </td>
                 <td><Badge :type="statusTypeMap[s.status]" :text="s.status" /></td>
+                <td class="td-date">{{ formatDateTime(s.created_at) }}</td>
                 <td>
                   <div class="row-actions">
                     <Button
@@ -124,7 +127,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 </td>
               </tr>
               <tr v-if="samples.length === 0">
-                <td colspan="6" class="empty-cell">Tidak ada hasil pengujian</td>
+                <td colspan="7" class="empty-cell">Tidak ada hasil pengujian</td>
               </tr>
             </tbody>
           </table>
@@ -203,6 +206,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+.td-date { white-space: nowrap; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .text-muted { color: #94a3b8; font-size: 13px; }
 .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

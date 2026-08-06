@@ -9,6 +9,7 @@ use App\Models\Formula;
 use App\Models\Payment;
 use App\Models\Pengujian;
 use App\Models\Sample;
+use App\Services\ActivityLogService;
 use App\Services\CostCalculationService;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,7 @@ class AnalystController extends Controller
         $user = auth()->user();
         $query = BeritaAcara::query();
         if ($withRelations) {
-            $query->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians']);
+            $query->with(['user', 'analysts', 'revisions', 'payment', 'samples', 'certificate', 'pengujians', 'activityLogs.user']);
         }
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
@@ -57,6 +58,12 @@ class AnalystController extends Controller
             'discount_approved' => $validated['status'] === 'approved' ? ($validated['discount_approved'] ?? null) : null,
         ]);
 
+        ActivityLogService::log(
+            $beritaAcara->id,
+            $validated['status'] === 'approved' ? 'discount_confirmed' : 'discount_rejected',
+            $validated['status'] === 'approved' ? 'Menyetujui ajuan diskon' : 'Menolak ajuan diskon'
+        );
+
         return response()->json([
             'message' => 'Diskon berhasil ' . ($validated['status'] === 'approved' ? 'disetujui' : 'ditolak'),
             'data' => $payment->fresh(),
@@ -73,7 +80,7 @@ class AnalystController extends Controller
                 $q->where('users.id', $user->id);
             });
         }
-        return response()->json($query->get());
+        return response()->json($query->orderByDesc('created_at')->get());
     }
 
     public function beritaAcaraShow($id)
@@ -101,6 +108,8 @@ class AnalystController extends Controller
             'name', 'description', 'quantity', 'unit', 'test_result', 'status'
         ]));
 
+        ActivityLogService::log($beritaAcara->id, 'sample_updated', 'Memperbarui data hasil pengujian');
+
         return response()->json([
             'message' => 'Sample updated successfully',
             'data' => $sample,
@@ -115,6 +124,8 @@ class AnalystController extends Controller
             ->findOrFail($sampleId);
 
         $sample->update(['status' => 'ready']);
+
+        ActivityLogService::log($beritaAcara->id, 'sample_ready', 'Menandai hasil pengujian siap diambil');
 
         return response()->json([
             'message' => 'Sample marked as ready',
@@ -146,6 +157,8 @@ class AnalystController extends Controller
             ['berita_acara_id' => $beritaAcara->id],
             $validated
         );
+
+        ActivityLogService::log($beritaAcara->id, 'pengujian_saved', 'Menyimpan laporan pengujian');
 
         return response()->json([
             'message' => 'Pengujian saved successfully',
@@ -203,6 +216,8 @@ class AnalystController extends Controller
         }
 
         $beritaAcara->update($updateData);
+
+        ActivityLogService::log($beritaAcara->id, 'rekap_saved', 'Menyimpan rekap analis');
 
         // Update all related samples status to 'taken'
         $existingSamples = Sample::where('berita_acara_id', $beritaAcara->id)
@@ -276,6 +291,8 @@ class AnalystController extends Controller
             'changed_by' => auth()->id(),
         ]);
 
+        ActivityLogService::log($beritaAcara->id, 'discount_requested', 'Mengajukan diskon sebesar Rp ' . number_format($validated['discount_request'], 0, ',', '.'));
+
         return response()->json([
             'message' => 'Discount request submitted',
             'data' => $payment,
@@ -307,6 +324,8 @@ class AnalystController extends Controller
         }
 
         $payment->update($updateData);
+
+        ActivityLogService::log($beritaAcara->id, 'payment_uploaded', 'Mengunggah bukti pembayaran');
 
         return response()->json([
             'message' => 'Bukti pembayaran berhasil diupload',

@@ -13,6 +13,7 @@ const variableGroups = ref<PdfVariableGroup[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const uploading = ref(false)
+const uploadProgress = ref(0)
 const resetting = ref(false)
 const downloading = ref(false)
 const previewUrl = ref<string | null>(null)
@@ -161,16 +162,25 @@ async function handleUploadDocx(event: Event) {
   if (!file) return
 
   uploading.value = true
+  uploadProgress.value = 0
   try {
-    const res = await pdfTemplateApi.importDocx(activeType.value, file)
+    const res = await pdfTemplateApi.importDocx(
+      activeType.value,
+      file,
+      (percent) => (uploadProgress.value = percent),
+    )
     if (template.value) {
       template.value = { ...template.value, ...res.data, html_content: res.html_content }
+      uploadProgress.value = 100
       toast.success('Template Word berhasil diunggah!')
     }
   } catch (err: any) {
     toast.error(err.response?.data?.message || 'Gagal mengunggah file Word')
   } finally {
-    uploading.value = false
+    setTimeout(() => {
+      uploading.value = false
+      uploadProgress.value = 0
+    }, 500)
     if (input) input.value = ''
   }
 }
@@ -252,6 +262,15 @@ function copyVariableKey(key: string) {
             </div>
             <span class="pte-dropzone-hint">Format .docx, maks 10 MB</span>
           </label>
+
+          <div v-if="uploading" class="pte-upload-progress">
+            <div class="pte-progress-track">
+              <div class="pte-progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+            </div>
+            <span class="pte-progress-label">
+              {{ uploadProgress >= 100 ? 'Memproses template...' : `Mengunggah... ${uploadProgress}%` }}
+            </span>
+          </div>
 
           <div v-if="template.docx_path" class="pte-file-info">
             <FileText :size="16" />
@@ -434,6 +453,10 @@ function copyVariableKey(key: string) {
 .pte-file-ok { color: #16a34a; font-weight: 600; }
 .pte-download-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .pte-download-hint { font-size: 12px; color: #94a3b8; }
+.pte-upload-progress { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.pte-progress-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+.pte-progress-bar { height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 999px; transition: width 0.2s ease; }
+.pte-progress-label { font-size: 12px; color: #475569; }
 
 /* Guide */
 .pte-guide {

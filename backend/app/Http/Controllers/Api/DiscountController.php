@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\DiscountHistory;
 use App\Models\Payment;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class DiscountController extends Controller
@@ -52,7 +53,7 @@ class DiscountController extends Controller
 
     public function requests()
     {
-        $payments = Payment::with(['beritaAcara.user'])
+        $payments = Payment::with(['beritaAcara.user', 'beritaAcara.activityLogs.user'])
             ->whereHas('beritaAcara')
             ->whereIn('discount_status', ['pending', 'rejected', 'approved'])
             ->orderByDesc('created_at')
@@ -72,6 +73,7 @@ class DiscountController extends Controller
                     'discount_status' => $payment->discount_status,
                     'status' => $payment->status,
                     'created_at' => $payment->created_at,
+                    'activity_logs' => $ba->activityLogs,
                 ];
             });
 
@@ -122,6 +124,8 @@ class DiscountController extends Controller
             'changed_by' => auth()->id(),
         ]);
 
+        ActivityLogService::log($payment->berita_acara_id, 'discount_approved', 'Menyetujui diskon sebesar Rp ' . number_format($totalDiscount, 0, ',', '.'));
+
         return response()->json([
             'message' => 'Ajuan diskon disetujui',
             'data' => $payment,
@@ -145,12 +149,14 @@ class DiscountController extends Controller
             'changed_by' => auth()->id(),
         ]);
 
+        ActivityLogService::log($payment->berita_acara_id, 'discount_rejected', 'Menolak ajuan diskon');
+
         return response()->json(['message' => 'Ajuan diskon ditolak']);
     }
 
     public function history($id)
     {
-        $histories = DiscountHistory::with('changedBy:id,name')
+        $histories = DiscountHistory::with('changedBy:id,name,email,role')
             ->where('payment_id', $id)
             ->orderByDesc('created_at')
             ->get();
@@ -197,6 +203,8 @@ class DiscountController extends Controller
             ]
         );
 
+        ActivityLogService::log($beritaAcara->id, 'discount_given', 'Memberikan diskon sebesar Rp ' . number_format($totalDiscount, 0, ',', '.'));
+
         return response()->json([
             'message' => 'Diskon berhasil diberikan',
             'data' => $payment,
@@ -237,6 +245,8 @@ class DiscountController extends Controller
             'discount_nominal' => $nominalValue > 0 ? $nominalValue : null,
         ]);
 
+        ActivityLogService::log($payment->berita_acara_id, 'discount_updated', 'Memperbarui diskon menjadi Rp ' . number_format($totalDiscount, 0, ',', '.'));
+
         return response()->json([
             'message' => 'Diskon berhasil diperbarui',
             'data' => $payment,
@@ -254,6 +264,8 @@ class DiscountController extends Controller
             'discount_percent' => null,
             'discount_nominal' => null,
         ]);
+
+        ActivityLogService::log($payment->berita_acara_id, 'discount_removed', 'Menghapus diskon');
 
         return response()->json(['message' => 'Diskon berhasil dihapus']);
     }

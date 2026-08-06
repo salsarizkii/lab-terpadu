@@ -307,7 +307,9 @@ Lihat [Bagian 9: Manajemen Form Dinamis](#9-manajemen-form-dinamis) untuk pandua
 
 **URL:** `/admin/berita-acara/{id}` → kartu "Aksi"
 
-Sebelum menyetujui pengajuan, admin wajib mengisi **Nomor Agenda** (tersimpan otomatis saat selesai mengetik). Tombol **Verifikasi** baru bisa diklik setelah nomor agenda terisi. Aksi **Perlu Perbaikan (revisi)** dan **Ditolak** tetap bisa dilakukan tanpa nomor agenda.
+Sebelum menyetujui pengajuan, admin wajib mengisi **Nomor Agenda** (tersimpan otomatis saat selesai mengetik). Saat mengetik, sistem otomatis memeriksa ketersediaan nomor (icon spinner muncul selama pengecekan) — status **"Tersedia"** (hijau) atau **"Sudah dipakai"** (merah). Tombol **Verifikasi** tetap nonaktif selama pengecekan berlangsung dan baru bisa diklik setelah nomor agenda terisi dan tersedia. Aksi **Perlu Perbaikan (revisi)** dan **Ditolak** tetap bisa dilakukan tanpa nomor agenda.
+
+Popup verifikasi menampilkan ringkasan: **Nomor Agenda**, **Judul**, **Pemohon** (nama + email pengaju), dan **Instrumen** sebelum admin menekan tombol **Setujui**.
 
 ### 5.6 Mengelola Harga Instrumen
 
@@ -386,12 +388,30 @@ Dashboard menampilkan:
 3. Pilih analis dari dropdown yang tersedia
 4. Bisa menugaskan **beberapa analis** sekaligus
 5. Klik **"Simpan Penugasan"**
+6. Setelah ter-assign, tombol berubah menjadi ringkasan **"Analis Ditugaskan"** beserta nama analis dan ikon **edit** (✏️) untuk mengubah penugasan
+
+#### Menugaskan Penyelia
+
+1. Buka detail berita acara di menu Berita Acara (admin)
+2. Di kartu **"Aksi"**, klik tombol **"Assign Penyelia"** (di bawah Assign Analis)
+3. Centang satu atau lebih penyelia (daftar hanya menampilkan user dengan role **Penyelia**)
+4. Klik **"Assign"** — tercatat di Riwayat Aktivitas sebagai **"Penyelia Ditugaskan"**
+5. Setelah ter-assign, tombol berubah menjadi ringkasan **"Penyelia Ditugaskan"** beserta nama penyelia dan ikon **edit** (✏️) untuk mengubah penugasan
+
+#### Menugaskan Manager Teknis
+
+1. Buka detail berita acara di menu Berita Acara (admin)
+2. Di kartu **"Aksi"**, klik tombol **"Assign Manager Teknis"** (di bawah Assign Penyelia)
+3. Centang satu atau lebih manager teknis (daftar hanya menampilkan user dengan role **Manager Teknis**)
+4. Klik **"Assign"** — tercatat di Riwayat Aktivitas sebagai **"Manager Teknis Ditugaskan"**
+5. Setelah ter-assign, tombol berubah menjadi ringkasan **"Manager Teknis Ditugaskan"** beserta nama manager teknis dan ikon **edit** (✏️) untuk mengubah penugasan
 
 #### Melihat Riwayat Revisi
 
 1. Buka detail berita acara
-2. Riwayat revisi ditampilkan jika ada
-3. Setiap revisi mencatat: catatan revisi dan data form sebelumnya
+2. Riwayat revisi tampil sebagai bagian dari **"Riwayat Aktivitas"** (sudah digabung, tidak ada card terpisah)
+3. Pada item **"Revisi Diminta"**, di bawah waktu (kolom kanan) klik **"📄 Detail Perbaikan"** untuk melihat catatan revisi dan diff data form sebelum/sesudah
+4. Setiap revisi mencatat: catatan revisi dan data form sebelumnya
 
 ### 6.3 Mengelola Pembayaran
 
@@ -687,7 +707,8 @@ Dashboard menampilkan:
 
 1. Klik **detail** berita acara
 2. Lihat status terkini
-3. Jika ada revisi, catatan revisi dan data sebelumnya ditampilkan
+3. Riwayat revisi tampil dalam **"Riwayat Aktivitas"**: di bawah waktu (kolom kanan) klik **"📄 Detail Perbaikan"** pada item "Revisi Diminta" untuk melihat catatan dan diff data sebelum/sesudah
+4. Jika status **"Perlu Revisi"**, tombol **"Perbaiki"** muncul di bawah waktu pada item revisi terbaru (tombol "Detail Perbaikan" disembunyikan selama belum diperbaiki) — klik untuk mengubah dan mengirim ulang
 
 ### 8.4 Mengunggah Bukti Pembayaran
 

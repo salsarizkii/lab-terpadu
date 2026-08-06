@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\DiscountHistory;
 use App\Models\Payment;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -14,7 +15,7 @@ class PaymentController extends Controller
     {
         $payments = Payment::whereHas('beritaAcara', function ($q) {
             $q->where('user_id', auth()->id());
-        })->with('beritaAcara')->get();
+        })->with('beritaAcara')->orderByDesc('created_at')->get();
 
         return response()->json($payments);
     }
@@ -49,6 +50,8 @@ class PaymentController extends Controller
         $payment = Payment::create($data);
         $payment->load('beritaAcara');
 
+        ActivityLogService::log($beritaAcara->id, 'payment_uploaded', 'Mengunggah bukti pembayaran');
+
         return response()->json([
             'message' => 'Payment created successfully',
             'data' => $payment,
@@ -66,7 +69,7 @@ class PaymentController extends Controller
             });
         }
 
-        $payment = $query->with('beritaAcara.formula')->findOrFail($id);
+        $payment = $query->with('beritaAcara.formula', 'beritaAcara.activityLogs.user')->findOrFail($id);
 
         return response()->json($payment);
     }
@@ -93,6 +96,8 @@ class PaymentController extends Controller
         }
 
         $payment->update($updateData);
+
+        ActivityLogService::log($payment->berita_acara_id, 'payment_uploaded', 'Mengunggah bukti pembayaran');
 
         return response()->json([
             'message' => 'Payment proof uploaded',
@@ -125,6 +130,8 @@ class PaymentController extends Controller
             'action' => 'request',
             'changed_by' => auth()->id(),
         ]);
+
+        ActivityLogService::log($payment->berita_acara_id, 'discount_requested', 'Mengajukan diskon sebesar Rp ' . number_format($request->discount_request, 0, ',', '.'));
 
         return response()->json([
             'message' => 'Discount request submitted',

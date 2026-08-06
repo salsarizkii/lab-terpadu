@@ -72,13 +72,27 @@ export interface BeritaAcara {
   user?: User
   analyst?: User
   analysts?: User[]
+  penyelias?: User[]
+  manager_teknis?: User[]
   revisions?: BeritaAcaraRevision[]
   payment?: Payment
   samples?: Sample[]
   certificate?: Certificate
   pengujians?: any[]
+  activity_logs?: ActivityLog[]
   created_at: string
   updated_at: string
+}
+
+export interface ActivityLog {
+  id: number
+  berita_acara_id: number
+  revision_id?: number | null
+  action: string
+  description?: string
+  user_id?: number
+  user?: User
+  created_at: string
 }
 
 export interface BeritaAcaraRevision {

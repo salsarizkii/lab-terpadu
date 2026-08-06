@@ -10,6 +10,7 @@ import Modal from '../components/common/Modal.vue'
 import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
+import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { paymentApi } from '../api/payment'
 import { certificateApi } from '../api/certificate'
@@ -93,8 +94,8 @@ onMounted(async () => {
 async function handlePayment(fd: FormData) {
   if (!item.value?.payment) return
   try {
-    const payment = await paymentApi.uploadProof(item.value.payment.id, fd)
-    if (item.value) item.value.payment = payment
+    await paymentApi.uploadProof(item.value.payment.id, fd)
+    item.value = await beritaAcaraApi.getById(item.value.id)
     toast.success('Bukti pembayaran berhasil diupload')
     showPaymentModal.value = false
   } catch (e: any) {
@@ -108,8 +109,8 @@ function openDiscountModal() {
 
 async function handleDiscount(data: any) {
   try {
-    const payment = await paymentApi.requestDiscount(item.value!.payment!.id, data)
-    if (item.value) item.value.payment = payment
+    await paymentApi.requestDiscount(item.value!.payment!.id, data)
+    item.value = await beritaAcaraApi.getById(item.value!.id)
     toast.success('Pengajuan diskon berhasil dikirim')
     showDiscountModal.value = false
   } catch (e: any) {
@@ -156,6 +157,11 @@ function handlePerbaiki() {
 function openRevisionDetail(rev: any) {
   selectedRevision.value = rev
   showRevisionDetail.value = true
+}
+
+function openRevisionFromLog(log: any) {
+  const rev = (item.value?.revisions || []).find(r => r.id === log.revision_id)
+  if (rev) openRevisionDetail(rev)
 }
 
 function getRevisionDiff(rev: any) {
@@ -240,24 +246,16 @@ function getRevisionDiff(rev: any) {
           </table>
         </Card>
 
-        <div v-if="item.revisions && item.revisions.length" class="section">
-          <Card title="Riwayat Revisi">
-            <div v-for="rev in item.revisions" :key="rev.id" class="revision-item">
-              <div class="revision-header">
-                <div class="revision-note">{{ rev.note }}</div>
-                <button
-                  v-if="rev.previous_form_data"
-                  class="revision-detail-btn"
-                  @click="openRevisionDetail(rev)"
-                >
-                  Detail
-                </button>
-              </div>
-              <div class="revision-date">{{ new Date(rev.created_at).toLocaleString('id-ID') }}</div>
-            </div>
-            <div v-if="isRevision && !hasClickedPerbaiki && item.revisions && item.revisions.length" class="revision-action">
-              <Button size="sm" @click="handlePerbaiki">Perbaiki</Button>
-            </div>
+        <div class="section">
+          <Card title="Riwayat Aktivitas">
+            <ActivityTimeline
+              :logs="item.activity_logs || []"
+              show-detail
+              :revision-active="isRevision"
+              :show-proses="isRevision && !hasClickedPerbaiki"
+              @detail="openRevisionFromLog"
+              @proses="handlePerbaiki"
+            />
           </Card>
         </div>
 
@@ -366,37 +364,6 @@ function getRevisionDiff(rev: any) {
   color: #475569;
   width: 220px;
 }
-.revision-item {
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
-}
-.revision-note { font-size: 14px; color: #334155; }
-.revision-date { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-.revision-action { margin-top: 16px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
-
-.revision-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-.revision-detail-btn {
-  flex-shrink: 0;
-  padding: 3px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 12px;
-  color: #2563eb;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.revision-detail-btn:hover {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
-
 .revision-diff__note {
   padding: 10px 12px;
   background: #fffbeb;

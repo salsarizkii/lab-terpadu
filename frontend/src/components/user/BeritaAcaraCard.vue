@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { BeritaAcara } from '../../types'
 import Badge from '../common/Badge.vue'
+import { formatDateTime } from '../../utils/date'
 
 defineProps<{
   item: BeritaAcara
@@ -22,7 +23,7 @@ const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info
       <Badge :type="statusMap[item.status]?.type || 'default'" :text="statusMap[item.status]?.label || item.status" />
     </div>
     <p class="ba-card__meta">
-      {{ item.nama_pemohon ? `${item.nama_pemohon} • ` : '' }}{{ new Date(item.created_at).toLocaleDateString() }}
+      {{ item.nama_pemohon ? `${item.nama_pemohon} • ` : '' }}{{ formatDateTime(item.created_at) }}
     </p>
   </div>
 </template>

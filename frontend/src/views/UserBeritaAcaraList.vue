@@ -13,6 +13,7 @@ import FlowSteps from '../components/user/FlowSteps.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
+import { formatDateTime } from '../utils/date'
 
 const statusOptions = [
   { value: '', label: 'Semua Status' },
@@ -39,7 +40,7 @@ function openFlow(ba: BeritaAcara) {
 const columns = [
   { key: 'judul_penelitian', label: 'Judul Penelitian' },
   { key: 'status', label: 'Status' },
-  { key: 'created_at', label: 'Tanggal' },
+  { key: 'created_at', label: 'Diajukan' },
   { key: 'action', label: 'Aksi' },
 ]
 
@@ -117,7 +118,7 @@ onMounted(async () => {
             <Badge :type="statusTypeMap[row.status]" :text="statusMap[row.status]" />
           </template>
           <template #cell-created_at="{ row }">
-            {{ new Date(row.created_at).toLocaleDateString('id-ID') }}
+            {{ formatDateTime(row.created_at) }}
           </template>
           <template #cell-action="{ row }">
             <div class="action-cell">

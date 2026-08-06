@@ -10,6 +10,7 @@ import SkeletonTable from '../components/common/SkeletonTable.vue'
 import { paymentApi } from '../api/payment'
 import type { Payment } from '../types'
 import { Eye } from '@lucide/vue'
+import { formatDateTime } from '../utils/date'
 
 const router = useRouter()
 const payments = ref<Payment[]>([])
@@ -84,6 +85,7 @@ onMounted(async () => {
                 <th>Diskon</th>
                 <th>Status Tagihan</th>
                 <th>Status Diskon</th>
+                <th>Diajukan</th>
                 <th class="th-aksi">Aksi</th>
               </tr>
             </thead>
@@ -104,6 +106,7 @@ onMounted(async () => {
                   <Badge v-if="getDiscountStatus(p)" :type="getDiscountStatus(p)!.type" :text="getDiscountStatus(p)!.label" />
                   <span v-else class="td-empty">-</span>
                 </td>
+                <td class="td-date">{{ formatDateTime(p.created_at) }}</td>
                 <td class="td-aksi">
                   <Button
                     variant="outline"
@@ -116,7 +119,7 @@ onMounted(async () => {
                 </td>
               </tr>
               <tr v-if="payments.length === 0">
-                <td colspan="7" class="empty-cell">Belum ada pembayaran</td>
+                <td colspan="8" class="empty-cell">Belum ada pembayaran</td>
               </tr>
             </tbody>
           </table>
@@ -139,6 +142,7 @@ onMounted(async () => {
 .td-title { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
 .td-amount { font-weight: 600; color: #1e293b; white-space: nowrap; }
 .td-discount { white-space: nowrap; }
+.td-date { white-space: nowrap; }
 .discount-val { font-weight: 600; color: #16a34a; }
 .discount-pending { font-size: 12px; color: #d97706; }
 .td-empty { color: #94a3b8; font-size: 13px; }

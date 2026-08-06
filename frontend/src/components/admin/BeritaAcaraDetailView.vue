@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import Badge from '../common/Badge.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { BeritaAcara, FormField } from '../../types'
+import { formatDateTime } from '../../utils/date'
 
 const props = defineProps<{
   beritaAcara: BeritaAcara
@@ -127,6 +128,10 @@ watch(() => props.beritaAcara, () => {
 <template>
   <div class="detail">
     <div class="detail__meta">
+      <div v-if="beritaAcara.status === 'approved' && beritaAcara.nomor_agenda" class="detail__meta-item">
+        <span class="detail__label">Nomor Agenda</span>
+        <span class="detail__agenda">{{ beritaAcara.nomor_agenda }}</span>
+      </div>
       <div class="detail__meta-item">
         <span class="detail__label">Status Hasil Pengujian</span>
         <Badge
@@ -140,7 +145,7 @@ watch(() => props.beritaAcara, () => {
       </div>
       <div class="detail__meta-item">
         <span class="detail__label">Diajukan</span>
-        <span>{{ new Date(beritaAcara.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
+        <span>{{ formatDateTime(beritaAcara.created_at) }}</span>
       </div>
       <div class="detail__meta-item">
         <span class="detail__label">Analis Ditugaskan</span>
@@ -201,7 +206,7 @@ watch(() => props.beritaAcara, () => {
           <td class="detail__td-value">
             <div v-for="rev in beritaAcara.revisions" :key="rev.id" class="revision-note">
               <div>{{ rev.note }}</div>
-              <div class="revision-date">{{ new Date(rev.created_at).toLocaleString('id-ID') }}</div>
+              <div class="revision-date">{{ formatDateTime(rev.created_at) }}</div>
             </div>
           </td>
         </tr>
@@ -272,6 +277,11 @@ watch(() => props.beritaAcara, () => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+.detail__agenda {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary, #2563eb);
 }
 .text-muted {
   font-size: 13px;

@@ -9,6 +9,7 @@ import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
 import FormSelect from '../components/common/FormSelect.vue'
+import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { analystApi } from '../api/analyst'
 import { formulaApi, type Formula } from '../api/formula'
 import { formTemplateApi } from '../api/formTemplate'
@@ -394,6 +395,10 @@ async function handleSubmit() {
               <tr><td class="detail-td-label">Telp/HP</td><td class="detail-td-value">{{ item.telp_hp || '-' }}</td></tr>
             </template>
           </table>
+        </Card>
+
+        <Card title="Riwayat Aktivitas" style="margin-bottom: 24px;">
+          <ActivityTimeline :logs="item.activity_logs || []" />
         </Card>
 
         <Card title="Formulir Rekap Analis">

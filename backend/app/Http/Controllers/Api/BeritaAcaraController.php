@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\FormField;
 use App\Models\Sample;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class BeritaAcaraController extends Controller
@@ -18,7 +19,7 @@ class BeritaAcaraController extends Controller
             $query->where('user_id', auth()->id());
         }
 
-        return response()->json($query->get());
+        return response()->json($query->orderByDesc('created_at')->get());
     }
 
     public function store(Request $request)
@@ -64,6 +65,8 @@ class BeritaAcaraController extends Controller
 
         $beritaAcara = BeritaAcara::create($validated);
 
+        ActivityLogService::log($beritaAcara->id, 'created', 'Mengajukan berita acara');
+
         return response()->json([
             'message' => 'Berita acara created successfully',
             'data' => $beritaAcara,
@@ -72,7 +75,7 @@ class BeritaAcaraController extends Controller
 
     public function show($id)
     {
-        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate']);
+        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']);
 
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->where('user_id', auth()->id());
@@ -140,6 +143,10 @@ class BeritaAcaraController extends Controller
 
         $beritaAcara->update($validated);
 
+        if ($isRevision) {
+            ActivityLogService::log($beritaAcara->id, 'resubmitted', 'Mengirim ulang berita acara setelah revisi');
+        }
+
         return response()->json([
             'message' => 'Berita acara updated successfully',
             'data' => $beritaAcara->fresh(),
@@ -190,6 +197,6 @@ class BeritaAcaraController extends Controller
                 $q->where('user_id', $user->id);
             });
 
-        return response()->json($query->get());
+        return response()->json($query->orderByDesc('created_at')->get());
     }
 }

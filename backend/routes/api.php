@@ -59,13 +59,21 @@ Route::middleware('api.token')->group(function () {
 
     Route::middleware('api.token:berita_acara_riwayat_semua,berita_acara_verify,berita_acara_assign,hasil_pengujian_rekap,hasil_pengujian_riwayat_semua,payment_riwayat_semua,payment_confirm,user_view,user_verify,form_manage_berita_acara,form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen,discount_verifikasi,discount_riwayat_semua')->prefix('/admin')->group(function () {
         Route::get('/berita-acara', [AdminController::class, 'beritaAcaraIndex']);
+        Route::get('/berita-acara/check-nomor-agenda', [AdminController::class, 'checkNomorAgenda'])
+            ->middleware('permission:berita_acara_verify');
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus'])
             ->middleware('permission:berita_acara_verify');
         Route::put('/berita-acara/{id}/nomor-agenda', [AdminController::class, 'updateNomorAgenda'])
             ->middleware('permission:berita_acara_verify');
+        Route::get('/berita-acara/check-nomor-agenda', [AdminController::class, 'checkNomorAgenda'])
+            ->middleware('permission:berita_acara_verify');
         Route::put('/berita-acara/{id}/assign-analyst', [AdminController::class, 'assignAnalyst'])
             ->middleware('permission:berita_acara_assign');
+        Route::put('/berita-acara/{id}/assign-penyelia', [AdminController::class, 'assignPenyelia'])
+            ->middleware('permission:berita_acara_verify');
+        Route::put('/berita-acara/{id}/assign-manager-teknis', [AdminController::class, 'assignManagerTeknis'])
+            ->middleware('permission:berita_acara_verify');
         Route::get('/payments', [AdminController::class, 'paymentIndex'])
             ->middleware('permission:payment_riwayat_semua');
         Route::put('/payments/{id}/confirm', [AdminController::class, 'confirmPayment'])
@@ -75,6 +83,10 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:hasil_pengujian_rekap');
         Route::get('/analysts', [AdminController::class, 'getAnalysts'])
             ->middleware('permission:berita_acara_assign');
+        Route::get('/penyelia', [AdminController::class, 'getPenyelias'])
+            ->middleware('permission:berita_acara_verify');
+        Route::get('/manager-teknis', [AdminController::class, 'getManagerTeknis'])
+            ->middleware('permission:berita_acara_verify');
 
         // Discount management
         Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])

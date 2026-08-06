@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import Button from '../common/Button.vue'
+import ActivityTimeline from '../common/ActivityTimeline.vue'
 import type { Payment } from '../../types'
 import { toast } from 'vue-sonner'
 import {
@@ -14,7 +15,8 @@ import {
   MessageSquare,
   Calculator,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Clock
 } from '@lucide/vue'
 
 const props = defineProps<{
@@ -207,6 +209,15 @@ function handleConfirm() {
         <span>Alasan Penolakan Admin:</span>
       </div>
       <div class="keterangan-text">{{ payment.rejection_reason }}</div>
+    </div>
+
+    <!-- 5b. Activity Timeline -->
+    <div class="timeline-section">
+      <div class="timeline-header">
+        <Clock :size="14" />
+        <span>Riwayat Aktivitas</span>
+      </div>
+      <ActivityTimeline :logs="(payment as any).berita_acara?.activity_logs || []" />
     </div>
 
     <!-- 6. Action: Detail Mode (Tutup saja) vs Pending Mode (Dropdown + Confirm) -->
@@ -546,6 +557,25 @@ function handleConfirm() {
 }
 .generic-icon { color: #2563eb; }
 .generic-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+
+/* Rejection Reason Input Box */
+.timeline-section {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
 
 /* Rejection Reason Input Box */
 .reject-reason-box {

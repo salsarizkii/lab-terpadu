@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\Certificate;
+use App\Services\ActivityLogService;
 
 class CertificateController extends Controller
 {
@@ -18,6 +19,8 @@ class CertificateController extends Controller
         }
 
         $certificate->update(['downloaded_at' => now()]);
+
+        ActivityLogService::log($certificate->berita_acara_id, 'certificate_downloaded', 'Mengunduh sertifikat');
 
         $path = storage_path('app/public/' . $certificate->file_path);
 

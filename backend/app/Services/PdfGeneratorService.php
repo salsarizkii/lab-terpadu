@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\BeritaAcara;
+use App\Models\Certificate;
+use App\Models\DiscountHistory;
 use App\Models\FormTemplate;
+use App\Models\Payment;
 use App\Models\PdfTemplate;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
@@ -34,8 +38,21 @@ class PdfGeneratorService
                     ['key' => '{{ diskon }}', 'label' => 'Nominal Diskon (Rp)', 'example' => 'Rp 50.000'],
                     ['key' => '{{ total_bayar }}', 'label' => 'Total Yang Harus Dibayar (Rp)', 'example' => 'Rp 450.000'],
                     ['key' => '{{ status_pembayaran }}', 'label' => 'Status Pembayaran', 'example' => 'Lunas / Pending'],
-                    ['key' => '{{ tanggal_pembayaran }}', 'label' => 'Tanggal Pembayaran', 'example' => '28 Juli 2026'],
+                    ['key' => '{{ tanggal_pembayaran }}', 'label' => 'Tanggal Bayar / Pembayaran Dikonfirmasi', 'example' => '28 Juli 2026'],
                     ['key' => '{{ rincian_biaya_tabel }}', 'label' => 'Tabel Rincian Pembayaran (HTML)', 'example' => '[Tabel Item & Harga]'],
+                ],
+            ],
+            [
+                'group' => 'Tanggal-Tanggal',
+                'variables' => [
+                    ['key' => '{{ tanggal_berita_acara }}', 'label' => 'Tanggal Berita Acara Dibuat', 'example' => '25 Juli 2026'],
+                    ['key' => '{{ tanggal_verifikasi }}', 'label' => 'Tanggal Diverifikasi / Disetujui', 'example' => '26 Juli 2026'],
+                    ['key' => '{{ tanggal_revisi }}', 'label' => 'Tanggal Revisi Terakhir', 'example' => '27 Juli 2026'],
+                    ['key' => '{{ tanggal_rekap_analis }}', 'label' => 'Tanggal Rekap Analisis Disimpan', 'example' => '29 Juli 2026'],
+                    ['key' => '{{ tanggal_pembayaran }}', 'label' => 'Tanggal Bayar / Pembayaran Dikonfirmasi', 'example' => '29 Juli 2026'],
+                    ['key' => '{{ tanggal_diskon }}', 'label' => 'Tanggal Diskon Diberikan', 'example' => '30 Juli 2026'],
+                    ['key' => '{{ tanggal_sampel_diambil }}', 'label' => 'Tanggal Sampel Diambil', 'example' => '31 Juli 2026'],
+                    ['key' => '{{ tanggal_sertifikat }}', 'label' => 'Tanggal Sertifikat Terbit', 'example' => '1 Agustus 2026'],
                 ],
             ],
             [
@@ -190,12 +207,66 @@ class PdfGeneratorService
     }
 
     /**
+     * Nilai semua variabel tanggal dari data berita acara & relasinya.
+     */
+    public static function dateVariables(BeritaAcara $ba, ?Payment $payment = null, ?Certificate $certificate = null): array
+    {
+        $fmt = fn($date) => $date ? date('d F Y', strtotime((string) $date)) : null;
+
+        $pengujian = $ba->pengujians()->latest('tanggal_pengujian')->first();
+        $lastRevision = $ba->revisions()->latest()->first();
+        $lastDiscount = $payment ? DiscountHistory::where('payment_id', $payment->id)->latest()->first() : null;
+        $lastTakenSample = $ba->samples()->where('status', 'taken')->latest('updated_at')->value('updated_at');
+
+        $values = [
+            '{{ tanggal_berita_acara }}' => $ba->created_at,
+            // Alias backward-compat: template lama memakai {{ tanggal_pengajuan }}
+            '{{ tanggal_pengajuan }}' => $ba->created_at,
+            '{{ tanggal_verifikasi }}' => $ba->status === 'approved' ? $ba->updated_at : null,
+            '{{ tanggal_revisi }}' => $lastRevision?->created_at,
+            '{{ tanggal_rekap_analis }}' => $ba->rekap_analis_data ? $ba->updated_at : null,
+            '{{ tanggal_pembayaran }}' => $payment?->updated_at,
+            '{{ tanggal_diskon }}' => $lastDiscount?->created_at ?? $payment?->updated_at,
+            '{{ tanggal_sampel_diambil }}' => $lastTakenSample,
+            '{{ tanggal_sertifikat }}' => $certificate?->created_at ?? $certificate?->downloaded_at,
+        ];
+
+        $out = [];
+        foreach ($values as $key => $date) {
+            $out[$key] = $fmt($date) ?? '-';
+        }
+
+        return $out;
+    }
+
+    /**
+     * Nilai dummy tanggal untuk preview.
+     */
+    public static function dateDummyValues(): array
+    {
+        $keys = [
+            '{{ tanggal_berita_acara }}',
+            '{{ tanggal_pengajuan }}',
+            '{{ tanggal_verifikasi }}',
+            '{{ tanggal_revisi }}',
+            '{{ tanggal_rekap_analis }}',
+            '{{ tanggal_pembayaran }}',
+            '{{ tanggal_diskon }}',
+            '{{ tanggal_sampel_diambil }}',
+            '{{ tanggal_sertifikat }}',
+        ];
+
+        $today = date('d F Y');
+        return array_fill_keys($keys, $today);
+    }
+
+    /**
      * Variabel data dokumen per jenis: identitas lab + nilai komputasi spesifik tipe.
      */
     private static function documentDataVariables(string $type): array
     {
         $common = [
-            ['key' => '{{ tanggal_cetak }}', 'label' => 'Tanggal Cetak Dokumen', 'example' => '30 Juli 2026'],
+            ['key' => '{{ agenda }}', 'label' => 'Nomor Agenda / Surat', 'example' => 'AGD-2026-0006'],
             ['key' => '{{ id }}', 'label' => 'ID Berita Acara', 'example' => 'BA-2026-001'],
             ['key' => '{{ kop_nama_lab }}', 'label' => 'Nama Instansi / Laboratorium', 'example' => 'UPT LABORATORIUM TERPADU'],
             ['key' => '{{ kop_alamat }}', 'label' => 'Alamat Lab', 'example' => 'Jl. Prof. Dr. Sumantri Brojonegoro No. 1'],
@@ -211,7 +282,6 @@ class PdfGeneratorService
             case 'berita_acara':
                 return array_merge($common, [
                     ['key' => '{{ status_berkas }}', 'label' => 'Status Berkas', 'example' => 'Disetujui'],
-                    ['key' => '{{ tanggal_pengajuan }}', 'label' => 'Tanggal Pengajuan', 'example' => '25 Juli 2026'],
                     ['key' => '{{ total_biaya }}', 'label' => 'Total Biaya (Rp)', 'example' => 'Rp 500.000'],
                     ['key' => '{{ tabel_sampel }}', 'label' => 'Tabel Daftar Hasil Pengujian (HTML)', 'example' => '[Tabel Hasil Pengujian & Parameter]'],
                 ]);
@@ -220,7 +290,6 @@ class PdfGeneratorService
                 return array_merge($common, [
                     ['key' => '{{ nama_analyst }}', 'label' => 'Nama Analis / Tim Analis', 'example' => 'Dr. Rina, M.Sc'],
                     ['key' => '{{ status }}', 'label' => 'Status Pengujian', 'example' => 'Selesai Analisis'],
-                    ['key' => '{{ tanggal_pengajuan }}', 'label' => 'Tanggal Pengajuan', 'example' => '25 Juli 2026'],
                     ['key' => '{{ tabel_pengujian }}', 'label' => 'Tabel Hasil Pengujian Analis (HTML)', 'example' => '[Tabel Parameter & Nilai Hasil]'],
                     ['key' => '{{ keterangan_analis }}', 'label' => 'Keterangan Analis', 'example' => 'Pengujian sesuai metode ISO.'],
                 ]);
@@ -228,7 +297,6 @@ class PdfGeneratorService
             case 'sertifikat':
                 return array_merge($common, [
                     ['key' => '{{ no_sertifikat }}', 'label' => 'No. Sertifikat LHU', 'example' => 'LHU/UPT-LAB/2026/001'],
-                    ['key' => '{{ tanggal_selesai }}', 'label' => 'Tanggal Selesai Pengujian', 'example' => '30 Juli 2026'],
                     ['key' => '{{ tabel_hasil_uji }}', 'label' => 'Tabel Laporan Hasil Uji (HTML)', 'example' => '[Tabel Parameter, Satuan & Hasil]'],
                     ['key' => '{{ tempat_ttd_kosong }}', 'label' => 'Area Tanda Tangan Basah Kepala UPT', 'example' => '[Area TTD Kepala UPT Lab]'],
                 ]);

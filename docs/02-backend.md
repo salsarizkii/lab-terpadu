@@ -119,7 +119,13 @@ backend/
 | GET | `api/admin/berita-acara/{id}` | AdminBeritaAcaraController@show | BA detail |
 | PUT | `api/admin/berita-acara/{id}/status` | AdminBeritaAcaraController@updateStatus | Approve/reject/revision (approve wajib `nomor_agenda`) |
 | PUT | `api/admin/berita-acara/{id}/nomor-agenda` | AdminController@updateNomorAgenda | Simpan nomor agenda tanpa ubah status |
+| GET | `api/admin/berita-acara/check-nomor-agenda` | AdminController@checkNomorAgenda | Cek ketersediaan nomor agenda (`nomor`, opsional `ignore_id`) |
 | PUT | `api/admin/berita-acara/{id}/assign-analyst` | AdminBeritaAcaraController@assignAnalyst | Assign analyst |
+| PUT | `api/admin/berita-acara/{id}/assign-penyelia` | AdminController@assignPenyelia | Assign penyelia (`penyelia_ids`, role `penyelia`) |
+| PUT | `api/admin/berita-acara/{id}/assign-manager-teknis` | AdminController@assignManagerTeknis | Assign manager teknis (`manager_teknis_ids`, role `manager_teknis`) |
+| GET | `api/admin/analysts` | AdminController@getAnalysts | Daftar analis |
+| GET | `api/admin/penyelia` | AdminController@getPenyelias | Daftar penyelia (role `penyelia`) |
+| GET | `api/admin/manager-teknis` | AdminController@getManagerTeknis | Daftar manager teknis (role `manager_teknis`) |
 | GET | `api/admin/payments` | AdminPaymentController@index | All payments |
 | PUT | `api/admin/payments/{id}/confirm` | AdminPaymentController@confirm | Confirm payment |
 | GET | `api/admin/samples` | AdminSampleController@index | All samples |
@@ -204,11 +210,24 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 - `hasOne(Certificate)`
 - `hasMany(BeritaAcaraRevision)`
 - `hasMany(Pengujian)`
+- `hasMany(ActivityLog)` — ordered `latest('created_at')`
 - `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan
 
 ### BeritaAcaraRevision
 - `belongsTo(BeritaAcara)`
 - `$fillable`: berita_acara_id, revision_type, old_value, new_value, notes, revised_by
+
+### ActivityLog
+- `belongsTo(BeritaAcara)` via `berita_acara_id` (cascade delete)
+- `belongsTo(BeritaAcaraRevision)` via `revision_id` (nullable, nullOnDelete) — menghubungkan log `revision_requested` ke record revisinya
+- `belongsTo(User)` via `user_id` (nullable, nullOnDelete)
+- `$fillable`: berita_acara_id, revision_id, action, description, user_id
+- `$timestamps = false` — hanya kolom `created_at` (useCurrent)
+- Dicatat via `App\Services\ActivityLogService::log($beritaAcaraId, $action, $description, $userId = auth()->id(), $revisionId = null)` — saat membuat revisi, admin mengisi `$revisionId` (id `BeritaAcaraRevision`) sehingga timeline bisa menampilkan tombol "Detail Perbaikan"
+- Relasi `BeritaAcara::activityLogs` = `hasMany(...)->latest('created_at')`; dipakai di timeline detail
+
+**Aksi yang tercatat (kolom `action`):**
+`created`, `resubmitted`, `verified`, `revision_requested`, `rejected`, `nomor_agenda`, `analyst_assigned`, `penyelia_assigned`, `manager_teknis_assigned`, `payment_confirmed`, `payment_rejected`, `payment_uploaded`, `sample_taken`, `sample_ready`, `sample_updated`, `pengujian_saved`, `rekap_saved`, `discount_requested`, `discount_confirmed`, `discount_approved`, `discount_rejected`, `discount_given`, `discount_updated`, `discount_removed`, `certificate_downloaded`.
 
 ### Payment
 - `belongsTo(BeritaAcara)`

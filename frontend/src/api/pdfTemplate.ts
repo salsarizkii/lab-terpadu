@@ -23,7 +23,11 @@ export const pdfTemplateApi = {
     return data
   },
 
-  async importDocx(type: string, file?: File): Promise<{ message: string; html_content: string; data: PdfTemplate }> {
+  async importDocx(
+    type: string,
+    file?: File,
+    onUploadProgress?: (percent: number) => void,
+  ): Promise<{ message: string; html_content: string; data: PdfTemplate }> {
     const formData = new FormData()
     if (file) {
       formData.append('docx', file)
@@ -31,6 +35,11 @@ export const pdfTemplateApi = {
     const { data } = await api.post(`/admin/pdf-templates/${type}/import-docx`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (e: any) => {
+        if (onUploadProgress && e.total) {
+          onUploadProgress(Math.round((e.loaded / e.total) * 100))
+        }
       },
     })
     return data

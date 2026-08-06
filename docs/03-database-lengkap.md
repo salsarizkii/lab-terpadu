@@ -274,6 +274,30 @@
 
 ---
 
+### 2.7a `berita_acara_penyelia` — Pivot Multi-Penyelia
+
+| Kolom | Tipe | Deskripsi |
+|---|---|---|
+| `id` | bigint (PK) | auto |
+| `berita_acara_id` | bigint (FK → berita_acaras) | Cascade on delete |
+| `user_id` | bigint (FK → users) | Cascade on delete |
+
+**Unique constraint:** `(berita_acara_id, user_id)`
+
+---
+
+### 2.7b `berita_acara_manager_teknis` — Pivot Multi-Manager Teknis
+
+| Kolom | Tipe | Deskripsi |
+|---|---|---|
+| `id` | bigint (PK) | auto |
+| `berita_acara_id` | bigint (FK → berita_acaras) | Cascade on delete |
+| `user_id` | bigint (FK → users) | Cascade on delete |
+
+**Unique constraint:** `(berita_acara_id, user_id)`
+
+---
+
 ### 2.8 `payments` — Pembayaran
 
 | Kolom | Tipe | Default | Deskripsi |

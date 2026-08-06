@@ -56,6 +56,7 @@ frontend/src/
 │   │   ├── LoadingSpinner.vue       # Spinner
 │   │   ├── FormBuilder.vue          # Drag-and-drop form editor (14 types)
 │   │   ├── FormTemplateList.vue     # Template cards grid
+│   │   ├── ActivityTimeline.vue      # Riwayat aktivitas (aktor: nama/email/role)
 │   │   └── MetodeInstrumenPicker.vue # Multi-select instruments
 │   ├── auth/
 │   │   ├── LoginForm.vue
@@ -184,6 +185,11 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | admin.ts | `getBeritaAcaraDetail(id)` | `GET /admin/berita-acara/:id` | BA detail |
 | admin.ts | `updateStatus(id, payload)` | `PUT /admin/berita-acara/:id/status` | Approve/reject/revision |
 | admin.ts | `assignAnalyst(id, analystId)` | `PUT /admin/berita-acara/:id/assign-analyst` | Assign analyst |
+| admin.ts | `assignPenyelia(id, penyeliaIds)` | `PUT /admin/berita-acara/:id/assign-penyelia` | Assign penyelia |
+| admin.ts | `assignManagerTeknis(id, managerTeknisIds)` | `PUT /admin/berita-acara/:id/assign-manager-teknis` | Assign manager teknis |
+| admin.ts | `getPenyelias()` | `GET /admin/penyelia` | List penyelia users |
+| admin.ts | `getManagerTeknis()` | `GET /admin/manager-teknis` | List manager teknis users |
+| admin.ts | `checkNomorAgenda(nomor, ignoreId)` | `GET /admin/berita-acara/check-nomor-agenda` | Cek ketersediaan nomor agenda |
 | admin.ts | `getPayments(params?)` | `GET /admin/payments` | List payments |
 | admin.ts | `confirmPayment(id, payload)` | `PUT /admin/payments/:id/confirm` | Confirm payment |
 | admin.ts | `getSamples(params?)` | `GET /admin/samples` | List samples |
@@ -219,9 +225,27 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | role.ts | `deleteRole(id)` | `DELETE /admin/roles/:id` | Delete role |
 | role.ts | `getPermissions()` | `GET /admin/roles/permissions/list` | List permissions |
 
-## TypeScript Types (`types/index.ts`)
+## Riwayat Aktivitas (`components/common/ActivityTimeline.vue`)
 
-```typescript
+Komponen reusable untuk menampilkan siapa yang melakukan aksi pada sebuah berita acara (nama, email, role) lengkap dengan waktu & deskripsi. Data dari relasi `activity_logs.user` yang di-eager-load endpoint detail.
+
+```vue
+<ActivityTimeline :logs="beritaAcara.activity_logs || []" />
+```
+
+Untuk log `revision_requested`, badge otomatis menampilkan **"Revisi Diminta"** jika belum ada log `resubmitted` setelahnya, atau **"Revisi telah diperbaiki"** (tipe success) jika sudah ada `resubmitted` (revisi selesai). Log `revision_requested` yang memiliki `revision_id` dapat menampilkan tombol **📄 Detail Perbaikan** di bawah waktu (kolom kanan, right-aligned) yang me-`emit('detail', log)` ke parent. Aktifkan dengan prop `show-detail` (hanya halaman detail BA yang menyediakan handler). Parent me-resolve revision dari `log.revision_id` lalu membuka modal diff.
+
+Prop `show-proses` menampilkan tombol **Perbaiki** di bawah waktu pada item revisi terbaru (saat BA berstatus `revision` dan user belum memperbaiki) yang me-`emit('proses', log)` ke parent (dipakai UserBeritaAcaraDetail → `handlePerbaiki` untuk masuk ke halaman edit). Prop `revision-active` menandakan BA sedang berstatus `revision`; saat aktif, tombol **Detail Perbaikan** disembunyikan pada item revisi terbaru yang belum diperbaiki (berlaku di sisi admin maupun user — user cukup langsung memperbaiki), sedangkan revisi lama tetap menampilkan Detail. Tombol aksi selalu tampil di kolom kanan tepat di bawah timestamp.
+
+```vue
+<ActivityTimeline :logs="item.activity_logs || []" show-detail :revision-active="isRevision" :show-proses="isRevision && !hasClickedPerbaiki" @detail="openRevisionFromLog" @proses="handlePerbaiki" />
+```
+
+**Map aksi → label/tipe badge:** `created`, `resubmitted`, `verified`, `revision_requested`, `rejected`, `nomor_agenda`, `analyst_assigned`, `penyelia_assigned`, `manager_teknis_assigned`, `payment_confirmed`, `payment_rejected`, `payment_uploaded`, `sample_taken`, `sample_ready`, `sample_updated`, `pengujian_saved`, `rekap_saved`, `discount_*`, `certificate_downloaded`. Aksi tak dikenal ditampilkan apa adanya. Empty state: "Belum ada aktivitas tercatat". Saat BA berstatus `revision`, revisi terbaru yang belum diperbaiki menampilkan tombol "Perbaiki" tanpa tombol Detail; label "Revisi Diminta" berubah jadi "Revisi telah diperbaiki" pada revisi yang sudah ada aksi `resubmitted` berikutnya.
+
+**Dipasang di:** AdminBeritaAcaraDetail (`show-detail`), AdminPayments/PaymentConfirmation, AdminDiscounts (popup), AnalystAssigned, AnalystRekapAnalis, UserBeritaAcaraDetail (`show-detail`), UserPaymentDetail.
+
+## TypeScript Types (`types/index.ts`)```typescript
 interface User {
   id: number; name: string; email: string; role: string;
   phone?: string; is_verified: boolean; created_at: string;
@@ -240,6 +264,7 @@ interface BeritaAcara {
   biaya?: string; diskon_diizinkan?: boolean;
   user?: User; analyst?: User; revisions?: BeritaAcaraRevision[];
   payment?: Payment; samples?: Sample[]; certificate?: Certificate; pengujians?: any[];
+  activity_logs?: ActivityLog[];
   created_at: string; updated_at: string;
 }
 
@@ -257,6 +282,12 @@ interface Sample {
 
 interface Certificate {
   id: number; berita_acara_id: number; file_path?: string; downloaded_at?: string;
+}
+
+interface ActivityLog {
+  id: number; berita_acara_id: number; revision_id?: number | null;
+  action: string;
+  description?: string; user_id?: number; user?: User; created_at: string;
 }
 
 interface FormFieldOption {

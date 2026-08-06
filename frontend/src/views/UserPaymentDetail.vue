@@ -7,6 +7,7 @@ import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
+import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { paymentApi } from '../api/payment'
 import type { Payment } from '../types'
 import { toast } from 'vue-sonner'
@@ -416,6 +417,10 @@ async function handleUploadProof() {
                   Silakan upload ulang bukti pembayaran yang valid.
                 </div>
               </div>
+            </Card>
+
+            <Card title="Riwayat Aktivitas" style="margin-top: 24px;">
+              <ActivityTimeline :logs="(payment as any).berita_acara?.activity_logs || []" />
             </Card>
           </div>
 

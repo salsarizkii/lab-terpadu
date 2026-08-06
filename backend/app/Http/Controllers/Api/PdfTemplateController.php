@@ -267,6 +267,7 @@ class PdfTemplateController extends Controller
         switch ($type) {
             case 'berita_acara':
                 $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
                     '{{ id }}' => 'BA-2026-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ nim }}' => '200101099',
@@ -288,6 +289,7 @@ class PdfTemplateController extends Controller
 
             case 'rekap_analis':
                 $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
                     '{{ id }}' => 'BA-2026-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Teknik Kimia / Universitas X',
@@ -301,6 +303,7 @@ class PdfTemplateController extends Controller
 
             case 'tagihan':
                 $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
                     '{{ no_tagihan }}' => 'INV/2026/07/0042',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Fakultas Teknik',
@@ -315,6 +318,7 @@ class PdfTemplateController extends Controller
 
             case 'sertifikat':
                 $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
                     '{{ no_sertifikat }}' => 'LHU/UPT-LAB/2026/07-001',
                     '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
                     '{{ instansi }}' => 'Fakultas Teknik Universitas X',
@@ -334,7 +338,8 @@ class PdfTemplateController extends Controller
         return array_merge(
             $data,
             PdfGeneratorService::formFieldDummyValues('berita_acara'),
-            PdfGeneratorService::formFieldDummyValues('rekap_analis')
+            PdfGeneratorService::formFieldDummyValues('rekap_analis'),
+            PdfGeneratorService::dateDummyValues()
         );
     }
 
@@ -355,6 +360,7 @@ class PdfTemplateController extends Controller
                 $samplesHtml .= '</tbody></table>';
 
                 $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
                     '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ nim }}' => $ba->nim ?? '-',
@@ -387,6 +393,7 @@ class PdfTemplateController extends Controller
                 $totalBayar = max(0, $subtotal - $diskon);
 
                 $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
                     '{{ no_tagihan }}' => 'INV-' . date('Ym') . '-' . str_pad($payment->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -414,6 +421,7 @@ class PdfTemplateController extends Controller
                 $tabelHasil .= '</tbody></table>';
 
                 $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
                     '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -441,6 +449,7 @@ class PdfTemplateController extends Controller
                 $tabelHasil .= '</tbody></table>';
 
                 $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
                     '{{ no_sertifikat }}' => $cert->certificate_number ?? ('LHU/' . date('Y') . '/' . str_pad($cert->id, 4, '0', STR_PAD_LEFT)),
                     '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
                     '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
@@ -460,6 +469,15 @@ class PdfTemplateController extends Controller
         $formData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->form_data ?? [], 'berita_acara') : [];
         $rekapData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->rekap_analis_data ?? [], 'rekap_analis') : [];
 
-        return array_merge($data, $formData, $rekapData);
+        $dateData = [];
+        if (isset($ba)) {
+            $dateData = PdfGeneratorService::dateVariables(
+                $ba,
+                $payment ?? null,
+                $cert ?? null
+            );
+        }
+
+        return array_merge($data, $formData, $rekapData, $dateData);
     }
 }

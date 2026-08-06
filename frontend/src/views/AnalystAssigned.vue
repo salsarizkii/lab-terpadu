@@ -11,6 +11,7 @@ import SampleDataForm from '../components/analyst/SampleDataForm.vue'
 import PengujianForm from '../components/analyst/PengujianForm.vue'
 import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
+import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { analystApi } from '../api/analyst'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
@@ -181,6 +182,10 @@ async function handleRejectDiscount() {
           <div class="detail-main">
             <Card title="Data Berita Acara">
               <BeritaAcaraDetailView :berita-acara="item" :hide-sections="['verifikasi', 'pembayaran']" :override-status="getSampleBadgeObj()" />
+            </Card>
+
+            <Card title="Riwayat Aktivitas" style="margin-top: 24px;">
+              <ActivityTimeline :logs="item.activity_logs || []" />
             </Card>
           </div>
 

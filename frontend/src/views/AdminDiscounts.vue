@@ -8,6 +8,8 @@ import SkeletonTable from '../components/common/SkeletonTable.vue'
 import { adminApi } from '../api/admin'
 import { toast } from 'vue-sonner'
 import { History, Check, X } from '@lucide/vue'
+import ActivityTimeline from '../components/common/ActivityTimeline.vue'
+import { formatDateTime } from '../utils/date'
 
 interface DiscountRequest {
   id: number
@@ -22,6 +24,7 @@ interface DiscountRequest {
   discount_status: string
   status: string
   created_at: string
+  activity_logs?: any[]
 }
 
 const items = ref<DiscountRequest[]>([])
@@ -238,18 +241,17 @@ onMounted(loadData)
           <table class="table">
             <thead>
               <tr>
-                <th>ID</th>
                 <th>Judul Penelitian</th>
                 <th>Pemohon</th>
                 <th>Biaya</th>
                 <th>Diskon Diminta</th>
                 <th>Status</th>
+                <th>Diajukan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in filteredItems" :key="item.id" :class="{ 'row-rejected': item.discount_status === 'rejected' }">
-                <td>#{{ item.berita_acara_id }}</td>
                 <td class="cell-title">{{ item.judul_penelitian || '-' }}</td>
                 <td>{{ item.pemohon }}</td>
                 <td>Rp {{ formatPrice(item.biaya || 0) }}</td>
@@ -262,6 +264,7 @@ onMounted(loadData)
                   <Badge v-else-if="item.discount_status === 'rejected'" type="danger" text="Ditolak" />
                   <Badge v-else type="warning" text="Diproses" />
                 </td>
+                <td class="td-date">{{ formatDateTime(item.created_at) }}</td>
                 <td>
                   <Button v-if="item.discount_status === 'pending'" size="sm" @click="openModal(item)">Proses</Button>
                   <Button v-else size="sm" variant="outline" @click="openModal(item)">Lihat</Button>
@@ -322,6 +325,13 @@ onMounted(loadData)
 
               <div class="divider" />
 
+              <div class="timeline-box">
+                <div class="timeline-box__title">Riwayat Aktivitas</div>
+                <ActivityTimeline :logs="selectedItem.activity_logs || []" />
+              </div>
+
+              <div class="divider" />
+
               <Button variant="outline" class="btn-history-toggle" @click="loadHistory" :disabled="loadingHistory">
                 <History :size="16" style="margin-right: 6px;" />
                 <span>{{ loadingHistory ? 'Memuat...' : 'Riwayat Pengajuan Diskon' }}</span>
@@ -335,7 +345,7 @@ onMounted(loadData)
                       <Badge v-else-if="h.status === 'approved'" type="success" text="Disetujui" />
                       <Badge v-else type="danger" text="Ditolak" />
                     </span>
-                    <span class="history-date">{{ new Date(h.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
+                    <span class="history-date">{{ formatDateTime(h.created_at) }}</span>
                   </div>
                   <div class="history-item-body">
                     <div v-if="h.discount_request" class="history-row">
@@ -352,7 +362,10 @@ onMounted(loadData)
                     </div>
                     <div v-if="h.changed_by" class="history-row">
                       <span>Oleh</span>
-                      <span>{{ h.changed_by.name }}</span>
+                      <span class="history-actor">
+                        {{ h.changed_by.name }}
+                        <span class="history-actor-sub">{{ h.changed_by.email }}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -477,6 +490,7 @@ onMounted(loadData)
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
 .cell-title { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-date { white-space: nowrap; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .discount-req { font-weight: 600; color: #dc2626; }
 .discount-req-reason { font-size: 12px; color: #64748b; margin-top: 2px; max-width: 200px; }
@@ -527,6 +541,23 @@ onMounted(loadData)
 
 .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
 .history-item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.history-actor { display: flex; flex-direction: column; }
+.history-actor-sub { font-size: 11px; color: #94a3b8; }
+
+.timeline-box {
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.timeline-box__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
 .history-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .history-empty {
   font-size: 13px;

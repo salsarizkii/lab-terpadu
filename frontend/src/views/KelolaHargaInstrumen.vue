@@ -126,7 +126,6 @@ onMounted(loadItems)
           <table class="table">
             <thead>
               <tr>
-                <th class="th-nomor">No</th>
                 <th>Nama Instrumen</th>
                 <th>Satuan</th>
                 <th>Harga</th>
@@ -136,8 +135,7 @@ onMounted(loadItems)
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in filteredItems" :key="item.id" :class="{ 'row-editing': editingId === item.id }">
-                <td class="td-nomor">{{ index + 1 }}</td>
+              <tr v-for="item in filteredItems" :key="item.id" :class="{ 'row-editing': editingId === item.id }">
                 <td class="td-name">
                   <span v-if="editingId !== item.id">{{ item.name }}</span>
                   <input v-else v-model="editForm.name" class="inline-input" placeholder="Nama instrumen" />
@@ -178,7 +176,7 @@ onMounted(loadItems)
                 </td>
               </tr>
               <tr v-if="filteredItems.length === 0">
-                <td colspan="7" class="empty-cell">Tidak ada data instrumen</td>
+                <td colspan="6" class="empty-cell">Tidak ada data instrumen</td>
               </tr>
             </tbody>
           </table>
@@ -285,9 +283,7 @@ onMounted(loadItems)
 .table tr:hover { background: #f8fafc; }
 .table tr.row-editing { background: #eff6ff; }
 
-.th-nomor { width: 50px; }
 .th-aksi { width: 100px; text-align: center; }
-.td-nomor { text-align: center; color: #64748b; }
 .td-name { min-width: 280px; font-weight: 500; }
 .td-price { white-space: nowrap; font-weight: 600; color: #1e40af; }
 .td-aksi { text-align: center; }

@@ -11,6 +11,7 @@ import FlowSteps from '../components/user/FlowSteps.vue'
 import { PlusSquare } from '@lucide/vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import type { BeritaAcara } from '../types'
+import { formatDateTime } from '../utils/date'
 
 const router = useRouter()
 const items = ref<BeritaAcara[]>([])
@@ -92,7 +93,7 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
               >
                 <div class="history-left" @click="router.push(`/user/berita-acara/${item.id}`)">
                   <span class="history-title">{{ item.judul_penelitian || 'Tanpa Judul' }}</span>
-                  <span class="history-date">{{ new Date(item.created_at).toLocaleDateString('id-ID') }}</span>
+                  <span class="history-date">{{ formatDateTime(item.created_at) }}</span>
                 </div>
                 <div class="history-right">
                   <Badge

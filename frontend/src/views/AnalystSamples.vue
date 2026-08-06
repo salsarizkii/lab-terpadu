@@ -8,6 +8,7 @@ import SkeletonTable from '../components/common/SkeletonTable.vue'
 import { analystApi } from '../api/analyst'
 import type { BeritaAcara } from '../types'
 import { toast } from 'vue-sonner'
+import { formatDateTime } from '../utils/date'
 
 const router = useRouter()
 const items = ref<BeritaAcara[]>([])
@@ -108,17 +109,16 @@ function getJudul(item: BeritaAcara) {
           <table class="table">
             <thead>
               <tr>
-                <th class="th-nomor">No</th>
                 <th>Judul Penelitian</th>
                 <th>Pemohon</th>
                 <th>Status Hasil Pengujian</th>
                 <th>Nama Hasil Pengujian</th>
+                <th>Diajukan</th>
                 <th class="th-aksi">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in filtered" :key="item.id">
-                <td class="td-nomor">{{ index + 1 }}</td>
+              <tr v-for="item in filtered" :key="item.id">
                 <td class="td-judul">{{ getJudul(item) }}</td>
                 <td>{{ item.user?.name || '-' }}</td>
                 <td>
@@ -128,6 +128,7 @@ function getJudul(item: BeritaAcara) {
                   />
                 </td>
                 <td class="td-hasil pengujian">{{ getSampleNames(item) }}</td>
+                <td class="td-date">{{ formatDateTime(item.created_at) }}</td>
                 <td class="td-aksi">
                   <button class="eye-btn" @click="goToDetail(item.id)" title="Lihat Detail">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -167,9 +168,9 @@ function getJudul(item: BeritaAcara) {
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
-.th-nomor, .td-nomor { width: 50px; text-align: center; }
 .th-aksi, .td-aksi { width: 60px; text-align: center; }
 .td-judul { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-date { white-space: nowrap; }
 .td-hasil pengujian { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #64748b; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 

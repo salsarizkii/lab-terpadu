@@ -10,6 +10,7 @@ import { beritaAcaraApi } from '../api/beritaAcara'
 import type { Sample } from '../types'
 import { toast } from 'vue-sonner'
 import { Eye } from '@lucide/vue'
+import { formatDateTime } from '../utils/date'
 
 const samples = ref<Sample[]>([])
 const loading = ref(true)
@@ -62,6 +63,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 <th>Nama Hasil Pengujian</th>
                 <th>Jumlah</th>
                 <th>Rekap</th>
+                <th>Diajukan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -73,6 +75,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                   <span v-if="hasRekap(s)" class="rekap-badge">Selesai</span>
                   <span v-else class="text-muted">-</span>
                 </td>
+                <td class="td-date">{{ formatDateTime(s.created_at) }}</td>
                 <td>
                   <Button v-if="hasRekap(s)" size="sm" variant="outline" @click="selectedSample = s">
                     <Eye :size="14" style="margin-right:4px" /> Lihat Rekap
@@ -81,7 +84,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 </td>
               </tr>
               <tr v-if="samples.length === 0">
-                <td colspan="4" class="empty-cell">Belum ada hasil pengujian yang lunas</td>
+                <td colspan="5" class="empty-cell">Belum ada hasil pengujian yang lunas</td>
               </tr>
             </tbody>
           </table>
@@ -137,6 +140,7 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; padding: 12px; background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
 .table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+.td-date { white-space: nowrap; }
 .empty-cell { text-align: center; color: #94a3b8; padding: 40px; }
 .text-muted { color: #94a3b8; font-size: 13px; }
 .rekap-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #dcfce7; color: #15803d; }
