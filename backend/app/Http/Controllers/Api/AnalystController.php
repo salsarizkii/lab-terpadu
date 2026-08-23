@@ -372,4 +372,50 @@ class AnalystController extends Controller
             ], 422);
         }
     }
+
+    /**
+     * Upload or replace the upload_akses file for a berita_acara.
+     */
+    public function uploadAkses(Request $request, $id)
+    {
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
+
+        $request->validate([
+            'upload_akses' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+        ]);
+
+        $file = $request->file('upload_akses');
+        $path = $file->store('upload_akses', 'public');
+
+        $beritaAcara->update(['upload_akses' => $path]);
+
+        ActivityLogService::log($beritaAcara->id, 'upload_akses_updated', 'Memperbarui file Upload Akses');
+
+        return response()->json([
+            'message' => 'File berhasil diupload',
+            'data' => [
+                'upload_akses' => $path,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove the upload_akses file for a berita_acara.
+     */
+    public function removeAkses($id)
+    {
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
+
+        if ($beritaAcara->upload_akses && \Illuminate\Support\Facades\Storage::disk('public')->exists($beritaAcara->upload_akses)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($beritaAcara->upload_akses);
+        }
+
+        $beritaAcara->update(['upload_akses' => null]);
+
+        ActivityLogService::log($beritaAcara->id, 'upload_akses_removed', 'Menghapus file Upload Akses');
+
+        return response()->json([
+            'message' => 'File berhasil dihapus',
+        ]);
+    }
 }

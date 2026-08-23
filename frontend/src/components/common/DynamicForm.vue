@@ -87,6 +87,16 @@ function handleClickOutsideCheckbox(e: MouseEvent) {
   }
 }
 
+function getFileUrl(path: string): string {
+  if (path.startsWith('http')) return path
+  const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '')
+  return `${base}/storage/${path}`
+}
+
+function getFileName(path: string): string {
+  return path.split('/').pop() || path
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutsideCheckbox)
 })
@@ -244,7 +254,17 @@ defineExpose({ values, validate })
       <!-- File -->
       <div v-else-if="field.type === 'file'" :id="fieldId(field, i)" class="df-field" :class="{ 'df-field-error': hasError(field, i) }">
         <label class="df-label">{{ field.label }} <span v-if="field.is_required" class="df-required">*</span></label>
-        <input type="file" class="df-file" @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || null)" />
+        <div v-if="typeof values[fieldKey(field, i)] === 'string' && values[fieldKey(field, i)]" class="df-file-existing">
+          <a :href="getFileUrl(values[fieldKey(field, i)])" target="_blank" class="df-file-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+            {{ getFileName(values[fieldKey(field, i)]) }}
+          </a>
+          <label class="df-file-replace">
+            Ganti
+            <input type="file" class="df-file" @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || null)" />
+          </label>
+        </div>
+        <input v-else type="file" class="df-file" @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || null)" />
         <p v-if="hasError(field, i)" class="df-error-text">Pertanyaan ini wajib diisi</p>
       </div>
     </template>
@@ -395,6 +415,44 @@ defineExpose({ values, validate })
 .df-file {
   font-size: 14px;
   color: #475569;
+}
+
+.df-file-existing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.df-file-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: underline;
+}
+.df-file-link:hover {
+  color: #1d4ed8;
+}
+.df-file-replace {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+}
+.df-file-replace:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .df-field-error {

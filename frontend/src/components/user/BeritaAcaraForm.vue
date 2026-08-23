@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  submit: [data: { form_data: Record<string, any>; form_template_id: number | null }]
+  submit: [data: { form_data: Record<string, any>; form_template_id: number | null; templateFields: FormField[] }]
 }>()
 
 const templateFields = ref<FormField[]>([])
@@ -87,6 +87,7 @@ function handleSubmit() {
   emit('submit', {
     form_data: formValues.value,
     form_template_id: templateId.value,
+    templateFields: templateFields.value,
   })
 }
 </script>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FormTemplate;
+use App\Services\SystemActivityLogService;
 use Illuminate\Http\Request;
 
 class FormTemplateController extends Controller
@@ -39,6 +40,15 @@ class FormTemplateController extends Controller
 
         $template = FormTemplate::create($validated);
 
+        SystemActivityLogService::log(
+            'form_template_created',
+            "Membuat template form: {$template->name}",
+            FormTemplate::class,
+            $template->id,
+            null,
+            ['name' => $template->name, 'type' => $template->type]
+        );
+
         return response()->json([
             'message' => 'Template form berhasil dibuat',
             'data' => $template,
@@ -55,7 +65,18 @@ class FormTemplateController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
+        $oldData = ['name' => $template->name, 'is_active' => $template->is_active];
+
         $template->update($validated);
+
+        SystemActivityLogService::log(
+            'form_template_updated',
+            "Memperbarui template form: {$template->name}",
+            FormTemplate::class,
+            $template->id,
+            $oldData,
+            ['name' => $template->name, 'is_active' => $template->is_active]
+        );
 
         return response()->json([
             'message' => 'Template form berhasil diperbarui',
@@ -71,7 +92,18 @@ class FormTemplateController extends Controller
             return response()->json(['message' => 'Template default tidak dapat dihapus'], 403);
         }
 
+        $templateName = $template->name;
+        $templateId = $template->id;
         $template->delete();
+
+        SystemActivityLogService::log(
+            'form_template_deleted',
+            "Menghapus template form: {$templateName}",
+            FormTemplate::class,
+            $templateId,
+            ['name' => $templateName],
+            null
+        );
 
         return response()->json(['message' => 'Template form berhasil dihapus']);
     }
@@ -153,6 +185,15 @@ class FormTemplateController extends Controller
         }
 
         $template->load('fields');
+
+        SystemActivityLogService::log(
+            'form_template_fields_synced',
+            "Menyimpan field template form: {$template->name}",
+            FormTemplate::class,
+            $template->id,
+            null,
+            ['fields_count' => $template->fields->count()]
+        );
 
         return response()->json([
             'message' => 'Fields berhasil disimpan',

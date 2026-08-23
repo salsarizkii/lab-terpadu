@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Services\SystemActivityLogService;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -38,6 +39,15 @@ class RoleController extends Controller
         }
 
         $role->load('permissions');
+
+        SystemActivityLogService::log(
+            'role_created',
+            "Membuat role: {$role->name}",
+            Role::class,
+            $role->id,
+            null,
+            ['name' => $role->name, 'description' => $role->description, 'permissions' => $role->permissions->pluck('name')->toArray()]
+        );
 
         return response()->json([
             'message' => 'Role berhasil dibuat',
@@ -78,6 +88,8 @@ class RoleController extends Controller
         $permissionIds = $validated['permission_ids'] ?? [];
         unset($validated['permission_ids']);
 
+        $oldData = ['name' => $role->name, 'description' => $role->description, 'permissions' => $role->permissions->pluck('name')->toArray()];
+
         $role->update($validated);
 
         // Hanya sync jika permission_ids dikirim dalam request
@@ -86,6 +98,15 @@ class RoleController extends Controller
         }
 
         $role->load('permissions');
+
+        SystemActivityLogService::log(
+            'role_updated',
+            "Memperbarui role: {$role->name}",
+            Role::class,
+            $role->id,
+            $oldData,
+            ['name' => $role->name, 'description' => $role->description, 'permissions' => $role->permissions->pluck('name')->toArray()]
+        );
 
         return response()->json([
             'message' => 'Role berhasil diperbarui',
@@ -110,7 +131,17 @@ class RoleController extends Controller
             ], 422);
         }
 
+        $roleName = $role->name;
         $role->delete();
+
+        SystemActivityLogService::log(
+            'role_deleted',
+            "Menghapus role: {$roleName}",
+            Role::class,
+            $role->id,
+            ['name' => $roleName],
+            null
+        );
 
         return response()->json([
             'message' => 'Role berhasil dihapus',

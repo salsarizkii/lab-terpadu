@@ -9,12 +9,12 @@ import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
 import FormSelect from '../components/common/FormSelect.vue'
-import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { analystApi } from '../api/analyst'
 import { formulaApi, type Formula } from '../api/formula'
 import { formTemplateApi } from '../api/formTemplate'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
+import { Upload, X, FileText } from '@lucide/vue'
 import api from '../api/axios'
 
 const route = useRoute()
@@ -31,6 +31,9 @@ const formValues = ref<Record<string, any>>({})
 const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 const biaya = ref<string>('')
 const keterangan = ref('')
+
+const uploadAksesFile = ref<File | null>(null)
+const uploadingAkses = ref(false)
 
 const formulas = ref<Formula[]>([])
 
@@ -204,20 +207,49 @@ const hasExistingRekap = computed(() => {
   return Object.keys(item.value.rekap_analis_data).length > 0
 })
 
-function formatFieldKey(key: string): string {
-  const field = templateFields.value.find(f => `field_${f.id}` === key)
-  if (field) return field.label
-  return key.replace(/^field_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
-
-function formatFieldValue(val: any): string {
-  if (val === null || val === undefined) return '-'
-  if (Array.isArray(val)) return val.join(', ')
-  return String(val)
-}
-
 function formatPrice(val: number) {
   return new Intl.NumberFormat('id-ID').format(Math.round(val))
+}
+
+const uploadAksesPath = computed(() => item.value?.upload_akses || null)
+const uploadAksesUrl = computed(() => {
+  if (!uploadAksesPath.value) return null
+  return `/storage/${uploadAksesPath.value}`
+})
+
+function onAksesFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  uploadAksesFile.value = input.files?.[0] || null
+}
+
+async function handleUploadAkses() {
+  if (!uploadAksesFile.value || !item.value) return
+  uploadingAkses.value = true
+  try {
+    const result = await analystApi.uploadAkses(item.value.id, uploadAksesFile.value)
+    if (item.value) {
+      item.value = { ...item.value, upload_akses: result.upload_akses }
+    }
+    uploadAksesFile.value = null
+    toast.success('File Upload Akses berhasil diupload')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal upload file')
+  } finally {
+    uploadingAkses.value = false
+  }
+}
+
+async function handleRemoveAkses() {
+  if (!item.value) return
+  try {
+    await analystApi.removeAkses(item.value.id)
+    if (item.value) {
+      item.value = { ...item.value, upload_akses: undefined }
+    }
+    toast.success('File Upload Akses berhasil dihapus')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menghapus file')
+  }
 }
 
 onMounted(async () => {
@@ -379,28 +411,6 @@ async function handleSubmit() {
       <SkeletonDetail v-if="loading" />
 
       <template v-else-if="item">
-        <Card title="Data Berita Acara" style="margin-bottom: 24px;">
-          <table class="detail-table">
-            <template v-if="item.form_data && Object.keys(item.form_data).length > 0">
-              <tr v-for="(value, key) in item.form_data" :key="String(key)">
-                <td class="detail-td-label">{{ formatFieldKey(String(key)) }}</td>
-                <td class="detail-td-value">{{ formatFieldValue(value) }}</td>
-              </tr>
-            </template>
-            <template v-else>
-              <tr><td class="detail-td-label">Nama Pemohon</td><td class="detail-td-value">{{ item.nama_pemohon || '-' }}</td></tr>
-              <tr><td class="detail-td-label">NIM</td><td class="detail-td-value">{{ item.nim || '-' }}</td></tr>
-              <tr><td class="detail-td-label">Judul Penelitian</td><td class="detail-td-value">{{ item.judul_penelitian || '-' }}</td></tr>
-              <tr><td class="detail-td-label">Email</td><td class="detail-td-value">{{ item.email || '-' }}</td></tr>
-              <tr><td class="detail-td-label">Telp/HP</td><td class="detail-td-value">{{ item.telp_hp || '-' }}</td></tr>
-            </template>
-          </table>
-        </Card>
-
-        <Card title="Riwayat Aktivitas" style="margin-bottom: 24px;">
-          <ActivityTimeline :logs="item.activity_logs || []" />
-        </Card>
-
         <Card title="Formulir Rekap Analis">
           <SkeletonDetail v-if="loadingTemplate" />
           <div v-else-if="templateFields.length === 0" class="empty-state">
@@ -416,6 +426,57 @@ async function handleSubmit() {
               :initial-data="getInitialData()"
               @update:values="handleValuesUpdate"
             />
+
+            <!-- Upload Akses Section -->
+            <div class="akses-section">
+              <label class="akses-label">Upload Akses</label>
+              <p class="akses-desc">File akses yang diupload saat pembuatan berita acara.</p>
+
+              <!-- Existing file -->
+              <div v-if="uploadAksesPath && !uploadAksesFile" class="akses-file-preview">
+                <div class="akses-file-info">
+                  <FileText :size="18" class="akses-file-icon" />
+                  <a :href="uploadAksesUrl" target="_blank" class="akses-file-name">
+                    {{ uploadAksesPath.split('/').pop() }}
+                  </a>
+                </div>
+                <div class="akses-file-actions">
+                  <label class="akses-btn-replace">
+                    <Upload :size="14" />
+                    Ganti
+                    <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onAksesFileChange" />
+                  </label>
+                  <button class="akses-btn-remove" @click="handleRemoveAkses" title="Hapus file">
+                    <X :size="14" />
+                  </button>
+                </div>
+              </div>
+
+              <!-- New file selected -->
+              <div v-else-if="uploadAksesFile" class="akses-file-selected">
+                <div class="akses-file-info">
+                  <FileText :size="18" class="akses-file-icon" />
+                  <span class="akses-file-name">{{ uploadAksesFile.name }}</span>
+                  <span class="akses-file-size">({{ (uploadAksesFile.size / 1024).toFixed(1) }} KB)</span>
+                </div>
+                <div class="akses-file-actions">
+                  <Button size="sm" :disabled="uploadingAkses" @click="handleUploadAkses">
+                    {{ uploadingAkses ? 'Mengupload...' : 'Upload' }}
+                  </Button>
+                  <button class="akses-btn-cancel" @click="uploadAksesFile = null">Batal</button>
+                </div>
+              </div>
+
+              <!-- No file yet -->
+              <div v-else class="akses-upload-area">
+                <label class="akses-upload-trigger">
+                  <Upload :size="16" />
+                  <span>Pilih file untuk diupload</span>
+                  <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onAksesFileChange" />
+                </label>
+                <span class="akses-hint">PDF, JPG, PNG, DOC, DOCX (maks 10MB)</span>
+              </div>
+            </div>
 
             <div class="biaya-section">
               <label class="biaya-label">Biaya Pengujian</label>
@@ -528,12 +589,6 @@ async function handleSubmit() {
 .page-header__left { display: flex; align-items: center; gap: 12px; }
 .page-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 
-.detail-table { width: 100%; border-collapse: collapse; }
-.detail-table tr { border-bottom: 1px solid #f1f5f9; }
-.detail-table tr:last-child { border-bottom: none; }
-.detail-td-label { padding: 10px 16px 10px 0; font-size: 13px; font-weight: 500; color: #64748b; white-space: nowrap; width: 180px; }
-.detail-td-value { padding: 10px 0; font-size: 14px; color: #1e293b; }
-
 .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
 .form-desc { margin: 0 0 20px; font-size: 14px; color: #64748b; }
 .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
@@ -608,4 +663,147 @@ async function handleSubmit() {
 .discount-table tr:last-child { border-bottom: none; }
 .discount-td-label { padding: 8px 12px 8px 0; font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap; }
 .discount-td-value { padding: 8px 0; font-size: 13px; color: #1e293b; }
+
+/* Upload Akses Section */
+.akses-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+}
+.akses-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 4px;
+}
+.akses-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 12px;
+}
+.akses-file-preview,
+.akses-file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.akses-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.akses-file-icon {
+  color: #0369a1;
+  flex-shrink: 0;
+}
+.akses-file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  text-decoration: underline;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.akses-file-name:hover {
+  color: #2563eb;
+}
+.akses-file-size {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.akses-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.akses-btn-replace {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.akses-btn-replace:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.akses-btn-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.akses-btn-remove:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+.akses-btn-cancel {
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+.akses-btn-cancel:hover {
+  background: #f1f5f9;
+}
+.akses-input-hidden {
+  display: none;
+}
+.akses-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.akses-upload-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 2px dashed #bae6fd;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0369a1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.akses-upload-trigger:hover {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+}
+.akses-hint {
+  font-size: 11px;
+  color: #94a3b8;
+}
 </style>

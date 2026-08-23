@@ -97,4 +97,19 @@ export const analystApi = {
     )
     return data.data || data
   },
+
+  async uploadAkses(beritaAcaraId: number, file: File): Promise<{ upload_akses: string }> {
+    const formData = new FormData()
+    formData.append('upload_akses', file)
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/upload-akses`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return data.data
+  },
+
+  async removeAkses(beritaAcaraId: number): Promise<void> {
+    await api.delete(`/analyst/berita-acara/${beritaAcaraId}/upload-akses`)
+  },
 }

@@ -27,6 +27,9 @@ Route::middleware('api.token')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::put('/auth/password', [AuthController::class, 'changePassword']);
 
+    // Generic file upload
+    Route::post('/upload-file', [\App\Http\Controllers\Api\UploadController::class, 'store']);
+
     // Public read-only instrument prices (for form dropdowns)
     Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);
 
@@ -117,6 +120,9 @@ Route::middleware('api.token')->group(function () {
         Route::put('/users/{id}/deactivate', [AdminController::class, 'deactivateUser'])
             ->middleware('permission:user_verify');
 
+        // System activity logs
+        Route::get('/system-activity-logs', [AdminController::class, 'systemActivityLogs']);
+
         Route::apiResource('/form-templates', FormTemplateController::class)
             ->middleware('permission:form_manage_berita_acara');
         Route::put('/form-templates/{id}/fields', [FormTemplateController::class, 'syncFields'])
@@ -166,6 +172,12 @@ Route::middleware('api.token')->group(function () {
 
         // Rekap Analis — permission: hasil_pengujian_rekap
         Route::put('/berita-acara/{id}/rekap-analis', [AnalystController::class, 'storeRekapAnalis'])
+            ->middleware('permission:hasil_pengujian_rekap');
+
+        // Upload Akses file
+        Route::post('/berita-acara/{id}/upload-akses', [AnalystController::class, 'uploadAkses'])
+            ->middleware('permission:hasil_pengujian_rekap');
+        Route::delete('/berita-acara/{id}/upload-akses', [AnalystController::class, 'removeAkses'])
             ->middleware('permission:hasil_pengujian_rekap');
 
         // Discount Request — permission: hasil_pengujian_rekap

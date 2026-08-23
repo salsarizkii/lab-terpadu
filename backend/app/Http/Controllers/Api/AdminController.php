@@ -7,8 +7,10 @@ use App\Models\BeritaAcara;
 use App\Models\BeritaAcaraRevision;
 use App\Models\Payment;
 use App\Models\Sample;
+use App\Models\SystemActivityLog;
 use App\Models\User;
 use App\Services\ActivityLogService;
+use App\Services\SystemActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -384,11 +386,22 @@ class AdminController extends Controller
             return response()->json(['message' => 'Tidak dapat mengubah status superadmin'], 403);
         }
 
+        $old = ['is_verified' => $user->is_verified];
+
         $user->update([
             'is_verified' => $request->is_verified,
         ]);
 
         $status = $request->is_verified ? 'diverifikasi' : 'ditolak';
+
+        SystemActivityLogService::log(
+            'user_verified',
+            "Akun {$user->name} berhasil {$status}",
+            User::class,
+            $user->id,
+            $old,
+            ['is_verified' => $request->is_verified]
+        );
 
         return response()->json([
             'message' => "Akun {$user->name} berhasil {$status}",
@@ -404,12 +417,52 @@ class AdminController extends Controller
             return response()->json(['message' => 'Tidak dapat menonaktifkan akun superadmin'], 403);
         }
 
+        $old = ['is_verified' => $user->is_verified];
+
         $user->update(['is_verified' => false]);
+
+        SystemActivityLogService::log(
+            'user_deactivated',
+            "Akun {$user->name} berhasil dinonaktifkan",
+            User::class,
+            $user->id,
+            $old,
+            ['is_verified' => false]
+        );
 
         return response()->json([
             'message' => "Akun {$user->name} berhasil dinonaktifkan",
             'data' => $user,
         ]);
+    }
+
+    /**
+     * Get system activity logs (audit trail).
+     */
+    public function systemActivityLogs(Request $request)
+    {
+        $query = SystemActivityLog::with('user:id,name,email,role');
+
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('action', 'like', "%{$search}%");
+            });
+        }
+
+        $logs = $query->orderByDesc('created_at')
+            ->paginate($request->input('per_page', 30));
+
+        return response()->json($logs);
     }
 }
 

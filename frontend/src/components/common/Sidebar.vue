@@ -11,7 +11,8 @@ import {
   KeyRound,
   Users,
   Award,
-  BadgePercent
+  BadgePercent,
+  History
 } from '@lucide/vue'
 
 const auth = useAuthStore()
@@ -81,6 +82,11 @@ const menuItems = computed(() => {
   // Kelola Pengguna
   if (auth.hasPermission('user_view')) {
     items.push({ label: 'Kelola Pengguna', path: '/admin/users', icon: Users })
+  }
+
+  // Log Aktivitas
+  if (auth.hasPermission('user_view')) {
+    items.push({ label: 'Log Aktivitas', path: '/admin/activity-log', icon: History })
   }
 
   return items

@@ -143,6 +143,12 @@ const routes = [
     meta: { auth: true, permission: 'discount_verifikasi', permissionOr: 'discount_riwayat_semua,discount_riwayat_personal' },
   },
   {
+    path: '/admin/activity-log',
+    name: 'AdminSystemActivityLog',
+    component: () => import('../views/AdminSystemActivityLog.vue'),
+    meta: { auth: true, permission: 'user_view' },
+  },
+  {
     path: '/analyst/dashboard',
     name: 'AnalystDashboard',
     component: () => import('../views/AnalystDashboard.vue'),

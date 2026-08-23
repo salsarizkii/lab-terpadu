@@ -229,3 +229,16 @@ export interface PdfTemplate {
   updated_at?: string
 }
 
+export interface SystemActivityLog {
+  id: number
+  user_id?: number | null
+  action: string
+  subject_type?: string | null
+  subject_id?: number | null
+  description?: string | null
+  old_values?: Record<string, any> | null
+  new_values?: Record<string, any> | null
+  user?: User
+  created_at: string
+}
+

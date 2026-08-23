@@ -9,6 +9,7 @@ import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { formTemplateApi } from '../api/formTemplate'
 import { instrumentPriceApi } from '../api/instrumentPrice'
+import { uploadApi } from '../api/upload'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
@@ -104,10 +105,31 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const cleanedFormData = { ...formValues.value }
+    let uploadAksesPath: string | null = null
+    for (const [key, value] of Object.entries(cleanedFormData)) {
+      if (value instanceof File) {
+        try {
+          const uploaded = await uploadApi.uploadFile(value, 'berita-acara')
+          cleanedFormData[key] = uploaded.path
+          const field = templateFields.value.find(f => `field_${f.id}` === key || `field_${templateFields.value.indexOf(f)}` === key)
+          if (field && field.label && field.label.toLowerCase().includes('upload akses')) {
+            uploadAksesPath = uploaded.path
+          }
+        } catch {
+          toast.error(`Gagal mengupload file: ${value.name}`)
+          submitting.value = false
+          return
+        }
+      }
+    }
     const fd = new FormData()
-    fd.append('form_data', JSON.stringify(formValues.value))
+    fd.append('form_data', JSON.stringify(cleanedFormData))
     if (templateId.value) {
       fd.append('form_template_id', String(templateId.value))
+    }
+    if (uploadAksesPath) {
+      fd.append('upload_akses', uploadAksesPath)
     }
     await beritaAcaraApi.update(item.value.id, fd)
     localStorage.removeItem(`ba_perbaiki_${item.value.id}`)

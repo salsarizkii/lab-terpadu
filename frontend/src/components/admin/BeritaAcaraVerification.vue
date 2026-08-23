@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import Button from '../common/Button.vue'
 import Badge from '../common/Badge.vue'
 import { formTemplateApi } from '../../api/formTemplate'
+import { useAuthStore } from '../../stores/authStore'
 import type { BeritaAcara, FormField } from '../../types'
 
 const props = defineProps<{
@@ -13,8 +14,12 @@ const emit = defineEmits<{
   submit: [data: { status: string }]
 }>()
 
+const auth = useAuthStore()
 const loading = ref(false)
 const templateFields = ref<FormField[]>([])
+
+const verifierName = computed(() => auth.user?.name || '-')
+const verifierEmail = computed(() => auth.user?.email || '-')
 
 function handleSubmit() {
   loading.value = true
@@ -132,6 +137,14 @@ watch(() => props.beritaAcara, () => {
         <span class="verification__label">Status Saat Ini</span>
         <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
       </div>
+      <div class="verification__divider" />
+      <div class="verification__row">
+        <span class="verification__label">Diverifikasi Oleh</span>
+        <span class="verification__value">
+          <span class="verification__verifier-name">{{ verifierName }}</span>
+          <span class="verification__verifier-email">{{ verifierEmail }}</span>
+        </span>
+      </div>
     </div>
     <div class="verification__actions">
       <Button :disabled="loading" @click="handleSubmit">
@@ -172,6 +185,20 @@ watch(() => props.beritaAcara, () => {
 .verification__email {
   color: #64748b;
   font-size: 13px;
+}
+.verification__divider {
+  margin: 10px 0;
+  border-top: 1px dashed #e2e8f0;
+}
+.verification__verifier-name {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+.verification__verifier-email {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 2px;
 }
 .verification__actions {
   display: flex;

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\Formula;
 use App\Services\CostCalculationService;
+use App\Services\SystemActivityLogService;
 use Illuminate\Http\Request;
 
 class FormulaController extends Controller
@@ -34,6 +35,15 @@ class FormulaController extends Controller
 
         $formula = Formula::create($validated);
 
+        SystemActivityLogService::log(
+            'formula_created',
+            "Membuat rumus: {$formula->name}",
+            Formula::class,
+            $formula->id,
+            null,
+            ['name' => $formula->name, 'expression' => $formula->expression]
+        );
+
         return response()->json([
             'message' => 'Rumus berhasil disimpan',
             'data' => $formula,
@@ -58,7 +68,18 @@ class FormulaController extends Controller
             'variables' => 'sometimes|array',
         ]);
 
+        $oldData = ['name' => $formula->name, 'expression' => $formula->expression];
+
         $formula->update($validated);
+
+        SystemActivityLogService::log(
+            'formula_updated',
+            "Memperbarui rumus: {$formula->name}",
+            Formula::class,
+            $formula->id,
+            $oldData,
+            ['name' => $formula->name, 'expression' => $formula->expression]
+        );
 
         return response()->json([
             'message' => 'Rumus berhasil diperbarui',
@@ -69,7 +90,17 @@ class FormulaController extends Controller
     public function destroy($id)
     {
         $formula = Formula::findOrFail($id);
+        $formulaName = $formula->name;
         $formula->delete();
+
+        SystemActivityLogService::log(
+            'formula_deleted',
+            "Menghapus rumus: {$formulaName}",
+            Formula::class,
+            $formula->id,
+            ['name' => $formulaName],
+            null
+        );
 
         return response()->json(['message' => 'Rumus berhasil dihapus']);
     }

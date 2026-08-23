@@ -1,5 +1,5 @@
 import api from './axios'
-import type { BeritaAcara, Payment, Sample, User } from '../types'
+import type { BeritaAcara, Payment, Sample, User, SystemActivityLog } from '../types'
 
 export const adminApi = {
   async getBeritaAcara(params?: Record<string, any>): Promise<BeritaAcara[]> {
@@ -163,6 +163,17 @@ export const adminApi = {
 
   async getDiscountHistory(id: number): Promise<any[]> {
     const { data } = await api.get(`/admin/discounts/${id}/history`)
+    return data
+  },
+
+  async getSystemActivityLogs(params?: { page?: number; per_page?: number; action?: string; user_id?: number; search?: string }): Promise<{
+    data: SystemActivityLog[]
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }> {
+    const { data } = await api.get('/admin/system-activity-logs', { params })
     return data
   },
 }

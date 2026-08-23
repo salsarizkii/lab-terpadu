@@ -8,6 +8,7 @@ use App\Models\Certificate;
 use App\Models\Payment;
 use App\Models\PdfTemplate;
 use App\Services\PdfGeneratorService;
+use App\Services\SystemActivityLogService;
 use Database\Seeders\PdfTemplateSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -79,6 +80,15 @@ class PdfTemplateController extends Controller
             array_merge($validated, ['created_by' => auth()->id()])
         );
 
+        SystemActivityLogService::log(
+            'pdf_template_updated',
+            "Memperbarui template PDF: {$type}",
+            PdfTemplate::class,
+            $template->id,
+            null,
+            ['type' => $type]
+        );
+
         return response()->json([
             'status' => 'success',
             'message' => 'Template PDF berhasil diperbarui',
@@ -123,6 +133,15 @@ class PdfTemplateController extends Controller
                 }
                 $template->save();
             }
+
+            SystemActivityLogService::log(
+                'pdf_template_imported_docx',
+                "Mengimpor DOCX ke template PDF: {$type}",
+                PdfTemplate::class,
+                $template->id ?? null,
+                null,
+                ['type' => $type]
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -236,6 +255,15 @@ class PdfTemplateController extends Controller
         (new PdfTemplateSeeder())->run();
 
         $template = PdfTemplate::where('type', $type)->first();
+
+        SystemActivityLogService::log(
+            'pdf_template_reset',
+            "Meriset template PDF ke versi awal: {$type}",
+            PdfTemplate::class,
+            $template->id ?? null,
+            null,
+            ['type' => $type]
+        );
 
         return response()->json([
             'status' => 'success',

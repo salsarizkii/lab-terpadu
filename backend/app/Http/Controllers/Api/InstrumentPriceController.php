@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\InstrumentPrice;
+use App\Services\SystemActivityLogService;
 use Illuminate\Http\Request;
 
 class InstrumentPriceController extends Controller
@@ -27,6 +28,15 @@ class InstrumentPriceController extends Controller
 
         $instrument = InstrumentPrice::create($validated);
 
+        SystemActivityLogService::log(
+            'instrument_price_created',
+            "Menambahkan instrumen: {$instrument->name}",
+            InstrumentPrice::class,
+            $instrument->id,
+            null,
+            ['name' => $instrument->name, 'price_regular' => $instrument->price_regular, 'price_uns' => $instrument->price_uns]
+        );
+
         return response()->json([
             'message' => 'Instrumen berhasil ditambahkan',
             'data' => $instrument,
@@ -46,7 +56,18 @@ class InstrumentPriceController extends Controller
             'sort_order' => 'nullable|integer|min:0',
         ]);
 
+        $oldData = ['name' => $instrument->name, 'price_regular' => $instrument->price_regular, 'price_uns' => $instrument->price_uns];
+
         $instrument->update($validated);
+
+        SystemActivityLogService::log(
+            'instrument_price_updated',
+            "Memperbarui instrumen: {$instrument->name}",
+            InstrumentPrice::class,
+            $instrument->id,
+            $oldData,
+            ['name' => $instrument->name, 'price_regular' => $instrument->price_regular, 'price_uns' => $instrument->price_uns]
+        );
 
         return response()->json([
             'message' => 'Instrumen berhasil diperbarui',
@@ -57,7 +78,17 @@ class InstrumentPriceController extends Controller
     public function destroy($id)
     {
         $instrument = InstrumentPrice::findOrFail($id);
+        $instrumentName = $instrument->name;
         $instrument->delete();
+
+        SystemActivityLogService::log(
+            'instrument_price_deleted',
+            "Menghapus instrumen: {$instrumentName}",
+            InstrumentPrice::class,
+            $instrument->id,
+            ['name' => $instrumentName],
+            null
+        );
 
         return response()->json([
             'message' => 'Instrumen berhasil dihapus',
@@ -79,6 +110,11 @@ class InstrumentPriceController extends Controller
                 'price_uns' => $item['price_uns'] ?? null,
             ]);
         }
+
+        SystemActivityLogService::log(
+            'instrument_prices_bulk_updated',
+            'Memperbarui harga instrumen secara massal'
+        );
 
         return response()->json([
             'message' => 'Harga instrumen berhasil diperbarui',
