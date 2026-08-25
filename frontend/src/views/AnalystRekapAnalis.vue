@@ -6,6 +6,7 @@ import PageHeader from '../components/common/PageHeader.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
 import Button from '../components/common/Button.vue'
+import Modal from '../components/common/Modal.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import DynamicForm from '../components/common/DynamicForm.vue'
 import FormSelect from '../components/common/FormSelect.vue'
@@ -14,7 +15,7 @@ import { formulaApi, type Formula } from '../api/formula'
 import { formTemplateApi } from '../api/formTemplate'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
-import { Upload, X, FileText } from '@lucide/vue'
+import { Upload, X, FileText, Eye, Download } from '@lucide/vue'
 import api from '../api/axios'
 
 const route = useRoute()
@@ -214,8 +215,12 @@ function formatPrice(val: number) {
 const uploadAksesPath = computed(() => item.value?.upload_akses || null)
 const uploadAksesUrl = computed(() => {
   if (!uploadAksesPath.value) return null
-  return `/storage/${uploadAksesPath.value}`
+  const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '')
+  return `${base}/storage/${uploadAksesPath.value}`
 })
+const uploadAksesFileName = computed(() => uploadAksesPath.value?.split('/').pop() || '')
+const uploadAksesIsImage = computed(() => /\.(jpg|jpeg|png|gif|webp)$/i.test(uploadAksesFileName.value))
+const showPreviewModal = ref(false)
 
 function onAksesFileChange(e: Event) {
   const input = e.target as HTMLInputElement
@@ -436,11 +441,15 @@ async function handleSubmit() {
               <div v-if="uploadAksesPath && !uploadAksesFile" class="akses-file-preview">
                 <div class="akses-file-info">
                   <FileText :size="18" class="akses-file-icon" />
-                  <a :href="uploadAksesUrl" target="_blank" class="akses-file-name">
-                    {{ uploadAksesPath.split('/').pop() }}
-                  </a>
+                  <span class="akses-file-name">{{ uploadAksesFileName }}</span>
                 </div>
                 <div class="akses-file-actions">
+                  <button class="akses-btn-icon" title="Preview" @click="showPreviewModal = true">
+                    <Eye :size="14" />
+                  </button>
+                  <a :href="uploadAksesUrl" :download="uploadAksesFileName" class="akses-btn-icon" title="Download">
+                    <Download :size="14" />
+                  </a>
                   <label class="akses-btn-replace">
                     <Upload :size="14" />
                     Ganti
@@ -582,6 +591,22 @@ async function handleSubmit() {
       </template>
     </div>
   </AppLayout>
+
+  <!-- Preview Modal -->
+  <Modal :show="showPreviewModal" :title="uploadAksesFileName" size="lg" @close="showPreviewModal = false">
+    <div class="preview-container">
+      <img v-if="uploadAksesIsImage" :src="uploadAksesUrl" :alt="uploadAksesFileName" class="preview-image" />
+      <div v-else class="preview-frame-wrap">
+        <iframe :src="uploadAksesUrl" class="preview-iframe" frameborder="0" />
+      </div>
+    </div>
+    <template #footer>
+      <a :href="uploadAksesUrl" :download="uploadAksesFileName" class="preview-download-btn">
+        <Download :size="14" />
+        Download
+      </a>
+    </template>
+  </Modal>
 </template>
 
 <style scoped>
@@ -764,6 +789,25 @@ async function handleSubmit() {
   border-color: #fecaca;
   color: #dc2626;
 }
+.akses-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.akses-btn-icon:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
 .akses-btn-cancel {
   padding: 5px 10px;
   border: 1px solid #e2e8f0;
@@ -805,5 +849,51 @@ async function handleSubmit() {
 .akses-hint {
   font-size: 11px;
   color: #94a3b8;
+}
+
+/* Preview Modal */
+.preview-container {
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.preview-frame-wrap {
+  width: 100%;
+  height: 70vh;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.preview-iframe {
+  width: 300%;
+  height: 100%;
+  margin-left: -100%;
+  border: none;
+}
+.preview-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.preview-download-btn:hover {
+  background: #1d4ed8;
 }
 </style>

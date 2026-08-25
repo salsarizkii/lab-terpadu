@@ -156,6 +156,8 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:form_manage_berita_acara');
         Route::post('/pdf-templates/{type}/preview', [PdfTemplateController::class, 'preview'])
             ->middleware('permission:form_manage_berita_acara');
+        Route::post('/pdf-templates/{type}/preview-docx', [PdfTemplateController::class, 'previewDocx'])
+            ->middleware('permission:form_manage_berita_acara');
     });
 
     Route::middleware('api.token:berita_acara_riwayat_semua,hasil_pengujian_rekap,hasil_pengujian_riwayat_personal')->prefix('/analyst')->group(function () {
@@ -201,6 +203,9 @@ Route::middleware('api.token')->group(function () {
 
     // Public/Authenticated PDF Download
     Route::get('/pdf-generate/{type}/{id}', [PdfTemplateController::class, 'generate']);
+
+    // Public/Authenticated Word (.docx) Download — data asli terisi
+    Route::get('/docx-generate/{type}/{id}', [PdfTemplateController::class, 'generateDocx']);
 
     // Superadmin routes for role and user management
     Route::middleware('api.token:superadmin')->prefix('/admin')->group(function () {

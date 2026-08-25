@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue'
 import { FileText, Save, Eye, CloudUpload, FileCode, PenLine, RotateCcw, FileDown, BookOpen, RefreshCw } from '@lucide/vue'
 import Button from './Button.vue'
 import { pdfTemplateApi } from '../../api/pdfTemplate'
 import type { PdfTemplate, PdfVariableGroup } from '../../types'
 import { toast } from 'vue-sonner'
+import { renderAsync } from 'docx-preview'
 
 const activeType = ref<string>('berita_acara')
 const activeTab = ref<string>('upload')
@@ -17,6 +18,8 @@ const uploadProgress = ref(0)
 const resetting = ref(false)
 const downloading = ref(false)
 const previewUrl = ref<string | null>(null)
+const previewMode = ref<'docx' | 'pdf' | null>(null)
+const previewContainer = ref<HTMLElement | null>(null)
 const previewLoading = ref(false)
 const variableSearch = ref('')
 const copiedKey = ref<string | null>(null)
@@ -50,7 +53,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  clearPreview()
 })
 
 watch(activeTab, (tab) => {
@@ -62,11 +65,17 @@ watch(activeTab, (tab) => {
 function handleTypeChange(type: string) {
   activeType.value = type
   activeTab.value = 'upload'
+  clearPreview()
+  loadTemplate(type)
+}
+
+function clearPreview() {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = null
   }
-  loadTemplate(type)
+  previewMode.value = null
+  if (previewContainer.value) previewContainer.value.innerHTML = ''
 }
 
 async function loadTemplate(type: string) {
@@ -97,14 +106,35 @@ async function refreshPreview() {
   if (!template.value) return
   previewLoading.value = true
   try {
+    // Template punya file Word → render .docx asli (persis Word, tanpa LibreOffice).
+    if (template.value.docx_path) {
+      const blob = await pdfTemplateApi.previewDocx(activeType.value, buildPreviewPayload())
+      clearPreview()
+      previewMode.value = 'docx'
+      await renderDocx(blob)
+      return
+    }
+
+    // Fallback: pratinjau PDF dari rendering HTML (template tanpa file Word).
+    previewMode.value = 'pdf'
     const blob = await pdfTemplateApi.preview(activeType.value, buildPreviewPayload())
     if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = URL.createObjectURL(blob)
   } catch (err: any) {
-    toast.error(err.response?.data?.message || 'Gagal memuat pratinjau PDF')
+    toast.error(err.response?.data?.message || 'Gagal memuat pratinjau')
   } finally {
     previewLoading.value = false
   }
+}
+
+async function renderDocx(blob: Blob) {
+  await nextTick()
+  if (!previewContainer.value) return
+  previewContainer.value.innerHTML = ''
+  await renderAsync(blob, previewContainer.value, undefined, {
+    inWrapper: true,
+    breakPages: true,
+  })
 }
 
 async function handleSave() {
@@ -173,6 +203,7 @@ async function handleUploadDocx(event: Event) {
       template.value = { ...template.value, ...res.data, html_content: res.html_content }
       uploadProgress.value = 100
       toast.success('Template Word berhasil diunggah!')
+      clearPreview()
     }
   } catch (err: any) {
     toast.error(err.response?.data?.message || 'Gagal mengunggah file Word')
@@ -247,7 +278,8 @@ function copyVariableKey(key: string) {
             <CloudUpload :size="18" /> Upload File Template Word (.docx)
           </h3>
           <p class="pte-section-desc">
-            Unggah file Word yang berisi tata letak dokumen. Gunakan tag <code>&lt;&lt;nama_variabel&gt;&gt;</code> agar data terisi otomatis.
+            Unggah file Word yang menjadi sumber dokumen: hasilnya <strong>sama persis dengan Word</strong>,
+            hanya tag <code>&lt;&lt;nama_variabel&gt;&gt;</code> yang diganti data. Tidak ada konversi HTML.
           </p>
 
           <label
@@ -354,7 +386,10 @@ function copyVariableKey(key: string) {
             <Eye :size="18" />
             <div>
               <h3 class="pte-section-title">Pratinjau Dokumen: {{ template.name }}</h3>
-              <p class="pte-section-desc pte-preview-sub">Tampilan PDF menggunakan data contoh. Perbarui setelah mengubah template atau catatan.</p>
+              <p class="pte-section-desc pte-preview-sub">
+                Pratinjau dirender langsung dari file Word template (persis seperti Word, hanya nilai yang diganti).
+                Gunakan data contoh. Jika template belum punya file Word, pratinjau memakai rendering HTML.
+              </p>
             </div>
           </div>
           <div class="pte-preview-actions">
@@ -367,13 +402,14 @@ function copyVariableKey(key: string) {
           </div>
         </div>
         <div class="pte-preview-frame">
-          <iframe v-if="previewUrl" :src="previewUrl" class="pte-iframe-inline" title="Pratinjau PDF"></iframe>
+          <div v-if="previewMode === 'docx'" ref="previewContainer" class="pte-docx-container"></div>
+          <iframe v-else-if="previewUrl" :src="previewUrl" class="pte-iframe-inline" title="Pratinjau PDF"></iframe>
           <div v-else class="pte-preview-empty">
             <Eye :size="32" />
             <p>Pratinjau akan muncul di sini...</p>
           </div>
           <div v-if="previewLoading" class="pte-preview-loading">
-            <RefreshCw :size="16" class="pte-spin" /> Memperbarui pratinjau...
+            <RefreshCw :size="16" class="pte-spin" /> Merender pratinjau dari template Word...
           </div>
         </div>
       </div>
@@ -521,6 +557,20 @@ function copyVariableKey(key: string) {
   height: 70vh; min-height: 480px; overflow: hidden;
 }
 .pte-iframe-inline { width: 100%; height: 100%; border: none; }
+.pte-docx-container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: #e5e7eb;
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: center;
+}
+.pte-docx-container :deep(.docx-wrapper) { text-align: left; display: inline-block; }
+.pte-docx-container :deep(.docx-wrapper > section.docx) {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  margin: 0 auto 16px;
+}
 .pte-preview-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px; height: 100%; color: #94a3b8; font-size: 13px;

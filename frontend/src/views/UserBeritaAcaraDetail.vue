@@ -11,6 +11,7 @@ import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
+import UploadAksesView from '../components/common/UploadAksesView.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { paymentApi } from '../api/payment'
 import { certificateApi } from '../api/certificate'
@@ -57,6 +58,18 @@ function getLabelForKey(key: string): string {
   if (field) return field.label
   return key.replace(/^field_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
+
+const formDataHasSisaKey = computed(() => {
+  const fd = item.value?.form_data
+  if (!fd) return false
+  return Object.keys(fd).some(key => getLabelForKey(key).toLowerCase().includes('sisa'))
+})
+
+const formDataHasUploadAksesKey = computed(() => {
+  const fd = item.value?.form_data
+  if (!fd) return false
+  return Object.keys(fd).some(key => getLabelForKey(key).toLowerCase().includes('upload akses'))
+})
 
 function formatFieldValue(value: any): string {
   if (value === null || value === undefined) return '-'
@@ -147,6 +160,21 @@ function downloadPdfSertifikat() {
   window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
 }
 
+function downloadDocxBeritaAcara() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('berita_acara', item.value.id), '_blank')
+}
+
+function downloadDocxTagihan() {
+  if (!item.value?.payment) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('tagihan', item.value.payment.id), '_blank')
+}
+
+function downloadDocxSertifikat() {
+  if (!item.value?.certificate) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
+}
+
 function handlePerbaiki() {
   if (!item.value) return
   hasClickedPerbaiki.value = true
@@ -195,11 +223,20 @@ function getRevisionDiff(rev: any) {
             <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
               📄 Download PDF Berita Acara
             </Button>
+            <Button variant="secondary" size="sm" @click="downloadDocxBeritaAcara">
+              📝 Download Word Berita Acara
+            </Button>
             <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
               💳 Download PDF Tagihan
             </Button>
+            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadDocxTagihan">
+              📝 Download Word Tagihan
+            </Button>
             <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
               📜 Download PDF Sertifikat
+            </Button>
+            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadDocxSertifikat">
+              📝 Download Word Sertifikat
             </Button>
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
@@ -218,9 +255,22 @@ function getRevisionDiff(rev: any) {
 
         <Card title="Detail Berita Acara">
           <table v-if="item.form_data && Object.keys(item.form_data).length" class="detail-table">
-            <tr v-for="(value, key) in item.form_data" :key="key">
-              <td class="label">{{ getLabelForKey(String(key)) }}</td>
-              <td>{{ formatFieldValue(value) }}</td>
+            <template v-for="(value, key) in item.form_data" :key="key">
+              <tr>
+                <td class="label">{{ getLabelForKey(String(key)) }}</td>
+                <td>
+                  <UploadAksesView v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('upload akses')" :path="item.upload_akses" />
+                  <template v-else>{{ formatFieldValue(value) }}</template>
+                </td>
+              </tr>
+              <tr v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('sisa') && !formDataHasUploadAksesKey">
+                <td class="label">Upload Akses</td>
+                <td><UploadAksesView :path="item.upload_akses" /></td>
+              </tr>
+            </template>
+            <tr v-if="item.upload_akses && !formDataHasSisaKey && !formDataHasUploadAksesKey">
+              <td class="label">Upload Akses</td>
+              <td><UploadAksesView :path="item.upload_akses" /></td>
             </tr>
           </table>
           <table v-else class="detail-table">
@@ -242,6 +292,10 @@ function getRevisionDiff(rev: any) {
             <tr><td class="label">Keterangan Tambahan</td><td>{{ item.keterangan_tambahan || '-' }}</td></tr>
             <tr><td class="label">Pengukuran/Hasil Pengujian</td><td>{{ item.pengukuran_per_sampel || '-' }}</td></tr>
             <tr><td class="label">Sisa Hasil Pengujian</td><td>{{ item.sisa_sampel || '-' }}</td></tr>
+            <tr v-if="item.upload_akses">
+              <td class="label">Upload Akses</td>
+              <td><UploadAksesView :path="item.upload_akses" /></td>
+            </tr>
             <tr><td class="label">Masa Berlaku Akses</td><td>{{ item.masa_berlaku_akses || '-' }}</td></tr>
           </table>
         </Card>

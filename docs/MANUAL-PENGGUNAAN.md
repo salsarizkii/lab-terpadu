@@ -328,10 +328,14 @@ Superadmin dengan permission `berita_acara_riwayat_semua` dan `hasil_pengujian_r
 Superadmin bisa menyesuaikan tampilan 4 jenis dokumen PDF (Berita Acara, Rekap Analisis, Tagihan, Sertifikat) **tanpa perlu coding**:
 
 1. **Unduh Template Word** — klik "Unduh Template Word" untuk mengambil file .docx template saat ini.
-2. **Edit di Microsoft Word** — tulis `<<nama_variabel>>` di posisi yang diinginkan. Contoh: untuk menampilkan jawaban pertanyaan "Nama Pemohon", ketik `<<nama_pemohon>>`. Saat PDF dibuat, tag diganti dengan jawaban user.
-3. **Upload kembali** — unggah file yang sudah diedit di kolom "Upload Template Word".
-4. **Pratinjau** — klik "Pratinjau Layar Penuh" untuk melihat hasilnya (di modal juga ada tombol "Unduh Word").
+2. **Edit di Microsoft Word** — tulis `<<nama_variabel>>` di posisi yang diinginkan. Contoh: untuk menampilkan jawaban pertanyaan "Nama Pemohon", ketik `<<Nama Pemohon>>` (nama pertanyaan boleh ditulis apa adanya; spasi & huruf besar otomatis dicocokkan). Saat PDF dibuat, tag diganti dengan jawaban user.
+3. **Upload kembali** — unggah file yang sudah diedit di kolom "Upload Template Word". File Word ini menjadi sumber utama dokumen.
+4. **Pratinjau** — klik tab "Preview". Jika template punya file Word, pratinjau adalah **tampilan file Word itu sendiri** (persis seperti di Word, nilai placeholder diisi data contoh) — dirender di browser, tidak butuh instalasi tambahan. Jika belum ada file Word, pratinjau memakai rendering HTML.
 5. **Simpan Template** — simpan perubahan. Tombol "Kembalikan ke Template Awal" mengembalikan template bawaan.
+
+**Unduhan dokumen (berlaku untuk Berita Acara, Rekap Analis, Tagihan, Sertifikat):**
+- Tombol **"Word …"** → file .docx = template Word + data terisi. Selalu tersedia (tanpa dependensi server).
+- Tombol **"PDF …"** → sama persis tampilannya, dihasilkan dari file Word via LibreOffice (opsional). Jika server belum memasang LibreOffice, PDF otomatis memakai rendering HTML lama. Setup di VPS: `apt-get install -y libreoffice-writer fonts-liberation` (sekali saja, headless).
 
 **Daftar Variabel yang Didukung** menampilkan 4 kelompok (klik variabel untuk menyalin):
 - **Pertanyaan Form Berita Acara** — semua pertanyaan di form BA aktif (misal `<<nama_pemohon>>`, `<<nim>>`)

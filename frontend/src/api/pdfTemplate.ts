@@ -64,9 +64,22 @@ export const pdfTemplateApi = {
     return data
   },
 
+  async previewDocx(type: string, payload: Partial<PdfTemplate>): Promise<Blob> {
+    const { data } = await api.post(`/admin/pdf-templates/${type}/preview-docx`, payload, {
+      responseType: 'blob',
+    })
+    return data
+  },
+
   getDownloadUrl(type: string, id: number): string {
     const baseURL = api.defaults.baseURL || '/api'
     const token = localStorage.getItem('token')
     return `${baseURL}/pdf-generate/${type}/${id}?token=${token}`
+  },
+
+  getDocxDownloadUrl(type: string, id: number): string {
+    const baseURL = api.defaults.baseURL || '/api'
+    const token = localStorage.getItem('token')
+    return `${baseURL}/docx-generate/${type}/${id}?token=${token}`
   },
 }

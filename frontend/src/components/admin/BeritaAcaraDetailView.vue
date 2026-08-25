@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import Badge from '../common/Badge.vue'
+import UploadAksesView from '../common/UploadAksesView.vue'
 import { formTemplateApi } from '../../api/formTemplate'
 import type { BeritaAcara, FormField } from '../../types'
 import { formatDateTime } from '../../utils/date'
@@ -82,6 +83,26 @@ function formatFieldValue(val: any): string {
   return String(val)
 }
 
+function isSisaField(field: FormField): boolean {
+  return field.label.toLowerCase().includes('sisa')
+}
+
+function isUploadAksesField(field: FormField): boolean {
+  return field.label.toLowerCase().includes('upload akses')
+}
+
+const templateHasSisaField = computed(() => templateFields.value.some(f => f.label.toLowerCase().includes('sisa')))
+
+const templateHasUploadAksesField = computed(() => templateFields.value.some(f => f.label.toLowerCase().includes('upload akses')))
+
+const extraHasSisaKey = computed(() =>
+  Object.keys(extraFormData.value).some(key => formatFieldKey(key).toLowerCase().includes('sisa'))
+)
+
+const extraHasUploadAksesKey = computed(() =>
+  Object.keys(extraFormData.value).some(key => formatFieldKey(key).toLowerCase().includes('upload akses'))
+)
+
 const templateInputFields = computed(() => {
   return templateFields.value.filter(f => f.type !== 'heading' && f.type !== 'paragraph' && f.type !== 'divider')
 })
@@ -162,26 +183,54 @@ watch(() => props.beritaAcara, () => {
 
     <!-- Template fields (latest version) -->
     <table v-if="templateInputFields.length > 0" class="detail__table">
-      <tr v-for="field in templateInputFields" :key="field.id">
-        <td class="detail__td-label">{{ field.label }}</td>
-        <td class="detail__td-value">{{ formatFieldValue(resolveFieldValue(field)) }}</td>
-      </tr>
+      <template v-for="field in templateInputFields" :key="field.id">
+        <tr>
+          <td class="detail__td-label">{{ field.label }}</td>
+          <td class="detail__td-value">
+            <UploadAksesView v-if="beritaAcara.upload_akses && isUploadAksesField(field)" :path="beritaAcara.upload_akses" />
+            <template v-else>{{ formatFieldValue(resolveFieldValue(field)) }}</template>
+          </td>
+        </tr>
+        <tr v-if="beritaAcara.upload_akses && isSisaField(field) && !templateHasUploadAksesField">
+          <td class="detail__td-label">Upload Akses</td>
+          <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+        </tr>
+      </template>
     </table>
 
     <!-- Extra form_data not matched to template (old submissions) -->
     <table v-if="Object.keys(extraFormData).length > 0" class="detail__table">
-      <tr v-for="(value, key) in extraFormData" :key="key">
-        <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
-        <td class="detail__td-value">{{ formatFieldValue(value) }}</td>
+      <template v-for="(value, key) in extraFormData" :key="key">
+        <tr>
+          <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
+          <td class="detail__td-value">
+            <UploadAksesView v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('upload akses')" :path="beritaAcara.upload_akses" />
+            <template v-else>{{ formatFieldValue(value) }}</template>
+          </td>
+        </tr>
+        <tr v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('sisa') && !templateHasUploadAksesField && !extraHasUploadAksesKey">
+          <td class="detail__td-label">Upload Akses</td>
+          <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+        </tr>
+      </template>
+      <tr v-if="beritaAcara.upload_akses && !templateHasUploadAksesField && !extraHasUploadAksesKey && !extraHasSisaKey">
+        <td class="detail__td-label">Upload Akses</td>
+        <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
       </tr>
     </table>
 
     <!-- Legacy hardcoded fields -->
     <table v-if="!hasFormData() && templateInputFields.length === 0" class="detail__table">
-      <tr v-for="f in legacyFields" :key="f.key">
-        <td class="detail__td-label">{{ f.label }}</td>
-        <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>
-      </tr>
+      <template v-for="f in legacyFields" :key="f.key">
+        <tr>
+          <td class="detail__td-label">{{ f.label }}</td>
+          <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>
+        </tr>
+        <tr v-if="beritaAcara.upload_akses && f.key === 'sisa_sampel'">
+          <td class="detail__td-label">Upload Akses</td>
+          <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+        </tr>
+      </template>
     </table>
 
     <div v-if="!props.hideSections?.includes('verifikasi') && (beritaAcara.status === 'approved' || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected')" class="detail__section">

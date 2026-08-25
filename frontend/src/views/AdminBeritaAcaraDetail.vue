@@ -29,6 +29,9 @@ const penyelias = ref<User[]>([])
 const managerTeknis = ref<User[]>([])
 const loading = ref(true)
 const saving = ref(false)
+const savingAnalyst = ref(false)
+const savingPenyelia = ref(false)
+const savingManagerTeknis = ref(false)
 const showVerification = ref(false)
 const showRevisionModal = ref(false)
 const revisionNote = ref('')
@@ -191,7 +194,7 @@ async function saveNomorAgenda() {
 
 async function handleAssign(analystIds: number[]) {
  if (!item.value) return
- saving.value = true
+ savingAnalyst.value = true
  try {
    const res = await adminApi.assignAnalyst(item.value.id, analystIds)
    const updated = await adminApi.getBeritaAcaraDetail(item.value.id)
@@ -201,13 +204,13 @@ async function handleAssign(analystIds: number[]) {
  } catch (e: any) {
    toast.error(e.response?.data?.message || 'Gagal')
  } finally {
-   saving.value = false
+   savingAnalyst.value = false
  }
 }
 
 async function handleAssignPenyelia(penyeliaIds: number[]) {
  if (!item.value) return
- saving.value = true
+ savingPenyelia.value = true
  try {
    const res = await adminApi.assignPenyelia(item.value.id, penyeliaIds)
    const updated = await adminApi.getBeritaAcaraDetail(item.value.id)
@@ -217,13 +220,13 @@ async function handleAssignPenyelia(penyeliaIds: number[]) {
  } catch (e: any) {
    toast.error(e.response?.data?.message || 'Gagal')
  } finally {
-   saving.value = false
+   savingPenyelia.value = false
  }
 }
 
 async function handleAssignManagerTeknis(managerTeknisIds: number[]) {
  if (!item.value) return
- saving.value = true
+ savingManagerTeknis.value = true
  try {
    const res = await adminApi.assignManagerTeknis(item.value.id, managerTeknisIds)
    const updated = await adminApi.getBeritaAcaraDetail(item.value.id)
@@ -233,7 +236,7 @@ async function handleAssignManagerTeknis(managerTeknisIds: number[]) {
  } catch (e: any) {
    toast.error(e.response?.data?.message || 'Gagal')
  } finally {
-   saving.value = false
+   savingManagerTeknis.value = false
  }
 }
 
@@ -320,6 +323,26 @@ function downloadPdfSertifikat() {
   if (!item.value?.certificate) return
   window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
 }
+
+function downloadDocxBeritaAcara() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('berita_acara', item.value.id), '_blank')
+}
+
+function downloadDocxRekapAnalis() {
+  if (!item.value) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('rekap_analis', item.value.id), '_blank')
+}
+
+function downloadDocxTagihan() {
+  if (!item.value?.payment) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('tagihan', item.value.payment.id), '_blank')
+}
+
+function downloadDocxSertifikat() {
+  if (!item.value?.certificate) return
+  window.open(pdfTemplateApi.getDocxDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
+}
 </script>
 
 <template>
@@ -334,14 +357,26 @@ function downloadPdfSertifikat() {
             <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
               📄 PDF Berita Acara
             </Button>
+            <Button variant="secondary" size="sm" @click="downloadDocxBeritaAcara">
+              📝 Word Berita Acara
+            </Button>
             <Button variant="secondary" size="sm" @click="downloadPdfRekapAnalis">
               🧪 PDF Rekap Analis
+            </Button>
+            <Button variant="secondary" size="sm" @click="downloadDocxRekapAnalis">
+              📝 Word Rekap Analis
             </Button>
             <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
               💳 PDF Tagihan
             </Button>
+            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadDocxTagihan">
+              📝 Word Tagihan
+            </Button>
             <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
               📜 PDF Sertifikat
+            </Button>
+            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadDocxSertifikat">
+              📝 Word Sertifikat
             </Button>
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
@@ -445,7 +480,7 @@ function downloadPdfSertifikat() {
                         :berita-acara-id="item.id"
                         :analysts="analysts"
                         v-model="currentAnalystIds"
-                        :loading="saving"
+                        :loading="savingAnalyst"
                         @assign="handleAssign"
                       />
                     </div>
@@ -475,6 +510,7 @@ function downloadPdfSertifikat() {
                       v-else
                       block
                       variant="outline"
+                      :disabled="!canAssign"
                       @click="showPenyeliaForm = !showPenyeliaForm"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -485,7 +521,7 @@ function downloadPdfSertifikat() {
                       <UserAssignList
                         :users="penyelias"
                         v-model="currentPenyeliaIds"
-                        :loading="saving"
+                        :loading="savingPenyelia"
                         submit-label="Assign"
                         @assign="handleAssignPenyelia"
                       />
@@ -516,6 +552,7 @@ function downloadPdfSertifikat() {
                       v-else
                       block
                       variant="outline"
+                      :disabled="!canAssign"
                       @click="showManagerTeknisForm = !showManagerTeknisForm"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -526,7 +563,7 @@ function downloadPdfSertifikat() {
                       <UserAssignList
                         :users="managerTeknis"
                         v-model="currentManagerTeknisIds"
-                        :loading="saving"
+                        :loading="savingManagerTeknis"
                         submit-label="Assign"
                         @assign="handleAssignManagerTeknis"
                       />

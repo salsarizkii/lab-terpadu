@@ -7,6 +7,7 @@ use App\Models\BeritaAcara;
 use App\Models\Certificate;
 use App\Models\Payment;
 use App\Models\PdfTemplate;
+use App\Services\DocxPdfService;
 use App\Services\PdfGeneratorService;
 use App\Services\SystemActivityLogService;
 use Database\Seeders\PdfTemplateSeeder;
@@ -114,7 +115,10 @@ class PdfTemplateController extends Controller
             $filePath = storage_path('app/public/' . $storedPath);
         } else {
             // Gunakan file default jika tidak ada upload
-            $defaultFile = 'd:\\Kerja\\LAB TERPADU\\file\\Lembar kendali sampel riset_NEW 2025 November KOP BARU .docx';
+            $defaultFile = base_path('../file/BERITA ACARA.docx');
+            if (!file_exists($defaultFile) && $type === 'berita_acara') {
+                $defaultFile = base_path('../file/Lembar kendali sampel.docx');
+            }
             if (file_exists($defaultFile)) {
                 $filePath = $defaultFile;
             } else {
@@ -204,9 +208,51 @@ class PdfTemplateController extends Controller
 
         $dummyData = $this->getDummyData($type);
 
+        // Prioritas: render dari file Word asli (hasil persis seperti template Word).
+        $docxPdf = DocxPdfService::generatePdf($template, $dummyData);
+        if ($docxPdf !== null) {
+            return response()->streamDownload(function () use ($docxPdf) {
+                echo $docxPdf;
+            }, "preview_{$type}.pdf", [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
         $pdf = PdfGeneratorService::generatePdf($template, $dummyData);
 
         return $pdf->stream("preview_{$type}.pdf");
+    }
+
+    /**
+     * Preview Word: .docx hasil isi data contoh (dummy). Tanpa konversi PDF.
+     */
+    public function previewDocx(Request $request, $type)
+    {
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Tipe template tidak valid'], 400);
+        }
+
+        $template = PdfTemplate::where('type', $type)->first();
+        if (!$template) {
+            (new PdfTemplateSeeder())->run();
+            $template = PdfTemplate::where('type', $type)->first();
+        }
+
+        $this->applyPreviewOverrides($request, $template);
+
+        $docx = DocxPdfService::generateFilledDocx($template, $this->getDummyData($type));
+        if ($docx === null) {
+            return response()->json([
+                'message' => 'Template belum memiliki file Word. Upload file .docx terlebih dahulu untuk pratinjau Word.',
+            ], 422);
+        }
+
+        return response()->streamDownload(function () use ($docx) {
+            echo $docx;
+        }, "preview_{$type}.docx", [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
     }
 
     /**
@@ -282,10 +328,53 @@ class PdfTemplateController extends Controller
 
         $data = $this->getRealData($type, $id);
 
+        // Prioritas: render dari file Word asli (hasil persis seperti template Word).
+        $docxPdf = DocxPdfService::generatePdf($template, $data);
+        if ($docxPdf !== null) {
+            $filename = "{$type}_{$id}.pdf";
+            return response()->streamDownload(function () use ($docxPdf) {
+                echo $docxPdf;
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
         $pdf = PdfGeneratorService::generatePdf($template, $data);
 
         $filename = "{$type}_{$id}.pdf";
         return $pdf->download($filename);
+    }
+
+    /**
+     * Unduh dokumen dalam bentuk Word (.docx) dengan data asli terisi.
+     * Tidak membutuhkan LibreOffice -- murni manipulasi file template.
+     */
+    public function generateDocx(Request $request, $type, $id)
+    {
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Tipe template tidak valid'], 400);
+        }
+
+        $template = PdfTemplate::where('type', $type)->where('is_active', true)->first();
+        if (!$template) {
+            (new PdfTemplateSeeder())->run();
+            $template = PdfTemplate::where('type', $type)->first();
+        }
+
+        $docx = DocxPdfService::generateFilledDocx($template, $this->getRealData($type, $id));
+        if ($docx === null) {
+            return response()->json([
+                'message' => 'Template belum memiliki file Word. Gunakan unduhan PDF.',
+            ], 422);
+        }
+
+        $filename = "{$type}_{$id}.docx";
+        return response()->streamDownload(function () use ($docx) {
+            echo $docx;
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
     }
 
     private function getDummyData($type): array
