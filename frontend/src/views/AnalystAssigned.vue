@@ -35,6 +35,8 @@ const hasRekap = computed(() => {
   return item.value?.rekap_analis_data !== null && item.value?.rekap_analis_data !== undefined
 })
 
+const canWork = computed(() => item.value?.status === 'penyelia_verified')
+
 const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default', processing: 'warning', ready: 'success', taken: 'info',
 }
@@ -192,6 +194,9 @@ async function handleRejectDiscount() {
           <div class="detail-sidebar">
             <!-- Laporan Pengujian -->
             <Card title="Laporan Pengujian">
+              <div v-if="item.status === 'rekap_ready'" class="pengujian-pending">Rekap sedang menunggu verifikasi manager teknis.</div>
+              <div v-else-if="!canWork" class="pengujian-pending">Belum waktunya mengerjakan — berita acara belum diverifikasi penyelia.</div>
+              <template v-else>
               <div v-if="item.pengujians && item.pengujians.length">
                 <div class="pengujian-done">Sudah dilaporkan</div>
                 <Button v-if="auth.hasPermission('hasil_pengujian_rekap')" block variant="outline" @click="showPengujianModal = true">Edit Laporan</Button>
@@ -211,6 +216,7 @@ async function handleRejectDiscount() {
               <Button v-if="!hasRekap && auth.hasPermission('hasil_pengujian_rekap')" block variant="primary" @click="router.push(`/analyst/samples/${item.id}/rekap`)">
                 Buat Rekap Analis
               </Button>
+              </template>
             </Card>
           </div>
 

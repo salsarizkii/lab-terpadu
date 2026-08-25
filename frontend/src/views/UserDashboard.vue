@@ -34,7 +34,7 @@ onMounted(async () => {
 })
 
 const activeCount = computed(() => items.value.filter(i => i.status !== 'draft').length)
-const approvedCount = computed(() => items.value.filter(i => i.status === 'approved').length)
+const completedCount = computed(() => items.value.filter(i => i.status === 'completed').length)
 const readyCount = computed(() => items.value.filter(i => i.samples?.some(s => s.status === 'ready')).length || 0)
 const certCount = computed(() => items.value.filter(i => i.certificate).length || 0)
 </script>
@@ -60,9 +60,9 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
             <div class="stat-value">{{ activeCount }}</div>
             <div class="stat-label">Total Pengajuan</div>
           </Card>
-          <Card class="stat-card" hover @click="router.push('/user/payments')">
-            <div class="stat-value">{{ approvedCount }}</div>
-            <div class="stat-label">Disetujui</div>
+          <Card class="stat-card" hover @click="router.push('/user/berita-acara')">
+            <div class="stat-value">{{ completedCount }}</div>
+            <div class="stat-label">Selesai</div>
           </Card>
           <Card class="stat-card" hover>
             <div class="stat-value">{{ readyCount }}</div>
@@ -97,8 +97,8 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
                 </div>
                 <div class="history-right">
                   <Badge
-                    :type="item.status === 'approved' ? 'success' : item.status === 'rejected' ? 'danger' : item.status === 'revision' ? 'warning' : 'default'"
-                    :text="item.status"
+                    :type="item.status === 'completed' ? 'success' : item.status === 'rejected' ? 'danger' : item.status === 'revision' ? 'warning' : item.status === 'admin_verified' || item.status === 'penyelia_verified' ? 'info' : 'default'"
+                    :text="item.status === 'completed' ? 'Selesai' : item.status === 'admin_verified' ? 'Diverifikasi Admin' : item.status === 'penyelia_verified' ? 'Dikerjakan Analis' : item.status === 'rekap_ready' ? 'Menunggu Manager' : item.status"
                   />
                   <Button size="sm" variant="ghost" @click="openFlow(item)">Lihat Alur</Button>
                 </div>

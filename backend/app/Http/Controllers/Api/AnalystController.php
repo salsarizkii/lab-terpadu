@@ -217,6 +217,11 @@ class AnalystController extends Controller
 
         $beritaAcara->update($updateData);
 
+        // Saat rekap disimpan oleh analis, alur lanjut ke verifikasi manager teknis
+        if (in_array($beritaAcara->status, ['penyelia_verified', 'rekap_ready'], true)) {
+            $beritaAcara->update(['status' => 'rekap_ready']);
+        }
+
         ActivityLogService::log($beritaAcara->id, 'rekap_saved', 'Menyimpan rekap analis');
 
         // Update all related samples status to 'taken'

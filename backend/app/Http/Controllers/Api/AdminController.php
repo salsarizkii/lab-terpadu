@@ -41,10 +41,10 @@ class AdminController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|string|in:approved,revision,rejected',
+            'status' => 'required|string|in:admin_verified,revision,rejected',
             'note' => 'required_if:status,revision|string',
             'nomor_agenda' => [
-                'required_if:status,approved',
+                'required_if:status,admin_verified',
                 'nullable',
                 'string',
                 'max:100',
@@ -53,6 +53,12 @@ class AdminController extends Controller
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
+
+        if ($beritaAcara->status !== 'pending') {
+            return response()->json([
+                'message' => 'Berita acara sedang tidak menunggu verifikasi admin (status: ' . $beritaAcara->status . ')',
+            ], 422);
+        }
 
         $data = ['status' => $request->status];
 
@@ -70,15 +76,15 @@ class AdminController extends Controller
                 'created_by' => auth()->id(),
             ]);
             ActivityLogService::log($beritaAcara->id, 'revision_requested', $request->note, null, $revision->id);
-        } elseif ($request->status === 'approved') {
-            ActivityLogService::log($beritaAcara->id, 'verified', 'Menyetujui berita acara');
+        } elseif ($request->status === 'admin_verified') {
+            ActivityLogService::log($beritaAcara->id, 'admin_verified', 'Menyetujui berita acara');
         } elseif ($request->status === 'rejected') {
             ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara');
         }
 
         return response()->json([
             'message' => 'Status updated successfully',
-            'data' => $beritaAcara->load(['revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']),
+            'data' => $beritaAcara->load(['user', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']),
         ]);
     }
 
@@ -117,7 +123,7 @@ class AdminController extends Controller
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
-        if ($beritaAcara->status === 'approved') {
+        if (!in_array($beritaAcara->status, ['draft', 'pending', 'revision'], true)) {
             return response()->json(['message' => 'Nomor agenda tidak dapat diubah setelah diverifikasi'], 422);
         }
 
@@ -213,8 +219,8 @@ class AdminController extends Controller
     public function sampleIndex()
     {
         $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.analysts', 'beritaAcara.payment', 'beritaAcara.formula')
-            ->whereHas('beritaAcara.payment', function ($q) {
-                $q->where('status', 'approved');
+            ->whereHas('beritaAcara', function ($q) {
+                $q->whereIn('status', ['penyelia_verified', 'rekap_ready', 'completed']);
             });
 
         if (!auth()->user()->hasPermission('hasil_pengujian_riwayat_semua')) {

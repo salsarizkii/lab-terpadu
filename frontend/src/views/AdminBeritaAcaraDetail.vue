@@ -49,8 +49,7 @@ let agendaCheckTimer: ReturnType<typeof setTimeout> | null = null
 
 const canVerify = computed(() =>
   item.value &&
-  item.value.status !== 'draft' &&
-  item.value.status !== 'approved' &&
+  item.value.status === 'pending' &&
   Boolean(nomorAgenda.value.trim()) &&
   !checkingAgenda.value &&
   agendaAvailable.value
@@ -111,14 +110,18 @@ const assignedPenyelias = computed<User[]>(() => item.value?.penyelias || [])
 const assignedManagerTeknis = computed<User[]>(() => item.value?.manager_teknis || [])
 
 const statusMap: Record<string, string> = {
-  draft: 'Draft', pending: 'Diajukan', revision: 'Perlu Perbaikan', approved: 'Disetujui', rejected: 'Ditolak',
+  draft: 'Draft', pending: 'Menunggu Admin', revision: 'Perlu Perbaikan', admin_verified: 'Diverifikasi Admin',
+  penyelia_verified: 'Diverifikasi Penyelia', rekap_ready: 'Menunggu Manager Teknis', completed: 'Selesai', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
-  draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
+  draft: 'default', pending: 'warning', revision: 'warning', admin_verified: 'info',
+  penyelia_verified: 'info', rekap_ready: 'warning', completed: 'success', rejected: 'danger',
 }
 
+const verifiedStatuses = ['admin_verified', 'penyelia_verified', 'rekap_ready', 'completed']
+
 const canAssign = computed(() =>
-  item.value?.status === 'approved'
+  ['admin_verified', 'penyelia_verified', 'rekap_ready'].includes(item.value?.status || '')
 )
 
 onMounted(async () => {
@@ -402,7 +405,7 @@ function downloadDocxSertifikat() {
             <Card title="Aksi">
               <div class="action-stack">
                 <template v-if="auth.hasPermission('berita_acara_verify')">
-                  <div v-if="item.status !== 'approved'" class="agenda-field">
+                  <div v-if="!verifiedStatuses.includes(item.status)" class="agenda-field">
                     <label class="agenda-label" for="nomor-agenda">Nomor Agenda</label>
                     <div class="agenda-input-wrap">
                       <input
@@ -438,7 +441,7 @@ function downloadDocxSertifikat() {
                     block
                     variant="danger"
                     @click="openRevisionModal"
-                    :disabled="item.status === 'draft' || item.status === 'revision' || item.status === 'approved'"
+                    :disabled="item.status === 'draft' || item.status === 'revision' || verifiedStatuses.includes(item.status)"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     Perlu Perbaikan

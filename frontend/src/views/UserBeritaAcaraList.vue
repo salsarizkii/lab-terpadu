@@ -18,9 +18,12 @@ import { formatDateTime } from '../utils/date'
 const statusOptions = [
   { value: '', label: 'Semua Status' },
   { value: 'draft', label: 'Draft' },
-  { value: 'pending', label: 'Diajukan' },
+  { value: 'pending', label: 'Menunggu Admin' },
+  { value: 'admin_verified', label: 'Diverifikasi Admin' },
+  { value: 'penyelia_verified', label: 'Dikerjakan Analis' },
+  { value: 'rekap_ready', label: 'Menunggu Manager Teknis' },
   { value: 'revision', label: 'Revisi' },
-  { value: 'approved', label: 'Disetujui' },
+  { value: 'completed', label: 'Selesai' },
   { value: 'rejected', label: 'Ditolak' },
 ]
 
@@ -63,9 +66,12 @@ const filtered = computed(() => {
 
 const statusMap: Record<string, string> = {
   draft: 'Draft',
-  pending: 'Diajukan',
+  pending: 'Menunggu Admin',
   revision: 'Revisi',
-  approved: 'Disetujui',
+  admin_verified: 'Diverifikasi Admin',
+  penyelia_verified: 'Dikerjakan Analis',
+  rekap_ready: 'Menunggu Manager Teknis',
+  completed: 'Selesai',
   rejected: 'Ditolak',
 }
 
@@ -73,7 +79,10 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
   draft: 'default',
   pending: 'warning',
   revision: 'warning',
-  approved: 'success',
+  admin_verified: 'info',
+  penyelia_verified: 'info',
+  rekap_ready: 'warning',
+  completed: 'success',
   rejected: 'danger',
 }
 

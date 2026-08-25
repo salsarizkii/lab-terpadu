@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\FormTemplateController;
 use App\Http\Controllers\Api\PdfTemplateController;
 use App\Http\Controllers\Api\FormulaController;
+use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -160,8 +161,7 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:form_manage_berita_acara');
     });
 
-    Route::middleware('api.token:berita_acara_riwayat_semua,hasil_pengujian_rekap,hasil_pengujian_riwayat_personal')->prefix('/analyst')->group(function () {
-        Route::get('/berita-acara', [AnalystController::class, 'beritaAcaraIndex']);
+    Route::middleware('api.token:berita_acara_riwayat_semua,hasil_pengujian_rekap,hasil_pengujian_riwayat_personal')->prefix('/analyst')->group(function () {        Route::get('/berita-acara', [AnalystController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/{id}', [AnalystController::class, 'beritaAcaraShow']);
         Route::put('/berita-acara/{id}/samples/{sampleId}', [AnalystController::class, 'updateSample'])
             ->middleware('permission:hasil_pengujian_rekap');
@@ -199,6 +199,22 @@ Route::middleware('api.token')->group(function () {
         // Discount management — permission: discount_verifikasi
         Route::put('/berita-acara/{id}/confirm-discount', [AnalystController::class, 'confirmDiscount'])
             ->middleware('permission:discount_verifikasi');
+    });
+
+    // Penyelia routes — verifikasi setelah admin
+    Route::middleware('api.token:berita_acara_verify')->prefix('/penyelia')->group(function () {
+        Route::get('/berita-acara', [VerificationController::class, 'penyeliaIndex']);
+        Route::get('/berita-acara/{id}', [VerificationController::class, 'penyeliaShow']);
+        Route::put('/berita-acara/{id}/status', [VerificationController::class, 'penyeliaVerify'])
+            ->middleware('permission:berita_acara_verify');
+    });
+
+    // Manager Teknis routes — verifikasi rekap analis
+    Route::middleware('api.token:hasil_pengujian_rekap')->prefix('/manager-teknis')->group(function () {
+        Route::get('/berita-acara', [VerificationController::class, 'managerIndex']);
+        Route::get('/berita-acara/{id}', [VerificationController::class, 'managerShow']);
+        Route::put('/berita-acara/{id}/status', [VerificationController::class, 'managerVerify'])
+            ->middleware('permission:hasil_pengujian_rekap');
     });
 
     // Public/Authenticated PDF Download

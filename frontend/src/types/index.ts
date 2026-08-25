@@ -31,11 +31,21 @@ export interface User {
 }
 
 
+export type BeritaAcaraStatus =
+  | 'draft'
+  | 'pending'
+  | 'revision'
+  | 'admin_verified'
+  | 'penyelia_verified'
+  | 'rekap_ready'
+  | 'completed'
+  | 'rejected'
+
 export interface BeritaAcara {
   id: number
   user_id: number
   analyst_id?: number
-  status: 'draft' | 'pending' | 'revision' | 'approved' | 'rejected'
+  status: BeritaAcaraStatus
   nomor_agenda?: string
   nama_pemohon?: string
   nim?: string

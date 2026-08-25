@@ -35,19 +35,19 @@ onMounted(async () => {
         <div class="stats">
           <Card class="stat-card">
             <div class="stat-value">{{ items.filter(i => i.status === 'pending').length }}</div>
-            <div class="stat-label">Diajukan</div>
+            <div class="stat-label">Menunggu Admin</div>
           </Card>
           <Card class="stat-card">
-            <div class="stat-value">{{ items.filter(i => i.status === 'approved').length }}</div>
-            <div class="stat-label">Disetujui</div>
+            <div class="stat-value">{{ items.filter(i => i.status === 'admin_verified').length }}</div>
+            <div class="stat-label">Menunggu Penyelia</div>
           </Card>
           <Card class="stat-card">
             <div class="stat-value">{{ items.filter(i => i.status === 'revision').length }}</div>
             <div class="stat-label">Perlu Revisi</div>
           </Card>
           <Card class="stat-card">
-            <div class="stat-value">{{ items.filter(i => i.status === 'rejected').length }}</div>
-            <div class="stat-label">Ditolak</div>
+            <div class="stat-value">{{ items.filter(i => i.status === 'completed').length }}</div>
+            <div class="stat-label">Selesai</div>
           </Card>
         </div>
 

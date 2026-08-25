@@ -72,26 +72,32 @@ php artisan db:seed
 | [08-permissions.md](./08-permissions.md) | RBAC — role, permission, akses |
 | [09-deployment.md](./09-deployment.md) | Setup & deployment |
 
-## 04. Alur Bisnis (4 Step)
+## 04. Alur Bisnis (Verifikasi Bertingkat)
 
 ```
-[1. Pengajuan] → [2. Pembayaran] → [3. Pengambilan] → [4. Sertifikat]
-     User             User/Admin         Analyst/Admin         User
+[User] → [Admin] → [Penyelia] → [Analis] → [Manager Teknis] → [User]
+  submit     verif       verif      rekap        verif rekap     bayar
 ```
 
-1. **Pengajuan** — User membuat Berita Acara (form pengajuan lab 20+ field)
-2. **Pembayaran** — Admin setujui → User upload bukti bayar → Admin konfirmasi
-3. **Pengambilan** — Analyst proses hasil pengujian → Admin tandai hasil pengujian diambil
-4. **Sertifikat** — User download sertifikat hasil pengujian
+1. **Pengajuan** — User membuat & mengirim Berita Acara (form pengajuan lab 20+ field) → `pending`
+2. **Verifikasi Admin** — Admin setujui (wajib nomor agenda) → `admin_verified`
+3. **Verifikasi Penyelia** — Penyelia setujui → `penyelia_verified`
+4. **Rekap Analis** — Analis proses hasil pengujian & simpan rekap → `rekap_ready`
+5. **Verifikasi Manager Teknis** — Manager setujui rekap → `completed` (kembali ke user)
+6. **Pembayaran & Sertifikat** — User bayar → admin konfirmasi → sertifikat
+
+Setiap verifikator bisa juga menolak (rejected) atau minta revisi (revision → user perbaiki → alur diulang dari admin).
 
 ## 05. Role System
 
 | Role | Akses | Keterangan |
 |---|---|---|
 | `superadmin` | Full access | Bypass semua role check, kelola role/user |
-| `admin` | Verifikasi BA, pembayaran, assign analyst | CRUD form template |
-| `analyst` | Lihat tugas, update hasil hasil pengujian | Input pengujian |
-| `user` | Buat pengajuan, bayar, download sertifikat | Akses terbatas |
+| `admin` | Verifikasi BA (pending→admin_verified), assign analis/penyelia/manager, konfirmasi pembayaran | CRUD form template |
+| `penyelia` | Verifikasi BA (admin_verified→penyelia_verified) | Halaman `/penyelia/berita-acara` |
+| `analyst` | Lihat tugas, isi hasil pengujian, buat rekap analis | Input pengujian |
+| `manager_teknis` | Verifikasi rekap (rekap_ready→completed) | Halaman `/manager-teknis/berita-acara` |
+| `user` | Buat pengajuan, bayar setelah completed, download sertifikat | Akses terbatas |
 
 ## 06. Codebase Quirks
 

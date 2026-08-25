@@ -21,16 +21,21 @@ const activeTab = ref('all')
 
 const tabs = [
   { key: 'all', label: 'Semua' },
-  { key: 'pending', label: 'Diajukan' },
+  { key: 'pending', label: 'Menunggu Admin' },
+  { key: 'admin_verified', label: 'Diverifikasi Admin' },
+  { key: 'penyelia_verified', label: 'Diverifikasi Penyelia' },
+  { key: 'rekap_ready', label: 'Menunggu Manager' },
   { key: 'revision', label: 'Revisi' },
-  { key: 'approved', label: 'Disetujui' },
+  { key: 'completed', label: 'Selesai' },
 ]
 
 const statusMap: Record<string, string> = {
-  draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
+  draft: 'Draft', pending: 'Menunggu Admin', revision: 'Revisi', admin_verified: 'Diverifikasi Admin',
+  penyelia_verified: 'Diverifikasi Penyelia', rekap_ready: 'Menunggu Manager Teknis', completed: 'Selesai', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
-  draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
+  draft: 'default', pending: 'warning', revision: 'warning', admin_verified: 'info',
+  penyelia_verified: 'info', rekap_ready: 'warning', completed: 'success', rejected: 'danger',
 }
 
 const filtered = computed(() => {

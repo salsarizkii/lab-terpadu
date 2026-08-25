@@ -8,6 +8,8 @@ import type { BeritaAcara, FormField } from '../../types'
 
 const props = defineProps<{
   beritaAcara: BeritaAcara
+  targetStatus?: string
+  approveLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -23,15 +25,18 @@ const verifierEmail = computed(() => auth.user?.email || '-')
 
 function handleSubmit() {
   loading.value = true
-  emit('submit', { status: 'approved' })
+  emit('submit', { status: props.targetStatus || 'admin_verified' })
   loading.value = false
 }
 
 const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'default'; label: string }> = {
   draft: { type: 'default', label: 'Draft' },
-  pending: { type: 'warning', label: 'Diajukan' },
+  pending: { type: 'warning', label: 'Menunggu Admin' },
   revision: { type: 'danger', label: 'Revisi' },
-  approved: { type: 'success', label: 'Disetujui' },
+  admin_verified: { type: 'info', label: 'Diverifikasi Admin' },
+  penyelia_verified: { type: 'info', label: 'Diverifikasi Penyelia' },
+  rekap_ready: { type: 'warning', label: 'Menunggu Manager Teknis' },
+  completed: { type: 'success', label: 'Selesai' },
   rejected: { type: 'danger', label: 'Ditolak' },
 }
 
@@ -148,7 +153,7 @@ watch(() => props.beritaAcara, () => {
     </div>
     <div class="verification__actions">
       <Button :disabled="loading" @click="handleSubmit">
-        {{ loading ? 'Memproses...' : 'Setujui' }}
+        {{ loading ? 'Memproses...' : (approveLabel || 'Setujui') }}
       </Button>
     </div>
   </div>

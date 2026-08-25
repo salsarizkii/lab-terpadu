@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Check, FileText, CreditCard, FlaskConical, Award } from '@lucide/vue'
+import { Check, FileText, CreditCard, FlaskConical, Award, ShieldCheck } from '@lucide/vue'
 import Badge from '../common/Badge.vue'
 import Button from '../common/Button.vue'
 import type { BeritaAcara } from '../../types'
@@ -17,39 +17,56 @@ const ba = computed(() => props.beritaAcara)
 type BadgeType = 'default' | 'danger' | 'success' | 'warning' | 'info'
 
 const steps = computed(() => {
+  const s = ba.value?.status
+  const isVerifikasiActive = ['admin_verified', 'penyelia_verified'].includes(s || '')
+  const isVerifikasiDone = ['rekap_ready', 'completed'].includes(s || '')
+  const isRekapActive = s === 'rekap_ready'
+  const isRekapDone = s === 'completed'
+
   return [
     {
       key: 'pengajuan',
       label: 'Pengajuan',
       desc: 'Buat & ajukan berita acara penelitian',
       icon: 'file',
-      status: !ba.value ? 'inactive' : (ba.value.status === 'draft' || ba.value.status === 'pending' || ba.value.status === 'revision') ? 'active' : 'done',
-      badge: ba.value ? (ba.value.status === 'revision' ? 'Perlu Revisi' : ba.value.status === 'pending' ? 'Diajukan' : ba.value.status === 'approved' ? 'Disetujui' : 'Draft') : '',
-      badgeType: (ba.value ? (ba.value.status === 'revision' ? 'warning' : ba.value.status === 'pending' ? 'warning' : ba.value.status === 'approved' ? 'success' : 'default') : 'default') as BadgeType,
-      action: (ba.value.status === 'revision' || ba.value.status === 'draft') ? 'Lanjutkan' : 'Lihat',
+      status: !ba.value ? 'inactive' : (['draft', 'pending', 'revision'].includes(s || '') ? 'active' : 'done'),
+      badge: ba.value ? (s === 'revision' ? 'Perlu Revisi' : s === 'pending' ? 'Menunggu Admin' : s === 'draft' ? 'Draft' : 'Diajukan') : '',
+      badgeType: (ba.value ? (s === 'revision' ? 'warning' : s === 'pending' ? 'warning' : s === 'draft' ? 'default' : 'success') : 'default') as BadgeType,
+      action: (s === 'revision' || s === 'draft') ? 'Lanjutkan' : 'Lihat',
       route: `/user/berita-acara/${ba.value.id}`,
+    },
+    {
+      key: 'verifikasi',
+      label: 'Verifikasi Admin & Penyelia',
+      desc: 'Diverifikasi admin, lalu penyelia',
+      icon: 'check',
+      status: !ba.value ? 'inactive' : (isVerifikasiDone ? 'done' : isVerifikasiActive ? 'active' : 'inactive'),
+      badge: ba.value ? (s === 'admin_verified' ? 'Diverifikasi Admin' : s === 'penyelia_verified' ? 'Diverifikasi Penyelia' : '') : '',
+      badgeType: (ba.value ? (isVerifikasiActive ? 'info' : 'default') : 'default') as BadgeType,
+      action: null,
+      route: null,
+    },
+    {
+      key: 'rekap',
+      label: 'Rekap Analis',
+      desc: 'Analis menyusun rekap, manager teknis memverifikasi',
+      icon: 'sample',
+      status: !ba.value ? 'inactive' : (isRekapDone ? 'done' : isRekapActive ? 'active' : 'inactive'),
+      badge: ba.value ? (s === 'rekap_ready' ? 'Menunggu Manager' : '') : '',
+      badgeType: (ba.value ? (isRekapActive ? 'warning' : 'default') : 'default') as BadgeType,
+      action: null,
+      route: null,
     },
     {
       key: 'pembayaran',
       label: 'Pembayaran',
       desc: 'Lakukan pembayaran & ajukan diskon',
       icon: 'payment',
-      status: ba.value.status !== 'approved' ? 'inactive' : (!ba.value.payment) ? 'active' : (ba.value.payment.status === 'approved') ? 'done' : 'active',
+      status: !ba.value ? 'inactive' : (s !== 'completed' ? 'inactive' : (!ba.value.payment) ? 'active' : (ba.value.payment.status === 'approved') ? 'done' : 'active'),
       badge: ba.value.payment ? (ba.value.payment.status === 'approved' ? 'Lunas' : ba.value.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan') : '',
       badgeType: (ba.value.payment ? (ba.value.payment.status === 'approved' ? 'success' : ba.value.payment.status === 'rejected' ? 'danger' : 'warning') : 'default') as BadgeType,
-      action: ba.value.status === 'approved' ? 'Lihat' : null,
-      route: `/user/berita-acara/${ba.value.id}`,
-    },
-    {
-      key: 'pengambilan',
-      label: 'Pengambilan',
-      desc: 'Hasil Pengujian siap diambil di lab',
-      icon: 'sample',
-      status: !ba.value.samples || ba.value.samples.length === 0 ? 'inactive' : (ba.value.samples.some(s => s.status === 'ready' || s.status === 'taken')) ? 'done' : (ba.value.samples.some(s => s.status === 'processing')) ? 'active' : 'inactive',
-      badge: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'Siap Diambil' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'Sudah Diambil' : ''),
-      badgeType: (ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'success' : (ba.value.samples && ba.value.samples.some(s => s.status === 'taken') ? 'info' : 'default')) as BadgeType,
-      action: ba.value.samples && ba.value.samples.some(s => s.status === 'ready') ? 'Lihat' : null,
-      route: `/user/berita-acara/${ba.value.id}`,
+      action: s === 'completed' ? 'Lihat' : null,
+      route: s === 'completed' ? `/user/berita-acara/${ba.value.id}` : null,
     },
     {
       key: 'sertifikat',
@@ -73,8 +90,9 @@ const steps = computed(() => {
         <div class="flow__dot">
           <Check v-if="step.status === 'done'" :size="18" stroke-width="2.5" />
           <FileText v-else-if="step.key === 'pengajuan'" :size="18" />
+          <ShieldCheck v-else-if="step.key === 'verifikasi'" :size="18" />
+          <FlaskConical v-else-if="step.key === 'rekap'" :size="18" />
           <CreditCard v-else-if="step.key === 'pembayaran'" :size="18" />
-          <FlaskConical v-else-if="step.key === 'pengambilan'" :size="18" />
           <Award v-else :size="18" />
         </div>
         <div v-if="idx < steps.length - 1" class="flow__line" :class="{ 'flow__line--active': step.status === 'done' }" />

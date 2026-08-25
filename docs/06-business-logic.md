@@ -5,35 +5,49 @@
 ### Normal Flow (Happy Path)
 
 ```
-[1. Draft] ──submit──> [2. Pending] ──approve──> [3. Approved]
-                                                      │
-                                                      ├─assign analyst─> [Analyst Processing]
-                                                      │
-                                                      ├─payment approved─> [Payment Confirmed]
-                                                      │
-                                                      └─all done─> [4. Completed]
+[1. Draft] ──submit──> [2. Pending] ──admin──> [Admin Verified]
+                                                     │
+                                                     └─penyelia──> [Penyelia Verified] ──analyst rekap──> [Rekap Ready]
+                                                                                                              │
+                                                                                                              └─manager teknis──> [Completed]
+                                                                                                                                  │
+                                                                                                                                  └─kembali ke user (bayar → upload bukti → admin konfirmasi → sertifikat)
 ```
+
+Alur verifikasi bertingkat:
+1. **User** submit → `pending`
+2. **Admin** verifikasi (wajib nomor agenda) → `admin_verified`
+3. **Penyelia** verifikasi → `penyelia_verified` (analis mulai bekerja)
+4. **Analis** isi hasil pengujian + simpan rekap → `rekap_ready`
+5. **Manager Teknis** verifikasi rekap → `completed` (kembali ke user untuk pembayaran)
 
 ### Status Definitions
 
 | Status | Siapa yang set | Keterangan |
 |---|---|---|
 | `draft` | User (default) | User sedang mengisi form, belum submit |
-| `pending` | User | User sudah submit, menunggu review admin |
-| `revision` | Admin | Admin minta user revisi some fields |
-| `approved` | Admin | Admin approve BA, analyst bisa mulai kerja |
-| `rejected` | Admin | Admin reject BA |
+| `pending` | User | User sudah submit, menunggu verifikasi admin |
+| `revision` | Admin/Penyelia/Manager | Minta user revisi, alur kembali ke awal |
+| `admin_verified` | Admin | Admin approve, menunggu verifikasi penyelia |
+| `penyelia_verified` | Penyelia | Penyelia approve, siap dikerjakan analis |
+| `rekap_ready` | Analyst (otomatis) | Rekap analis disimpan, menunggu verifikasi manager teknis |
+| `completed` | Manager Teknis | Rekap disetujui, kembali ke user (pembayaran) |
+| `rejected` | Admin/Penyelia/Manager | BA ditolak permanen |
 
 ### Transisi Status
 
 ```
-draft → pending         (User submit)
-pending → approved      (Admin approve)
-pending → rejected      (Admin reject)
-pending → revision      (Admin minta revisi)
-revision → pending      (User re-submit setelah revisi)
-approved → (final)      (Selesai, analyst kerja)
+draft → pending            (User submit)
+pending → admin_verified   (Admin approve, wajib nomor_agenda)
+pending → rejected         (Admin reject)
+pending → revision         (Admin minta revisi)
+admin_verified → penyelia_verified | revision | rejected   (Penyelia)
+penyelia_verified → rekap_ready   (Analis simpan rekap → otomatis)
+rekap_ready → completed | revision | rejected              (Manager Teknis)
+revision → pending         (User re-submit setelah revisi)
 ```
+
+> Revisi dari penyelia/manager mengembalikan BA ke `pending` — user perbaiki → alur diulang dari admin.
 
 ### Validasi Transisi
 
@@ -90,6 +104,7 @@ if (!isset($validTransitions[$currentStatus][$newStatus])) {
 ### Rules
 
 - User hanya bisa request discount jika `berita_acara.diskon_diizinkan = true`
+- Pembayaran baru bisa dilakukan user setelah BA berstatus `completed` (setelah verifikasi manager teknis)
 - Admin set `discount_approved` saat konfirmasi payment
 - `discount_request` dan `discount_approved` bisa beda (admin bisa kurangi)
 - Discount reason harus diisi user
@@ -100,11 +115,19 @@ if (!isset($validTransitions[$currentStatus][$newStatus])) {
 1. Admin buka BA detail
 2. Admin lihat dropdown analyst (list dari /admin/analysts)
 3. Admin pilih analyst → PUT /admin/berita-acara/{id}/assign-analyst
-4. Analyst bisa lihat assigned BA di /analyst/berita-acara
+4. Analyst bisa lihat assigned BA di /analyst/samples saat status penyelia_verified
 5. Analyst proses sample, update test_result
-6. Analyst mark sample ready
-7. Admin mark sample taken
+6. Analyst simpan rekap → status otomatis rekap_ready
+7. Manager teknis verifikasi rekap → completed
 ```
+
+## Verifikasi Penyelia & Manager Teknis
+
+- **Penyelia** melihat BA berstatus `admin_verified` (yang di-assign, kecuali punya `berita_acara_riwayat_semua`).
+  Endpoint: `GET/PUT /api/penyelia/berita-acara[/{id}/status]` — transisi ke `penyelia_verified | revision | rejected`.
+- **Manager Teknis** melihat BA berstatus `rekap_ready` (yang di-assign). Endpoint: `GET/PUT /api/manager-teknis/berita-acara[/{id}/status]` — transisi ke `completed | revision | rejected`.
+- Controller: `VerificationController`, diakses lewat role/permission (`berita_acara_verify` untuk penyelia, `hasil_pengujian_rekap` untuk manager teknis).
+- Semua aksi dicatat ke ActivityLog: `admin_verified`, `penyelia_verified`, `rekap_verified`, `completed`.
 
 ## Form Builder — Sync Logic
 
