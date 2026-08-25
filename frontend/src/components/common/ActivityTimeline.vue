@@ -55,6 +55,10 @@ const ACTION_META: Record<string, { label: string; type: 'success' | 'warning' |
   created: { label: 'Berita Acara Diajukan', type: 'info' },
   resubmitted: { label: 'Dikirim Ulang', type: 'info' },
   verified: { label: 'Diverifikasi', type: 'success' },
+  admin_verified: { label: 'Diverifikasi Admin', type: 'success' },
+  penyelia_verified: { label: 'Diverifikasi Penyelia', type: 'success' },
+  rekap_verified: { label: 'Diverifikasi Manager Teknis', type: 'success' },
+  completed: { label: 'Berita Acara Selesai', type: 'success' },
   revision_requested: { label: 'Revisi Diminta', type: 'warning' },
   rejected: { label: 'Ditolak', type: 'danger' },
   nomor_agenda: { label: 'Nomor Agenda', type: 'info' },
@@ -109,6 +113,8 @@ function roleLabel(role?: string) {
     superadmin: 'Super Admin',
     admin: 'Admin',
     analyst: 'Analis',
+    penyelia: 'Penyelia',
+    manager_teknis: 'Manager Teknis',
     user: 'Pemohon',
   }
   return role ? (map[role] ?? role) : '-'

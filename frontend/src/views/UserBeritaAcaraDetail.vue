@@ -30,9 +30,12 @@ const templateFields = ref<FormField[]>([])
 
 const statusMap: Record<string, string> = {
   draft: 'Draft',
-  pending: 'Diajukan',
+  pending: 'Menunggu Admin',
   revision: 'Perlu Revisi',
-  approved: 'Disetujui',
+  admin_verified: 'Diverifikasi Admin',
+  penyelia_verified: 'Dikerjakan Analis',
+  rekap_ready: 'Menunggu Manager Teknis',
+  completed: 'Selesai',
   rejected: 'Ditolak',
 }
 
@@ -40,13 +43,18 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
   draft: 'default',
   pending: 'warning',
   revision: 'warning',
-  approved: 'success',
+  admin_verified: 'info',
+  penyelia_verified: 'info',
+  rekap_ready: 'warning',
+  completed: 'success',
   rejected: 'danger',
 }
 
+const isCompleted = computed(() => item.value?.status === 'completed')
+
 const canEdit = computed(() => item.value && ['draft', 'pending', 'revision'].includes(item.value.status))
-const canPay = computed(() => item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
-const canRequestDiscount = computed(() => item.value?.status === 'approved' && item.value?.diskon_diizinkan && item.value?.payment && (item.value.payment as any).discount_status !== 'pending')
+const canPay = computed(() => isCompleted.value && item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
+const canRequestDiscount = computed(() => isCompleted.value && item.value?.diskon_diizinkan && item.value?.payment && (item.value.payment as any).discount_status !== 'pending')
 const canDownloadCert = computed(() => item.value?.certificate)
 const hasClickedPerbaiki = ref(false)
 const isRevision = computed(() => item.value?.status === 'revision')
@@ -315,12 +323,15 @@ function getRevisionDiff(rev: any) {
 
         <div class="section">
           <Card title="Pembayaran">
-            <template v-if="item.status === 'approved' && item.biaya">
+            <template v-if="isCompleted && item.biaya">
               <div class="biaya-info">
                 <div class="biaya-label">Biaya yang harus dibayar</div>
                 <div class="biaya-value">Rp {{ Number(item.biaya).toLocaleString('id-ID') }}</div>
               </div>
             </template>
+            <div v-else-if="item.payment && item.biaya" class="payment-pending-note">
+              Pembayaran dapat dilakukan setelah berita acara selesai diverifikasi manager teknis.
+            </div>
 
             <div v-if="!item.payment" class="empty-text">Belum ada pembayaran</div>
             <template v-else>
@@ -540,6 +551,15 @@ function getRevisionDiff(rev: any) {
   padding: 16px;
   margin-bottom: 16px;
   text-align: center;
+}
+.payment-pending-note {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #1d4ed8;
 }
 .biaya-label {
   font-size: 12px;

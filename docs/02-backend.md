@@ -15,6 +15,8 @@ backend/
 │   │   │   ├── AuthController.php           # Login, register, logout, me
 │   │   │   ├── BeritaAcaraController.php    # User CRUD
 │   │   │   ├── AdminBeritaAcaraController.php    # Admin BA management
+│   │   │   ├── AdminController.php          # Admin BA/assign/payment/sample/users
+│   │   │   ├── VerificationController.php   # Verifikasi Penyelia & Manager Teknis
 │   │   │   ├── AdminPaymentController.php   # Admin payment confirm
 │   │   │   ├── AdminSampleController.php    # Admin sample management
 │   │   │   ├── AdminUserController.php      # Admin user management
@@ -115,9 +117,9 @@ backend/
 
 | Method | URI | Controller | Purpose |
 |---|---|---|---|
-| GET | `api/admin/berita-acara` | AdminBeritaAcaraController@index | All BA |
-| GET | `api/admin/berita-acara/{id}` | AdminBeritaAcaraController@show | BA detail |
-| PUT | `api/admin/berita-acara/{id}/status` | AdminBeritaAcaraController@updateStatus | Approve/reject/revision (approve wajib `nomor_agenda`) |
+| GET | `api/admin/berita-acara` | AdminController@beritaAcaraIndex | All BA |
+| GET | `api/admin/berita-acara/{id}` | AdminController@beritaAcaraShow | BA detail |
+| PUT | `api/admin/berita-acara/{id}/status` | AdminController@updateStatus | Admin verifikasi: pending → admin_verified/revision/rejected (approve wajib `nomor_agenda`) |
 | PUT | `api/admin/berita-acara/{id}/nomor-agenda` | AdminController@updateNomorAgenda | Simpan nomor agenda tanpa ubah status |
 | GET | `api/admin/berita-acara/check-nomor-agenda` | AdminController@checkNomorAgenda | Cek ketersediaan nomor agenda (`nomor`, opsional `ignore_id`) |
 | PUT | `api/admin/berita-acara/{id}/assign-analyst` | AdminBeritaAcaraController@assignAnalyst | Assign analyst |
@@ -130,9 +132,24 @@ backend/
 | PUT | `api/admin/payments/{id}/confirm` | AdminPaymentController@confirm | Confirm payment |
 | GET | `api/admin/samples` | AdminSampleController@index | All samples |
 | PUT | `api/admin/samples/{id}/mark-taken` | AdminSampleController@markTaken | Mark sample taken |
-| GET | `api/admin/analysts` | AdminBeritaAcaraController@analysts | List analysts |
 | GET | `api/admin/users` | AdminUserController@index | All users |
 | PUT | `api/admin/users/{id}/verify` | AdminUserController@verify | Verify/revoke |
+
+### Penyelia Routes (permission: `berita_acara_verify`)
+
+| Method | URI | Controller | Purpose |
+|---|---|---|---|
+| GET | `api/penyelia/berita-acara` | VerificationController@penyeliaIndex | BA status `admin_verified` yang di-assign |
+| GET | `api/penyelia/berita-acara/{id}` | VerificationController@penyeliaShow | Detail BA |
+| PUT | `api/penyelia/berita-acara/{id}/status` | VerificationController@penyeliaVerify | admin_verified → penyelia_verified/revision/rejected |
+
+### Manager Teknis Routes (permission: `hasil_pengujian_rekap`)
+
+| Method | URI | Controller | Purpose |
+|---|---|---|---|
+| GET | `api/manager-teknis/berita-acara` | VerificationController@managerIndex | BA status `rekap_ready` yang di-assign |
+| GET | `api/manager-teknis/berita-acara/{id}` | VerificationController@managerShow | Detail BA |
+| PUT | `api/manager-teknis/berita-acara/{id}/status` | VerificationController@managerVerify | rekap_ready → completed/revision/rejected |
 
 ### Admin Role/Permission Routes (superadmin only)
 
@@ -205,6 +222,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 | POST | `api/analyst/berita-acara/{id}/pengujian` | AnalystController@storePengujian | Store pengujian |
 | PUT | `api/analyst/berita-acara/{id}/samples/{sampleId}` | AnalystController@updateSample | Update sample |
 | PUT | `api/analyst/berita-acara/{id}/samples/{sampleId}/ready` | AnalystController@markSampleReady | Mark ready |
+| PUT | `api/analyst/berita-acara/{id}/rekap-analis` | AnalystController@storeRekapAnalis | Simpan rekap → status otomatis `rekap_ready` |
 
 ## Models & Relationships
 
@@ -217,13 +235,17 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 ### BeritaAcara
 - `belongsTo(User, 'user_id')` — applicant
 - `belongsTo(User, 'analyst_id')` — assigned analyst
+- `belongsToMany(User, 'berita_acara_analysts')` — analysts
+- `belongsToMany(User, 'berita_acara_penyelia')` — penyelias
+- `belongsToMany(User, 'berita_acara_manager_teknis')` — managerTeknis
 - `hasOne(Payment)`
 - `hasMany(Sample)`
 - `hasOne(Certificate)`
 - `hasMany(BeritaAcaraRevision)`
 - `hasMany(Pengujian)`
 - `hasMany(ActivityLog)` — ordered `latest('created_at')`
-- `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan
+- `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan, nomor_agenda, rekap_analis_data, rekap_analis_template_id, formula_id, custom_items, keterangan
+- `status` enum: `draft | pending | revision | admin_verified | penyelia_verified | rekap_ready | completed | rejected`
 
 ### BeritaAcaraRevision
 - `belongsTo(BeritaAcara)`
@@ -239,7 +261,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 - Relasi `BeritaAcara::activityLogs` = `hasMany(...)->latest('created_at')`; dipakai di timeline detail
 
 **Aksi yang tercatat (kolom `action`):**
-`created`, `resubmitted`, `verified`, `revision_requested`, `rejected`, `nomor_agenda`, `analyst_assigned`, `penyelia_assigned`, `manager_teknis_assigned`, `payment_confirmed`, `payment_rejected`, `payment_uploaded`, `sample_taken`, `sample_ready`, `sample_updated`, `pengujian_saved`, `rekap_saved`, `discount_requested`, `discount_confirmed`, `discount_approved`, `discount_rejected`, `discount_given`, `discount_updated`, `discount_removed`, `certificate_downloaded`.
+`created`, `resubmitted`, `verified`, `admin_verified`, `penyelia_verified`, `rekap_verified`, `completed`, `revision_requested`, `rejected`, `nomor_agenda`, `analyst_assigned`, `penyelia_assigned`, `manager_teknis_assigned`, `payment_confirmed`, `payment_rejected`, `payment_uploaded`, `sample_taken`, `sample_ready`, `sample_updated`, `pengujian_saved`, `rekap_saved`, `discount_requested`, `discount_confirmed`, `discount_approved`, `discount_rejected`, `discount_given`, `discount_updated`, `discount_removed`, `certificate_downloaded`.
 
 ### Payment
 - `belongsTo(BeritaAcara)`

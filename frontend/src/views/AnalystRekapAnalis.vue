@@ -173,11 +173,15 @@ const totalFormulaBiaya = computed(() => formulaRows.value.reduce((s, r) => s + 
 const totalBiaya = computed(() => totalFormulaBiaya.value)
 
 const statusMap: Record<string, string> = {
-  draft: 'Draft', pending: 'Diajukan', revision: 'Revisi', approved: 'Disetujui', rejected: 'Ditolak',
+  draft: 'Draft', pending: 'Menunggu Admin', revision: 'Revisi', admin_verified: 'Diverifikasi Admin',
+  penyelia_verified: 'Dikerjakan Analis', rekap_ready: 'Menunggu Manager Teknis', completed: 'Selesai', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
-  draft: 'default', pending: 'warning', revision: 'warning', approved: 'success', rejected: 'danger',
+  draft: 'default', pending: 'warning', revision: 'warning', admin_verified: 'info',
+  penyelia_verified: 'info', rekap_ready: 'warning', completed: 'success', rejected: 'danger',
 }
+
+const canWork = computed(() => item.value?.status === 'penyelia_verified')
 
 const sampleStatusType: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   pending: 'default', processing: 'warning', ready: 'success', taken: 'info',
@@ -324,7 +328,7 @@ async function loadTemplate(tid: number) {
   try {
     const tpl = await formTemplateApi.getPublicTemplate(tid)
     if (tpl?.fields) {
-      templateFields.value = tpl.fields
+      templateFields.value = tpl.fields.filter(f => !f.label.toLowerCase().includes('upload akses'))
       templateIdVal.value = tpl.id
     }
   } catch {
@@ -582,9 +586,10 @@ async function handleSubmit() {
 
             <div class="form-actions">
               <Button variant="outline" @click="router.push(`/analyst/samples/${route.params.id}`)">Batal</Button>
-              <Button :disabled="saving" @click="handleSubmit">
+              <Button v-if="canWork" :disabled="saving" @click="handleSubmit">
                 {{ saving ? 'Mengirim...' : 'Kirim' }}
               </Button>
+              <p v-else class="rekap-locked">Berita acara sedang tidak dalam tahap pengerjaan analis (status: {{ statusMap[item.status] || item.status }}).</p>
             </div>
           </div>
         </Card>
@@ -617,6 +622,7 @@ async function handleSubmit() {
 .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
 .form-desc { margin: 0 0 20px; font-size: 14px; color: #64748b; }
 .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+.rekap-locked { font-size: 13px; color: #b45309; margin: 0; }
 
 .biaya-section { margin-top: 24px; padding: 16px; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; }
 .biaya-label { display: block; font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 12px; }

@@ -32,7 +32,11 @@ const menuItems = computed(() => {
   // Dashboard — tentukan path dari level permission tertinggi
   if (auth.hasPermission('dashboard')) {
     let dashPath = '/user/dashboard'
-    if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('user_view')) {
+    if (auth.user?.role === 'penyelia') {
+      dashPath = '/penyelia/berita-acara'
+    } else if (auth.user?.role === 'manager_teknis') {
+      dashPath = '/manager-teknis/berita-acara'
+    } else if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('user_view')) {
       dashPath = '/admin/dashboard'
     } else if (auth.hasPermission('hasil_pengujian_rekap')) {
       dashPath = '/analyst/dashboard'
@@ -42,7 +46,11 @@ const menuItems = computed(() => {
 
   // Berita Acara
   if (canAdminBa) {
-    items.push({ label: 'Berita Acara', path: '/admin/berita-acara', icon: FileText })
+    const baPath =
+      auth.user?.role === 'penyelia' ? '/penyelia/berita-acara'
+      : auth.user?.role === 'manager_teknis' ? '/manager-teknis/berita-acara'
+      : '/admin/berita-acara'
+    items.push({ label: 'Berita Acara', path: baPath, icon: FileText })
   } else if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal')) {
     items.push({ label: 'Berita Acara', path: '/user/berita-acara', icon: FileText })
   }

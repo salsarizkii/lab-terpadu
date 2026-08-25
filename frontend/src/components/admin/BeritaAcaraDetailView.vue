@@ -37,11 +37,16 @@ const legacyFields = [
 
 const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info' | 'default'; label: string }> = {
   draft: { type: 'default', label: 'Draft' },
-  pending: { type: 'warning', label: 'Diajukan' },
+  pending: { type: 'warning', label: 'Menunggu Admin' },
   revision: { type: 'danger', label: 'Revisi' },
-  approved: { type: 'success', label: 'Disetujui' },
+  admin_verified: { type: 'info', label: 'Diverifikasi Admin' },
+  penyelia_verified: { type: 'info', label: 'Diverifikasi Penyelia' },
+  rekap_ready: { type: 'warning', label: 'Menunggu Manager Teknis' },
+  completed: { type: 'success', label: 'Selesai' },
   rejected: { type: 'danger', label: 'Ditolak' },
 }
+
+const verifiedStatuses = ['admin_verified', 'penyelia_verified', 'rekap_ready', 'completed']
 
 function hasFormData(): boolean {
   const fd = (props.beritaAcara as any).form_data
@@ -149,7 +154,7 @@ watch(() => props.beritaAcara, () => {
 <template>
   <div class="detail">
     <div class="detail__meta">
-      <div v-if="beritaAcara.status === 'approved' && beritaAcara.nomor_agenda" class="detail__meta-item">
+      <div v-if="verifiedStatuses.includes(beritaAcara.status) && beritaAcara.nomor_agenda" class="detail__meta-item">
         <span class="detail__label">Nomor Agenda</span>
         <span class="detail__agenda">{{ beritaAcara.nomor_agenda }}</span>
       </div>
@@ -233,7 +238,7 @@ watch(() => props.beritaAcara, () => {
       </template>
     </table>
 
-    <div v-if="!props.hideSections?.includes('verifikasi') && (beritaAcara.status === 'approved' || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected')" class="detail__section">
+    <div v-if="!props.hideSections?.includes('verifikasi') && (verifiedStatuses.includes(beritaAcara.status) || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected')" class="detail__section">
       <div class="detail__section-title">Informasi Verifikasi</div>
       <table class="detail__table">
         <tr>

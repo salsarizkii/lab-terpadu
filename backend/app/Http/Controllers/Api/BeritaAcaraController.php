@@ -190,8 +190,8 @@ class BeritaAcaraController extends Controller
         $user = auth()->user();
 
         $query = Sample::with('beritaAcara.user', 'beritaAcara.analyst', 'beritaAcara.payment', 'beritaAcara.formula')
-            ->whereHas('beritaAcara.payment', function ($q) {
-                $q->where('status', 'approved');
+            ->whereHas('beritaAcara', function ($q) {
+                $q->where('status', 'completed');
             })
             ->whereHas('beritaAcara', function ($q) use ($user) {
                 $q->where('user_id', $user->id);

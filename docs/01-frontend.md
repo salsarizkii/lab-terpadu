@@ -119,8 +119,13 @@ frontend/src/
 | `/admin/roles` | AdminRoles | yes | superadmin |
 | `/admin/users` | AdminUsers | yes | superadmin |
 | `/admin/forms` | FormTemplateEditor | yes | admin |
+| `/admin/discounts` | AdminDiscounts | yes | admin |
 | `/analyst/dashboard` | AnalystDashboard | yes | analyst |
 | `/analyst/assigned` | AnalystAssigned | yes | analyst |
+| `/penyelia/berita-acara` | PenyeliaBeritaAcara | yes | penyelia |
+| `/penyelia/berita-acara/:id` | PenyeliaBeritaAcaraDetail | yes | penyelia |
+| `/manager-teknis/berita-acara` | ManagerBeritaAcara | yes | manager_teknis |
+| `/manager-teknis/berita-acara/:id` | ManagerBeritaAcaraDetail | yes | manager_teknis |
 | `/:pathMatch(.*)*` | → redirect `/dashboard` | - | - |
 
 ### Guard Logic (`router/index.ts`)
@@ -202,6 +207,12 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | analyst.ts | `updateSample(baId, sampleId, payload)` | `PUT .../samples/:sampleId` | Update sample result |
 | analyst.ts | `markSampleReady(baId, sampleId)` | `PUT .../samples/:sampleId/ready` | Mark sample ready |
 | analyst.ts | `storePengujian(baId, payload)` | `POST .../pengujian` | Store testing data |
+| verification.ts | `getPenyeliaBeritaAcara()` | `GET /penyelia/berita-acara` | List BA utk penyelia |
+| verification.ts | `getPenyeliaBeritaAcaraDetail(id)` | `GET /penyelia/berita-acara/:id` | Detail |
+| verification.ts | `penyeliaVerify(id, payload)` | `PUT /penyelia/berita-acara/:id/status` | Verifikasi penyelia |
+| verification.ts | `getManagerBeritaAcara()` | `GET /manager-teknis/berita-acara` | List BA utk manager |
+| verification.ts | `getManagerBeritaAcaraDetail(id)` | `GET /manager-teknis/berita-acara/:id` | Detail |
+| verification.ts | `managerVerify(id, payload)` | `PUT /manager-teknis/berita-acara/:id/status` | Verifikasi manager teknis |
 | beritaAcara.ts | `getList(params?)` | `GET /user/berita-acara` | User's BA list |
 | beritaAcara.ts | `getById(id)` | `GET /user/berita-acara/:id` | BA detail |
 | beritaAcara.ts | `create(formData)` | `POST /user/berita-acara` | Create BA (multipart) |
@@ -253,7 +264,8 @@ interface User {
 
 interface BeritaAcara {
   id: number; user_id: number; analyst_id?: number;
-  status: 'draft' | 'pending' | 'revision' | 'approved' | 'rejected';
+  status: 'draft' | 'pending' | 'revision' | 'admin_verified' | 'penyelia_verified' | 'rekap_ready' | 'completed' | 'rejected';
+  nomor_agenda?: string;
   nama_pemohon?: string; nim?: string; prodi_fakultas_instansi?: string;
   dosen_pembimbing?: string; telp_hp?: string; email?: string; alamat?: string;
   judul_penelitian?: string; akses_lab?: string; bahan_contoh_uji?: string;
@@ -261,9 +273,9 @@ interface BeritaAcara {
   kode_nama_sampel?: string; keterangan_sampel?: string; keterangan_tambahan?: string;
   pengukuran_per_sampel?: string; sisa_sampel?: string; upload_akses?: string;
   masa_berlaku_akses?: string; status_pelanggan?: string; status_berkas?: string;
-  biaya?: string; diskon_diizinkan?: boolean;
-  user?: User; analyst?: User; revisions?: BeritaAcaraRevision[];
-  payment?: Payment; samples?: Sample[]; certificate?: Certificate; pengujians?: any[];
+  biaya?: string; diskon_diizinkan?: boolean; formula_id?: number | null; custom_items?: any[]; keterangan?: string;
+  user?: User; analyst?: User; analysts?: User[]; penyelias?: User[]; manager_teknis?: User[];
+  revisions?: BeritaAcaraRevision[]; payment?: Payment; samples?: Sample[]; certificate?: Certificate; pengujians?: any[];
   activity_logs?: ActivityLog[];
   created_at: string; updated_at: string;
 }

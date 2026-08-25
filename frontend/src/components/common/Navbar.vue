@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
 import { FlaskConical, LogOut, User, Lock, ChevronDown, AlertTriangle } from '@lucide/vue'
@@ -12,6 +12,18 @@ import DropdownDivider from './DropdownDivider.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const roleLabel = computed(() => {
+  const map: Record<string, string> = {
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    analyst: 'Analis',
+    penyelia: 'Penyelia',
+    manager_teknis: 'Manager Teknis',
+    user: 'User',
+  }
+  return auth.user?.role ? (map[auth.user.role] ?? auth.user.role) : '-'
+})
 
 const showProfileModal = ref(false)
 const profileName = ref('')
@@ -109,7 +121,7 @@ function confirmLogout() {
             <div class="navbar__avatar">{{ auth.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</div>
             <div class="navbar__user-info">
               <span class="navbar__user-name">{{ auth.user?.name || 'User' }}</span>
-              <span class="navbar__user-role">{{ auth.user?.role || '-' }}</span>
+              <span class="navbar__user-role">{{ roleLabel }}</span>
             </div>
             <ChevronDown :size="16" class="navbar__chevron" :class="{ 'navbar__chevron--open': isOpen }" />
           </div>
