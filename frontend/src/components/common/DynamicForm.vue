@@ -3,7 +3,21 @@ import { ref, watch, onMounted, onUnmounted } from 'vue'
 import FormInput from './FormInput.vue'
 import FormTextarea from './FormTextarea.vue'
 import FormSelect from './FormSelect.vue'
+import { Upload, FileText, X } from '@lucide/vue'
 import type { FormField } from '../../types'
+
+const FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 KB'
+  const kb = bytes / 1024
+  if (kb < 1024) return `${kb.toFixed(1)} KB`
+  return `${(kb / 1024).toFixed(2)} MB`
+}
+
+function isFileValue(v: any): v is File {
+  return typeof File !== 'undefined' && v instanceof File
+}
 
 const props = defineProps<{
   fields: FormField[]
@@ -254,17 +268,57 @@ defineExpose({ values, validate })
       <!-- File -->
       <div v-else-if="field.type === 'file'" :id="fieldId(field, i)" class="df-field" :class="{ 'df-field-error': hasError(field, i) }">
         <label class="df-label">{{ field.label }} <span v-if="field.is_required" class="df-required">*</span></label>
+
+        <!-- File sudah diunggah sebelumnya (edit) -->
         <div v-if="typeof values[fieldKey(field, i)] === 'string' && values[fieldKey(field, i)]" class="df-file-existing">
-          <a :href="getFileUrl(values[fieldKey(field, i)])" target="_blank" class="df-file-link">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-            {{ getFileName(values[fieldKey(field, i)]) }}
-          </a>
-          <label class="df-file-replace">
+          <FileText :size="18" class="df-file-existing__icon" />
+          <div class="df-file-existing__info">
+            <a :href="getFileUrl(values[fieldKey(field, i)])" target="_blank" class="df-file-existing__name">
+              {{ getFileName(values[fieldKey(field, i)]) }}
+            </a>
+            <span class="df-file-existing__hint">File sudah diunggah sebelumnya</span>
+          </div>
+          <label class="df-file-btn">
+            <Upload :size="14" />
             Ganti
-            <input type="file" class="df-file" @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || null)" />
+            <input
+              type="file"
+              class="df-file-input"
+              :accept="FILE_ACCEPT"
+              @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || '')"
+            />
           </label>
         </div>
-        <input v-else type="file" class="df-file" @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || null)" />
+
+        <!-- File baru terpilih, belum dikirim -->
+        <div v-else-if="isFileValue(getFieldValue(field, i))" class="df-file-preview">
+          <FileText :size="18" class="df-file-preview__icon" />
+          <div class="df-file-preview__info">
+            <span class="df-file-preview__name">{{ (getFieldValue(field, i) as File).name }}</span>
+            <span class="df-file-preview__size">{{ formatFileSize((getFieldValue(field, i) as File).size) }}</span>
+          </div>
+          <button
+            type="button"
+            class="df-file-preview__remove"
+            title="Hapus file"
+            @click="setFieldValue(field, i, '')"
+          >
+            <X :size="14" />
+          </button>
+        </div>
+
+        <!-- Dropzone kosong -->
+        <label v-else class="df-file-drop" :class="{ 'df-file-drop--error': hasError(field, i) }">
+          <Upload :size="20" class="df-file-drop__icon" />
+          <span class="df-file-drop__text">Pilih file untuk diunggah</span>
+          <span class="df-file-drop__hint">PDF, JPG, PNG, DOC, DOCX (maks 10 MB)</span>
+          <input
+            type="file"
+            class="df-file-input"
+            :accept="FILE_ACCEPT"
+            @change="(e: Event) => setFieldValue(field, i, (e.target as HTMLInputElement).files?.[0] || '')"
+          />
+        </label>
         <p v-if="hasError(field, i)" class="df-error-text">Pertanyaan ini wajib diisi</p>
       </div>
     </template>
@@ -412,47 +466,154 @@ defineExpose({ values, validate })
 .df-dropdown-enter-active, .df-dropdown-leave-active { transition: opacity 0.15s, transform 0.15s; }
 .df-dropdown-enter-from, .df-dropdown-leave-to { opacity: 0; transform: translateY(-4px); }
 
-.df-file {
-  font-size: 14px;
-  color: #475569;
+.df-file-input {
+  display: none;
 }
 
+/* Dropzone */
+.df-file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 16px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.df-file-drop:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.df-file-drop--error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.df-file-drop__icon {
+  color: #2563eb;
+  margin-bottom: 2px;
+}
+.df-file-drop__text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+.df-file-drop__hint {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* File terpilih (belum dikirim) */
+.df-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+.df-file-preview__icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+.df-file-preview__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.df-file-preview__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.df-file-preview__size {
+  font-size: 12px;
+  color: #64748b;
+}
+.df-file-preview__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.df-file-preview__remove:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* File sudah diunggah (edit) */
 .df-file-existing {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
 }
-.df-file-link {
+.df-file-existing__icon {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+.df-file-existing__info {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 1px;
+}
+.df-file-existing__name {
   font-size: 13px;
-  font-weight: 500;
-  color: #2563eb;
+  font-weight: 600;
+  color: #166534;
   text-decoration: underline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.df-file-link:hover {
-  color: #1d4ed8;
+.df-file-existing__name:hover {
+  color: #15803d;
 }
-.df-file-replace {
+.df-file-existing__hint {
+  font-size: 12px;
+  color: #64748b;
+}
+.df-file-btn {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border: 1px solid #e2e8f0;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid #bbf7d0;
   border-radius: 6px;
-  background: white;
+  background: #fff;
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: #166534;
   cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
 }
-.df-file-replace:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+.df-file-btn:hover {
+  background: #dcfce7;
+  border-color: #86efac;
 }
 
 .df-field-error {

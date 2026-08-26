@@ -19,8 +19,8 @@ const routes = [
     path: '/dashboard',
     redirect: () => {
       const auth = useAuthStore(pinia)
-      if (auth.user?.role === 'penyelia') return '/penyelia/berita-acara'
-      if (auth.user?.role === 'manager_teknis') return '/manager-teknis/berita-acara'
+      if (auth.user?.role === 'penyelia') return '/penyelia/dashboard'
+      if (auth.user?.role === 'manager_teknis') return '/manager-teknis/dashboard'
       if (!auth.hasPermission('dashboard')) {
         if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/admin/berita-acara'
         if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal') || auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/user/berita-acara'
@@ -175,6 +175,12 @@ const routes = [
     meta: { auth: true, permission: 'hasil_pengujian_rekap', permissionOr: 'berita_acara_riwayat_semua' },
   },
   {
+    path: '/penyelia/dashboard',
+    name: 'PenyeliaDashboard',
+    component: () => import('../views/PenyeliaDashboard.vue'),
+    meta: { auth: true, permission: 'berita_acara_verify' },
+  },
+  {
     path: '/penyelia/berita-acara',
     name: 'PenyeliaBeritaAcara',
     component: () => import('../views/PenyeliaBeritaAcara.vue'),
@@ -185,6 +191,12 @@ const routes = [
     name: 'PenyeliaBeritaAcaraDetail',
     component: () => import('../views/PenyeliaBeritaAcaraDetail.vue'),
     meta: { auth: true, permission: 'berita_acara_verify' },
+  },
+  {
+    path: '/manager-teknis/dashboard',
+    name: 'ManagerDashboard',
+    component: () => import('../views/ManagerDashboard.vue'),
+    meta: { auth: true, permission: 'hasil_pengujian_rekap' },
   },
   {
     path: '/manager-teknis/berita-acara',

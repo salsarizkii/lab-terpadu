@@ -25,7 +25,9 @@ class AnalystController extends Controller
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
-            });
+            })
+                // Hanya BA yang sudah lolos verifikasi penyelia (bisa dikerjakan)
+                ->whereIn('status', ['penyelia_verified', 'rekap_ready']);
         }
         return $query->findOrFail($id);
     }
@@ -78,7 +80,9 @@ class AnalystController extends Controller
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
-            });
+            })
+                // Hanya BA yang sudah lolos verifikasi penyelia (bisa dikerjakan)
+                ->whereIn('status', ['penyelia_verified', 'rekap_ready']);
         }
         return response()->json($query->orderByDesc('created_at')->get());
     }
@@ -268,7 +272,8 @@ class AnalystController extends Controller
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('analysts', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
-            });
+            })
+                ->whereIn('status', ['penyelia_verified', 'rekap_ready']);
         }
         $beritaAcara = $query->findOrFail($id);
 

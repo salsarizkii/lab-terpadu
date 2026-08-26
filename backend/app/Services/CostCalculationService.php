@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BeritaAcara;
 use App\Models\Formula;
+use App\Models\FormField;
 use App\Models\InstrumentPrice;
 
 class CostCalculationService
@@ -81,11 +82,10 @@ class CostCalculationService
                 }
             } else {
                 // Form field variables: resolve from form_data or rekap_analis_data
-                $dataKey = 'field_' . $formFieldId;
                 if ($source === 'rekap_analis') {
-                    $rawValue = $beritaAcara->rekap_analis_data[$dataKey] ?? null;
+                    $rawValue = $this->resolveFormValue($beritaAcara, $beritaAcara->rekap_analis_data ?? [], $formFieldId, $var['label'] ?? null);
                 } else {
-                    $rawValue = $beritaAcara->form_data[$dataKey] ?? null;
+                    $rawValue = $this->resolveFormValue($beritaAcara, $beritaAcara->form_data ?? [], $formFieldId, $var['label'] ?? null);
                 }
                 // Try numeric conversion, fallback to 0
                 $values[$key] = is_numeric($rawValue) ? (float) $rawValue : (float) ($beritaAcara->{$key} ?? 0);
@@ -93,6 +93,43 @@ class CostCalculationService
         }
 
         return $values;
+    }
+
+    /**
+     * Ambil nilai field dari data form, dengan fallback pencocokan label.
+     *
+     * Formula menyimpan form_field_id dari template lama; jika template sudah
+     * di-resync (delete-then-reinsert), id field bisa berubah sehingga data
+     * berita acara tidak lagi punya key field_{id_lama}. Fallback mencocokkan
+     * label field (persis dulu, lalu sebagian) terhadap key field_* yang ada.
+     */
+    private function resolveFormValue(BeritaAcara $beritaAcara, array $data, ?int $formFieldId, ?string $label): mixed
+    {
+        if ($formFieldId !== null && array_key_exists('field_' . $formFieldId, $data)) {
+            return $data['field_' . $formFieldId];
+        }
+
+        if (!empty($label)) {
+            $needle = mb_strtolower(trim($label));
+
+            // Pass 1: label persis
+            foreach ($data as $key => $value) {
+                if (!is_string($key) || !str_starts_with($key, 'field_')) continue;
+                $field = FormField::find((int) substr($key, 6));
+                if ($field && mb_strtolower(trim($field->label)) === $needle) return $value;
+            }
+
+            // Pass 2: label mengandung sebagian
+            foreach ($data as $key => $value) {
+                if (!is_string($key) || !str_starts_with($key, 'field_')) continue;
+                $field = FormField::find((int) substr($key, 6));
+                if (!$field) continue;
+                $fieldLabel = mb_strtolower(trim($field->label));
+                if (str_contains($needle, $fieldLabel) || str_contains($fieldLabel, $needle)) return $value;
+            }
+        }
+
+        return null;
     }
 
     /**

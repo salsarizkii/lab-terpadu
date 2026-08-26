@@ -7,7 +7,6 @@ import Badge from '../components/common/Badge.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
-import PaymentForm from '../components/user/PaymentForm.vue'
 import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
@@ -24,7 +23,6 @@ const route = useRoute()
 const router = useRouter()
 const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
-const showPaymentModal = ref(false)
 const showDiscountModal = ref(false)
 const templateFields = ref<FormField[]>([])
 
@@ -112,20 +110,14 @@ onMounted(async () => {
   }
 })
 
-async function handlePayment(fd: FormData) {
-  if (!item.value?.payment) return
-  try {
-    await paymentApi.uploadProof(item.value.payment.id, fd)
-    item.value = await beritaAcaraApi.getById(item.value.id)
-    toast.success('Bukti pembayaran berhasil diupload')
-    showPaymentModal.value = false
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
-  }
-}
-
 function openDiscountModal() {
   showDiscountModal.value = true
+}
+
+function goToPayment() {
+  if (item.value?.payment) {
+    router.push(`/user/payments/${item.value.payment.id}`)
+  }
 }
 
 async function handleDiscount(data: any) {
@@ -346,7 +338,7 @@ function getRevisionDiff(rev: any) {
               </table>
             </template>
             <div class="action-group">
-              <Button v-if="canPay" @click="showPaymentModal = true">Bayar</Button>
+              <Button v-if="canPay" @click="goToPayment">Bayar</Button>
               <Button v-if="canRequestDiscount" variant="ghost" @click="openDiscountModal">Ajukan Diskon</Button>
             </div>
           </Card>
@@ -366,10 +358,6 @@ function getRevisionDiff(rev: any) {
             <CertificateDownload :certificate-id="item.certificate!.id" @download="handleDownload" />
           </Card>
         </div>
-
-        <Modal :show="showPaymentModal" title="Pembayaran" @close="showPaymentModal = false">
-          <PaymentForm v-if="item" :berita-acara="item" @submit="handlePayment" />
-        </Modal>
 
         <Modal :show="showDiscountModal" title="Ajukan Diskon" @close="showDiscountModal = false">
           <DiscountRequest v-if="item.payment" :payment="item.payment" @submit="handleDiscount" />

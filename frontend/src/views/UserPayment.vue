@@ -109,12 +109,20 @@ onMounted(async () => {
                 <td class="td-date">{{ formatDateTime(p.created_at) }}</td>
                 <td class="td-aksi">
                   <Button
+                    v-if="p.status === 'approved'"
                     variant="outline"
                     size="sm"
                     @click="router.push(`/user/payments/${p.id}`)"
                   >
                     <Eye :size="15" style="margin-right: 4px;" />
                     <span>Detail</span>
+                  </Button>
+                  <Button
+                    v-else
+                    size="sm"
+                    @click="router.push(`/user/payments/${p.id}`)"
+                  >
+                    Bayar
                   </Button>
                 </td>
               </tr>

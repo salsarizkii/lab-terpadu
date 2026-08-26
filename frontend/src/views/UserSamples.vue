@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
 import Badge from '../components/common/Badge.vue'
@@ -15,6 +16,7 @@ import { formatDateTime } from '../utils/date'
 const samples = ref<Sample[]>([])
 const loading = ref(true)
 const selectedSample = ref<Sample | null>(null)
+const router = useRouter()
 
 function formatPrice(val: number | string) {
   return new Intl.NumberFormat('id-ID').format(Math.round(Number(val) || 0))
@@ -79,6 +81,9 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 <td>
                   <Button v-if="hasRekap(s)" size="sm" variant="outline" @click="selectedSample = s">
                     <Eye :size="14" style="margin-right:4px" /> Lihat Rekap
+                  </Button>
+                  <Button v-else-if="s.berita_acara?.payment" size="sm" @click="router.push(`/user/payments/${s.berita_acara!.payment!.id}`)">
+                    Bayar
                   </Button>
                   <span v-else class="text-muted">Menunggu</span>
                 </td>

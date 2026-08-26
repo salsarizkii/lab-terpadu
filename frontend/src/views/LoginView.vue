@@ -4,11 +4,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { toast } from 'vue-sonner'
 import LoginForm from '../components/auth/LoginForm.vue'
+import { extractApiError } from '../utils/errorMessage'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const loading = ref(false)
+const error = ref('')
 
 onMounted(() => {
   if (route.query.registered === 'true') {
@@ -21,13 +23,15 @@ onMounted(() => {
 })
 
 async function handleLogin(data: { email: string; password: string }) {
+  error.value = ''
   loading.value = true
   try {
     await auth.login(data.email, data.password)
     toast.success('Login berhasil')
     router.push('/dashboard')
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Login gagal')
+    error.value = extractApiError(e, 'Login gagal')
+    toast.error(error.value)
   } finally {
     loading.value = false
   }
@@ -45,7 +49,7 @@ function handleForgotPassword() {
         <h1>UPT Lab Terpadu</h1>
         <p>Pemesanan Data Hasil Pengujian Penelitian</p>
       </div>
-      <LoginForm @submit="handleLogin" :loading="loading" @forgot-password="handleForgotPassword" />
+      <LoginForm @submit="handleLogin" :loading="loading" :error="error" @forgot-password="handleForgotPassword" />
       <p class="login-footer">
         Belum punya akun? <router-link to="/register">Daftar</router-link>
       </p>

@@ -22,6 +22,17 @@ const templateFields = ref<FormField[]>([])
 
 const verifierName = computed(() => auth.user?.name || '-')
 const verifierEmail = computed(() => auth.user?.email || '-')
+const verifierRole = computed(() => {
+  const map: Record<string, string> = {
+    superadmin: 'Super Admin',
+    admin: 'Admin',
+    analyst: 'Analis',
+    penyelia: 'Penyelia',
+    manager_teknis: 'Manager Teknis',
+    user: 'User',
+  }
+  return auth.user?.role ? (map[auth.user.role] ?? auth.user.role) : '-'
+})
 
 function handleSubmit() {
   loading.value = true
@@ -147,6 +158,7 @@ watch(() => props.beritaAcara, () => {
         <span class="verification__label">Diverifikasi Oleh</span>
         <span class="verification__value">
           <span class="verification__verifier-name">{{ verifierName }}</span>
+          <span class="verification__verifier-role">{{ verifierRole }}</span>
           <span class="verification__verifier-email">{{ verifierEmail }}</span>
         </span>
       </div>
@@ -198,6 +210,18 @@ watch(() => props.beritaAcara, () => {
 .verification__verifier-name {
   font-weight: 700;
   color: #1d4ed8;
+}
+.verification__verifier-role {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #6d28d9;
+  background: #ede9fe;
+  border-radius: 100px;
+  padding: 1px 8px;
+  margin-top: 2px;
 }
 .verification__verifier-email {
   display: block;

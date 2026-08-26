@@ -5,9 +5,12 @@ import Button from '../common/Button.vue'
 import { roleApi } from '../../api/role'
 import type { Role } from '../../types'
 
-defineProps<{
+withDefaults(defineProps<{
   loading?: boolean
-}>()
+  error?: string
+}>(), {
+  error: '',
+})
 
 const emit = defineEmits<{
   submit: [data: {
@@ -28,6 +31,7 @@ const phone = ref('')
 const selectedRole = ref('')
 const roles = ref<Role[]>([])
 const loadingRoles = ref(true)
+const rolesError = ref('')
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 
@@ -68,8 +72,14 @@ function handleClickOutside(e: Event) {
   }
 }
 
-onMounted(async () => {
+onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  loadRoles()
+})
+
+async function loadRoles() {
+  loadingRoles.value = true
+  rolesError.value = ''
   try {
     roles.value = await roleApi.getPublicRoles()
     if (roles.value.length === 0) {
@@ -79,11 +89,13 @@ onMounted(async () => {
       if (userRole) selectedRole.value = userRole.name
     }
   } catch {
-    selectedRole.value = 'user'
+    roles.value = []
+    selectedRole.value = ''
+    rolesError.value = 'Gagal memuat daftar role. Periksa koneksi server, lalu coba lagi.'
   } finally {
     loadingRoles.value = false
   }
-})
+}
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
@@ -109,6 +121,10 @@ function handleSubmit() {
 
 <template>
   <form class="auth-form" @submit.prevent="handleSubmit">
+    <div v-if="error" class="form-alert" role="alert">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="form-alert__icon"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+      <span>{{ error }}</span>
+    </div>
     <FormInput v-model="name" label="Nama Lengkap" placeholder="Nama lengkap" required />
     <FormInput v-model="email" label="Email" type="email" placeholder="contoh@email.com" required />
     <FormInput v-model="password" label="Password" type="password" placeholder="Min. 8 karakter" required />
@@ -120,6 +136,10 @@ function handleSubmit() {
         Pilih Role <span class="role-required">*</span>
       </label>
       <div v-if="loadingRoles" class="role-loading">Memuat daftar role...</div>
+      <div v-else-if="rolesError" class="role-error" role="alert">
+        <span>{{ rolesError }}</span>
+        <button type="button" class="role-error__retry" @click="loadRoles">Coba lagi</button>
+      </div>
       <div v-else-if="roles.length === 0" class="role-loading">Anda akan terdaftar sebagai <strong>user</strong>.</div>
       <div v-else ref="dropdownRef" class="role-dropdown-wrapper">
         <button
@@ -170,6 +190,24 @@ function handleSubmit() {
   flex-direction: column;
 }
 
+.form-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #b91c1c;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+.form-alert__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .role-section {
   margin-bottom: 20px;
   position: relative;
@@ -194,6 +232,38 @@ function handleSubmit() {
   padding: 20px;
   color: #94a3b8;
   font-size: 13px;
+}
+
+.role-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #b91c1c;
+  line-height: 1.4;
+}
+
+.role-error__retry {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.role-error__retry:hover {
+  background: #fee2e2;
 }
 
 .role-dropdown-wrapper {
@@ -265,17 +335,19 @@ function handleSubmit() {
   transform: rotate(180deg);
 }
 
+/* Dropdown muncul ke atas */
 .role-dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  bottom: calc(100% + 4px);
   left: 0;
   right: 0;
+  max-height: 220px;
+  overflow-y: auto;
   background: #fff;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.1);
   z-index: 50;
-  overflow: hidden;
 }
 
 .role-dropdown-item {
@@ -310,6 +382,6 @@ function handleSubmit() {
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(6px);
 }
 </style>

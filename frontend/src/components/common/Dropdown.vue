@@ -26,9 +26,23 @@ function toggle() {
 }
 
 function open() {
- isOpen.value = true
- emit('open')
- if (props.teleport) nextTick(updatePosition)
+  isOpen.value = true
+  emit('open')
+  if (props.teleport) {
+    // Render dulu tersembunyi di (0,0) agar tidak mem-flash di pojok kiri atas,
+    // lalu ukur posisi sebenarnya dan tampilkan.
+    menuStyle.value = {
+      position: 'fixed',
+      top: '0px',
+      left: '0px',
+      width: props.width,
+      visibility: 'hidden',
+    }
+    nextTick(() => {
+      updatePosition()
+      menuStyle.value = { ...menuStyle.value, visibility: 'visible' }
+    })
+  }
 }
 
 function close() {
@@ -73,8 +87,18 @@ function updatePosition() {
  }
 }
 
-onMounted(() => document.addEventListener('mousedown', onClickOutside))
-onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
+function onWindowResize() {
+  if (isOpen.value && props.teleport) updatePosition()
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', onClickOutside)
+  window.addEventListener('resize', onWindowResize)
+})
+onUnmounted(() => {
+  document.removeEventListener('mousedown', onClickOutside)
+  window.removeEventListener('resize', onWindowResize)
+})
 
 watch(isOpen, (v) => {
  if (v) document.body.style.overflow = 'hidden'

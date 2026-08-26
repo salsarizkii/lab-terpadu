@@ -33,9 +33,9 @@ const menuItems = computed(() => {
   if (auth.hasPermission('dashboard')) {
     let dashPath = '/user/dashboard'
     if (auth.user?.role === 'penyelia') {
-      dashPath = '/penyelia/berita-acara'
+      dashPath = '/penyelia/dashboard'
     } else if (auth.user?.role === 'manager_teknis') {
-      dashPath = '/manager-teknis/berita-acara'
+      dashPath = '/manager-teknis/dashboard'
     } else if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('hasil_pengujian_riwayat_semua') || auth.hasPermission('payment_riwayat_semua') || auth.hasPermission('user_view')) {
       dashPath = '/admin/dashboard'
     } else if (auth.hasPermission('hasil_pengujian_rekap')) {
