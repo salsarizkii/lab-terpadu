@@ -1,0 +1,1 @@
+import{r as e}from"./index-DIX3Oek9.js";var t={getAll(){return e.get(`/admin/formulas`)},get(t){return e.get(`/admin/formulas/${t}`)},create(t){return e.post(`/admin/formulas`,t)},update(t,n){return e.put(`/admin/formulas/${t}`,n)},delete(t){return e.delete(`/admin/formulas/${t}`)},calculate(t,n){return e.post(`/admin/formulas/${t}/calculate`,{berita_acara_id:n})}};export{t};

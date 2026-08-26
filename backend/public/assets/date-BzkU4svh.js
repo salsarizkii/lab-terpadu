@@ -1,0 +1,1 @@
+function e(e){return e?new Date(e).toLocaleString(`id-ID`,{day:`numeric`,month:`short`,year:`numeric`,hour:`2-digit`,minute:`2-digit`}):`-`}export{e as t};

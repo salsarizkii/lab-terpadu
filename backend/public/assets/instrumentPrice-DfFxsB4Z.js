@@ -1,0 +1,1 @@
+import{r as e}from"./index-DIX3Oek9.js";var t={getAll(){return e.get(`/instrument-prices`)},create(t){return e.post(`/admin/instrument-prices`,t)},update(t,n){return e.put(`/admin/instrument-prices/${t}`,n)},delete(t){return e.delete(`/admin/instrument-prices/${t}`)},bulkUpdate(t){return e.put(`/admin/instrument-prices/bulk`,{items:t})}};export{t};

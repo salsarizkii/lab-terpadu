@@ -1,0 +1,1 @@
+import{r as e}from"./index-DIX3Oek9.js";var t={async uploadFile(t,n=`uploads`){let r=new FormData;r.append(`file`,t),r.append(`folder`,n);let{data:i}=await e.post(`/upload-file`,r,{headers:{"Content-Type":`multipart/form-data`}});return i}};export{t};
