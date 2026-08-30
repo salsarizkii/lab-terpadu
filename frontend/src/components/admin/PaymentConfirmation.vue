@@ -15,7 +15,6 @@ import {
   MessageSquare,
   Calculator,
   AlertCircle,
-  ChevronDown,
   Clock
 } from '@lucide/vue'
 
@@ -226,14 +225,25 @@ function handleConfirm() {
     </div>
 
     <div v-else class="action-section">
-      <div class="action-select-wrapper">
-        <label class="action-select-label">Pilih aksi untuk pembayaran ini</label>
-        <ChevronDown :size="16" class="action-select-icon" />
-        <select v-model="selectedAction" class="action-select">
-          <option value="" disabled>Pilih Aksi</option>
-          <option value="approved">Terima</option>
-          <option value="rejected">Tolak</option>
-        </select>
+      <div class="action-toggle">
+        <button
+          type="button"
+          class="action-toggle-btn"
+          :class="{ active: selectedAction === 'approved' }"
+          @click="selectedAction = 'approved'"
+        >
+          <CheckCircle2 :size="16" style="margin-right: 6px;" />
+          Terima
+        </button>
+        <button
+          type="button"
+          class="action-toggle-btn"
+          :class="{ active: selectedAction === 'rejected' }"
+          @click="selectedAction = 'rejected'"
+        >
+          <XCircle :size="16" style="margin-right: 6px;" />
+          Tolak
+        </button>
       </div>
 
       <!-- Field Alasan Penolakan (muncul jika dropdown pilih Tolak) -->
@@ -633,6 +643,44 @@ function handleConfirm() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.action-toggle {
+  display: flex;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  gap: 4px;
+}
+.action-toggle-btn {
+  flex: 1;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-toggle-btn.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+.action-toggle-btn.active:nth-child(2).active {
+  background: #dc2626 !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+.action-toggle-btn:not(.active):hover {
+  color: #1e293b;
 }
 
 .confirm-actions {

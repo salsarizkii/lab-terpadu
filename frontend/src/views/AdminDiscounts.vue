@@ -32,7 +32,6 @@ const loading = ref(true)
 const showModal = ref(false)
 const saving = ref(false)
 const selectedItem = ref<DiscountRequest | null>(null)
-const showHistory = ref(false)
 const historyItems = ref<any[]>([])
 const loadingHistory = ref(false)
 
@@ -72,8 +71,38 @@ const isOverMax = computed(() => totalDiscount.value > (selectedItem.value?.biay
 
 const isReadonly = computed(() => selectedItem.value?.discount_status !== 'pending')
 
+function getHistoryActor(h: any) {
+  return h.changed_by || (h as any).changedBy || null
+}
+
+const discountHistoryAsLogs = computed(() =>
+  historyItems.value.map((h: any) => {
+    const actor = getHistoryActor(h)
+    const parts: string[] = []
+    if (h.discount_request) parts.push(`Diminta: Rp ${formatPrice(Number(h.discount_request))}`)
+    if (h.discount_approved) parts.push(`Disetujui: Rp ${formatPrice(Number(h.discount_approved))}`)
+    if (h.discount_reason) parts.push(h.discount_reason)
+    const action =
+      h.status === 'pending' ? 'discount_requested' : h.status === 'approved' ? 'discount_approved' : 'discount_rejected'
+    return {
+      id: h.id,
+      berita_acara_id: selectedItem.value?.berita_acara_id ?? 0,
+      action,
+      description: parts.join(' · ') || undefined,
+      user: actor || undefined,
+      user_id: actor?.id,
+      created_at: h.created_at,
+    } as any
+  })
+)
+
 function openModal(item: DiscountRequest) {
+  showHistory.value = false
+  historyItems.value = []
   selectedItem.value = item
+  // auto-load riwayat pengajuan diskon ketika popup dibuka
+  loadHistory()
+
   const biaya = Number(item.biaya) || 1
   const approved = Number(item.discount_approved) || 0
   const req = Number(item.discount_request) || 0
@@ -103,14 +132,9 @@ function closeModal() {
 
 async function loadHistory() {
   if (!selectedItem.value) return
-  if (showHistory.value) {
-    showHistory.value = false
-    return
-  }
   loadingHistory.value = true
   try {
     historyItems.value = await adminApi.getDiscountHistory(selectedItem.value.id)
-    showHistory.value = true
   } catch {
     toast.error('Gagal memuat riwayat')
   } finally {
@@ -332,46 +356,12 @@ onMounted(loadData)
 
               <div class="divider" />
 
-              <Button variant="outline" class="btn-history-toggle" @click="loadHistory" :disabled="loadingHistory">
-                <History :size="16" style="margin-right: 6px;" />
-                <span>{{ loadingHistory ? 'Memuat...' : 'Riwayat Pengajuan Diskon' }}</span>
-              </Button>
-
-              <div v-if="showHistory && historyItems.length" class="history-list">
-                <div v-for="(h, idx) in historyItems" :key="h.id" class="history-item">
-                  <div class="history-item-header">
-                    <span class="history-action">
-                      <Badge v-if="h.status === 'pending'" type="warning" text="Diajukan" />
-                      <Badge v-else-if="h.status === 'approved'" type="success" text="Disetujui" />
-                      <Badge v-else type="danger" text="Ditolak" />
-                    </span>
-                    <span class="history-date">{{ formatDateTime(h.created_at) }}</span>
-                  </div>
-                  <div class="history-item-body">
-                    <div v-if="h.discount_request" class="history-row">
-                      <span>Diskon diminta</span>
-                      <span>Rp {{ formatPrice(Number(h.discount_request)) }}</span>
-                    </div>
-                    <div v-if="h.discount_approved" class="history-row">
-                      <span>Diskon diberikan</span>
-                      <span>Rp {{ formatPrice(Number(h.discount_approved)) }}</span>
-                    </div>
-                    <div v-if="h.discount_reason" class="history-row">
-                      <span>Catatan</span>
-                      <span>{{ h.discount_reason }}</span>
-                    </div>
-                    <div v-if="h.changed_by" class="history-row">
-                      <span>Oleh</span>
-                      <span class="history-actor">
-                        {{ h.changed_by.name }}
-                        <span class="history-actor-sub">{{ h.changed_by.email }}</span>
-                      </span>
-                    </div>
-                  </div>
+              <div class="timeline-box">
+                <div class="timeline-box__title">Riwayat Pengajuan Diskon</div>
+                <div v-if="loadingHistory" class="history-loading">
+                  <span class="history-loading__dot"></span> Memuat riwayat...
                 </div>
-              </div>
-              <div v-else-if="showHistory && !historyItems.length" class="history-empty">
-                Belum ada catatan riwayat pengajuan diskon.
+                <ActivityTimeline v-else :logs="discountHistoryAsLogs as any" />
               </div>
 
               <div class="divider" />
@@ -539,10 +529,147 @@ onMounted(loadData)
 .readonly-info .req-row { padding: 4px 0; }
 .readonly-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
 
-.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
-.history-item { padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
-.history-actor { display: flex; flex-direction: column; }
-.history-actor-sub { font-size: 11px; color: #94a3b8; }
+.history-section { display: flex; flex-direction: column; gap: 0; }
+.history-count {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+.history-count--muted { background: transparent; color: #94a3b8; font-weight: 400; }
+.history-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  padding: 14px;
+  font-size: 13px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+}
+.history-loading__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  animation: historyPulse 1.2s ease-in-out infinite;
+}
+@keyframes historyPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.history-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 2px 4px 0;
+}
+.history-card {
+  position: relative;
+  display: flex;
+  gap: 0;
+  padding-left: 22px;
+}
+.history-card::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 18px;
+  bottom: -10px;
+  width: 2px;
+  background: #e2e8f0;
+}
+.history-card:last-child::before { display: none; }
+.history-card__dot {
+  position: absolute;
+  left: 1px;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #e2e8f0;
+  flex-shrink: 0;
+}
+.history-card__dot--pending { background: #f59e0b; box-shadow: 0 0 0 2px #fde68a; }
+.history-card__dot--approved { background: #10b981; box-shadow: 0 0 0 2px #a7f3d0; }
+.history-card__dot--rejected { background: #ef4444; box-shadow: 0 0 0 2px #fecaca; }
+.history-card__body {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.history-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-card__time {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.history-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.history-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+}
+.history-card__label { color: #64748b; font-size: 12px; }
+.history-card__value { color: #1e293b; font-weight: 500; text-align: right; }
+.history-card__value--accent { color: #059669; font-weight: 700; }
+.history-card__value--reason {
+  max-width: 180px;
+  font-weight: 400;
+  color: #475569;
+  white-space: normal;
+  word-break: break-word;
+}
+.history-card__actor {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: 6px;
+  border-top: 1px dashed #f1f5f9;
+  margin-top: 2px;
+}
+.history-card__actor-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.history-card__actor-email {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.history-timeline-box {
+  margin-top: 2px;
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
 
 .timeline-box {
   padding: 12px;
@@ -557,6 +684,24 @@ onMounted(loadData)
   font-size: 13px;
   font-weight: 700;
   color: #334155;
+}
+.activity-toggle {
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.activity-toggle:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 .history-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .history-empty {
@@ -575,10 +720,19 @@ onMounted(loadData)
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0;
   font-size: 14px;
   font-weight: 500;
   border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
+.btn-history-toggle:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-history-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-history-toggle--active { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
 
 .action-toggle {
   display: flex;

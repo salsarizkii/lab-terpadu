@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { ActivityLog } from '../../types'
 import Badge from '../common/Badge.vue'
 import { formatDateTime } from '../../utils/date'
@@ -9,6 +10,9 @@ const props = defineProps<{
   showProses?: boolean
   revisionActive?: boolean
 }>()
+
+const showAll = ref(false)
+const displayedLogs = computed(() => (showAll.value ? props.logs : props.logs.slice(0, 2)))
 
 const emit = defineEmits<{
   detail: [log: ActivityLog]
@@ -128,7 +132,7 @@ function roleLabel(role?: string) {
     </div>
 
     <ol v-else class="activity-timeline__list">
-      <li v-for="log in logs" :key="log.id" class="activity-timeline__item">
+      <li v-for="log in displayedLogs" :key="log.id" class="activity-timeline__item">
         <span class="activity-timeline__dot" :class="`activity-timeline__dot--${meta(log).type}`" />
         <div class="activity-timeline__body">
           <div class="activity-timeline__row">
@@ -167,6 +171,14 @@ function roleLabel(role?: string) {
         </div>
       </li>
     </ol>
+    <button
+      v-if="logs.length > 2"
+      type="button"
+      class="activity-timeline__toggle"
+      @click="showAll = !showAll"
+    >
+      {{ showAll ? 'Sembunyikan' : `Lihat semua riwayat aktivitas (${logs.length})` }}
+    </button>
   </div>
 </template>
 
@@ -308,5 +320,25 @@ function roleLabel(role?: string) {
   color: #3730a3;
   font-size: 11px;
   font-weight: 500;
+}
+
+.activity-timeline__toggle {
+  margin-top: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.activity-timeline__toggle:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 </style>

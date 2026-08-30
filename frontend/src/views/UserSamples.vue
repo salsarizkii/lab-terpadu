@@ -26,6 +26,15 @@ function hasRekap(s: Sample): boolean {
   return !!s.berita_acara?.rekap_analis_data && Object.keys(s.berita_acara.rekap_analis_data).length > 0
 }
 
+function isMenungguVerifikasi(s: Sample): boolean {
+  const p = s.berita_acara?.payment
+  return !!p && p.status === 'pending' && !!p.payment_proof
+}
+
+function isLunas(s: Sample): boolean {
+  return s.berita_acara?.payment?.status === 'approved'
+}
+
 onMounted(async () => {
   try {
     samples.value = await beritaAcaraApi.getSamples()
@@ -79,9 +88,10 @@ function getRekapEntries(): Array<{ key: string; val: string }> {
                 </td>
                 <td class="td-date">{{ formatDateTime(s.created_at) }}</td>
                 <td>
-                  <Button v-if="hasRekap(s)" size="sm" variant="outline" @click="selectedSample = s">
+                  <Button v-if="hasRekap(s) || isLunas(s)" size="sm" variant="outline" @click="selectedSample = s">
                     <Eye :size="14" style="margin-right:4px" /> Lihat Rekap
                   </Button>
+                  <Badge v-else-if="isMenungguVerifikasi(s)" type="warning" text="Menunggu verifikasi pembayaran" />
                   <Button v-else-if="s.berita_acara?.payment" size="sm" @click="router.push(`/user/payments/${s.berita_acara!.payment!.id}`)">
                     Bayar
                   </Button>
