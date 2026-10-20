@@ -13,13 +13,14 @@ Sistem Manajemen Laboratorium — pengelolaan pengajuan pengujian, berita acara,
 
 ## Deploy dengan Docker (cara tercepat)
 
-Prasyarat: Docker + Docker Compose.
+Prasyarat: Docker Engine 24+ dengan Docker Compose v2.
 
 ```bash
 # 1. Clone
-git clone <repo-url> lab-terpadu && cd lab-terpadu
+git clone https://github.com/salsarizkii/lab-terpadu.git lab-terpadu
+cd lab-terpadu
 
-# 2. Buat .env untuk docker compose (opsional, semua punya default)
+# 2. (Opsional) Buat .env — semua punya default, jadi bisa langsung lewat
 cp .env.example .env
 
 # 3. Build & jalankan
@@ -60,6 +61,14 @@ docker compose logs -f backend frontend
 docker compose exec mysql sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" db_lab_terpadu' > backup.sql
 ```
 
+### Troubleshooting Docker
+
+| Gejala | Solusi |
+|---|---|
+| Port 80 sudah dipakai | Set `APP_PORT=8080` di `.env`, akses `http://localhost:8080` |
+| `APP_KEY` error / aplikasi lambat pertama kali | Tunggu entrypoint backend selesai: `docker compose logs -f backend` |
+| Ingin reset total | `docker compose down -v` lalu `docker compose up -d --build` (semua data terhapus) |
+
 ---
 
 ## Development lokal
@@ -69,7 +78,14 @@ Prasyarat: Node 20+, PHP 8.2+, Composer.
 ```bash
 # 1. Backend
 cd backend
-cp .env.example .env   # default SQLite; pastikan database/database.sqlite ada
+cp .env.example .env
+
+# Buat file database SQLite (default DB_CONNECTION=sqlite)
+# Linux/macOS:
+touch database/database.sqlite
+# Windows PowerShell:
+# New-Item -ItemType File database/database.sqlite
+
 composer install
 php artisan key:generate
 php artisan migrate --seed
