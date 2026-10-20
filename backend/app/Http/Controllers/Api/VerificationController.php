@@ -65,7 +65,7 @@ class VerificationController extends Controller
         $this->ensureRole(['penyelia']);
 
         $query = BeritaAcara::with(['user', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'pengujians'])
-            ->where('status', 'admin_verified');
+            ->whereIn('status', ['admin_verified', 'penyelia_verified']);
 
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->whereHas('penyelias', function ($q) {
@@ -73,7 +73,12 @@ class VerificationController extends Controller
             });
         }
 
-        return response()->json($query->orderByDesc('created_at')->get());
+        return response()->json(
+            $query
+                ->orderByRaw("CASE WHEN status = 'admin_verified' THEN 0 ELSE 1 END")
+                ->orderByDesc('created_at')
+                ->get()
+        );
     }
 
     public function penyeliaShow($id)
@@ -93,7 +98,7 @@ class VerificationController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|string|in:penyelia_verified,revision,rejected',
-            'note' => 'required_if:status,revision|nullable|string',
+            'note' => 'required_if:status,revision|required_if:status,rejected|nullable|string|max:1000',
         ]);
 
         return $this->applyVerification($beritaAcara, $validated['status'], $validated['note'] ?? null, 'penyelia_verified');
@@ -132,7 +137,7 @@ class VerificationController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|string|in:completed,revision,rejected',
-            'note' => 'required_if:status,revision|nullable|string',
+            'note' => 'required_if:status,revision|required_if:status,rejected|nullable|string|max:1000',
         ]);
 
         return $this->applyVerification($beritaAcara, $validated['status'], $validated['note'] ?? null, 'rekap_verified');
@@ -144,7 +149,12 @@ class VerificationController extends Controller
     private function applyVerification(BeritaAcara $beritaAcara, string $newStatus, ?string $note, string $approveAction)
     {
         $oldStatus = $beritaAcara->status;
-        $beritaAcara->update(['status' => $newStatus]);
+
+        $data = ['status' => $newStatus];
+        if ($newStatus === 'rejected') {
+            $data['rejection_reason'] = $note;
+        }
+        $beritaAcara->update($data);
 
         if ($newStatus === 'revision') {
             $revision = BeritaAcaraRevision::create([
@@ -155,7 +165,7 @@ class VerificationController extends Controller
             ]);
             ActivityLogService::log($beritaAcara->id, 'revision_requested', $note, null, $revision->id);
         } elseif ($newStatus === 'rejected') {
-            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara');
+            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara: ' . ($note ?? ''));
         } else {
             ActivityLogService::log($beritaAcara->id, $approveAction, 'Menyetujui berita acara');
         }

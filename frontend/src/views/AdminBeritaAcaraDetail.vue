@@ -12,9 +12,9 @@ import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import UserAssignList from '../components/admin/UserAssignList.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
+import DownloadMenu from '../components/common/DownloadMenu.vue'
 import { adminApi } from '../api/admin'
 import { formTemplateApi } from '../api/formTemplate'
-import { pdfTemplateApi } from '../api/pdfTemplate'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara, User, FormField } from '../types'
 import { toast } from 'vue-sonner'
@@ -35,6 +35,8 @@ const savingManagerTeknis = ref(false)
 const showVerification = ref(false)
 const showRevisionModal = ref(false)
 const revisionNote = ref('')
+const showRejectModal = ref(false)
+const rejectNote = ref('')
 const showRevisionDetail = ref(false)
 const selectedRevision = ref<any>(null)
 const templateFields = ref<FormField[]>([])
@@ -248,6 +250,29 @@ function openRevisionModal() {
   showRevisionModal.value = true
 }
 
+function openRejectModal() {
+  rejectNote.value = ''
+  showRejectModal.value = true
+}
+
+async function submitReject() {
+  if (!item.value || !rejectNote.value.trim()) return
+  saving.value = true
+  try {
+    const updated = await adminApi.updateStatus(item.value.id, {
+      status: 'rejected',
+      rejection_reason: rejectNote.value.trim(),
+    })
+    item.value = updated
+    showRejectModal.value = false
+    toast.success('Berita acara ditolak')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal')
+  } finally {
+    saving.value = false
+  }
+}
+
 async function submitRevision() {
   if (!item.value || !revisionNote.value.trim()) return
   saving.value = true
@@ -307,45 +332,6 @@ function getRevisionDiff(rev: any) {
   return diffs
 }
 
-function downloadPdfBeritaAcara() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDownloadUrl('berita_acara', item.value.id), '_blank')
-}
-
-function downloadPdfRekapAnalis() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDownloadUrl('rekap_analis', item.value.id), '_blank')
-}
-
-function downloadPdfTagihan() {
-  if (!item.value?.payment) return
-  window.open(pdfTemplateApi.getDownloadUrl('tagihan', item.value.payment.id), '_blank')
-}
-
-function downloadPdfSertifikat() {
-  if (!item.value?.certificate) return
-  window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
-}
-
-function downloadDocxBeritaAcara() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('berita_acara', item.value.id), '_blank')
-}
-
-function downloadDocxRekapAnalis() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('rekap_analis', item.value.id), '_blank')
-}
-
-function downloadDocxTagihan() {
-  if (!item.value?.payment) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('tagihan', item.value.payment.id), '_blank')
-}
-
-function downloadDocxSertifikat() {
-  if (!item.value?.certificate) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
-}
 </script>
 
 <template>
@@ -357,30 +343,7 @@ function downloadDocxSertifikat() {
         <div class="page-header flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="page-header__left flex items-center gap-2">
             <Button variant="outline" @click="router.push('/admin/berita-acara')">Kembali</Button>
-            <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
-              📄 PDF Berita Acara
-            </Button>
-            <Button variant="secondary" size="sm" @click="downloadDocxBeritaAcara">
-              📝 Word Berita Acara
-            </Button>
-            <Button variant="secondary" size="sm" @click="downloadPdfRekapAnalis">
-              🧪 PDF Rekap Analis
-            </Button>
-            <Button variant="secondary" size="sm" @click="downloadDocxRekapAnalis">
-              📝 Word Rekap Analis
-            </Button>
-            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
-              💳 PDF Tagihan
-            </Button>
-            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadDocxTagihan">
-              📝 Word Tagihan
-            </Button>
-            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
-              📜 PDF Sertifikat
-            </Button>
-            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadDocxSertifikat">
-              📝 Word Sertifikat
-            </Button>
+            <DownloadMenu :berita-acara="item" show-rekap />
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
         </div>
@@ -445,6 +408,16 @@ function downloadDocxSertifikat() {
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     Perlu Perbaikan
+                  </Button>
+
+                  <Button
+                    block
+                    variant="danger"
+                    @click="openRejectModal"
+                    :disabled="item.status === 'draft' || item.status === 'revision' || verifiedStatuses.includes(item.status)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    Tolak
                   </Button>
                 </template>
 
@@ -594,6 +567,25 @@ function downloadDocxSertifikat() {
           <Button variant="secondary" @click="showRevisionModal = false">Batal</Button>
           <Button variant="danger" :loading="saving" :disabled="!revisionNote.trim()" @click="submitRevision">
             Ajukan Perbaikan
+          </Button>
+        </template>
+      </Modal>
+
+      <!-- Tolak Modal -->
+      <Modal :show="showRejectModal" title="Tolak Berita Acara" size="sm" @close="showRejectModal = false">
+        <div class="revision-form">
+          <p class="revision-desc">Berita acara akan ditolak permanen. Tuliskan alasan penolakan.</p>
+          <textarea
+            v-model="rejectNote"
+            class="revision-textarea"
+            rows="4"
+            placeholder="Alasan menolak berita acara ini..."
+          />
+        </div>
+        <template #footer>
+          <Button variant="secondary" @click="showRejectModal = false">Batal</Button>
+          <Button variant="danger" :loading="saving" :disabled="!rejectNote.trim()" @click="submitReject">
+            Ya, Tolak
           </Button>
         </template>
       </Modal>

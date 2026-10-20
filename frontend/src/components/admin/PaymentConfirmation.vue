@@ -48,7 +48,8 @@ function getStorageUrl(path?: string) {
   if (!path) return ''
   if (path.startsWith('http')) return path
   const cleanPath = path.replace(/^public\//, '')
-  return `http://localhost:8000/storage/${cleanPath}`
+  const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '')
+  return `${base}/storage/${cleanPath}`
 }
 
 const proofUrl = computed(() => getStorageUrl(props.payment.payment_proof))

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>PDF Render</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  .docx-wrapper { margin: 0 !important; padding: 0 !important; }
+  section.docx, .docx { page-break-inside: avoid; break-inside: avoid; }
+  @page { size: A4; margin: 0; }
+</style>
+<script src="jszip.min.js"></script>
+<script src="docx-preview.min.js"></script>
+</head>
+<body>
+<div id="preview"></div>
+<script id="docx-b64" type="text/plain">__DOCX_B64__</script>
+<script>
+(async () => {
+  try {
+    const b64 = document.getElementById('docx-b64').textContent.trim();
+    const bin = atob(b64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) { bytes[i] = bin.charCodeAt(i); }
+    const blob = new Blob([bytes], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    });
+    const lib = window.docx || window.docxpreview || window['docx-preview'];
+    const container = document.getElementById('preview');
+    await lib.renderAsync(blob, container, undefined, { inWrapper: true, breakPages: true });
+    document.title = 'READY';
+  } catch (err) {
+    document.title = 'ERROR: ' + (err && err.message ? err.message : err);
+  }
+})();
+</script>
+</body>
+</html>

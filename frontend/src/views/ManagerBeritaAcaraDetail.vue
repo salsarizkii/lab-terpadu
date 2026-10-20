@@ -10,8 +10,8 @@ import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue
 import RekapAnalisView from '../components/common/RekapAnalisView.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import VerificationPanel from '../components/admin/VerificationPanel.vue'
+import DownloadMenu from '../components/common/DownloadMenu.vue'
 import { verificationApi } from '../api/verification'
-import { pdfTemplateApi } from '../api/pdfTemplate'
 import type { BeritaAcara } from '../types'
 import { baStatusMap, baStatusTypeMap } from '../utils/baStatus'
 import { toast } from 'vue-sonner'
@@ -72,12 +72,13 @@ async function handleRevision(note: string) {
   }
 }
 
-async function handleReject() {
+async function handleReject(note: string) {
   if (!item.value) return
   saving.value = true
   try {
     const updated = await verificationApi.managerVerify(item.value.id, {
       status: 'rejected',
+      note,
     })
     item.value = updated
     toast.success('Berita acara ditolak')
@@ -86,16 +87,6 @@ async function handleReject() {
   } finally {
     saving.value = false
   }
-}
-
-function downloadPdfRekapAnalis() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDownloadUrl('rekap_analis', item.value.id), '_blank')
-}
-
-function downloadDocxRekapAnalis() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('rekap_analis', item.value.id), '_blank')
 }
 </script>
 
@@ -108,8 +99,7 @@ function downloadDocxRekapAnalis() {
         <div class="page-header">
           <div class="page-header__left">
             <Button variant="outline" @click="router.push('/manager-teknis/berita-acara')">Kembali</Button>
-            <Button variant="secondary" size="sm" @click="downloadPdfRekapAnalis">🧪 PDF Rekap Analis</Button>
-            <Button variant="secondary" size="sm" @click="downloadDocxRekapAnalis">📝 Word Rekap Analis</Button>
+            <DownloadMenu :berita-acara="item" show-rekap />
           </div>
           <Badge :type="baStatusTypeMap[item.status]" :text="baStatusMap[item.status]" />
         </div>

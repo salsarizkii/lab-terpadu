@@ -184,7 +184,7 @@ backend/
 | POST | `api/admin/pdf-templates/{type}/preview-docx` | PdfTemplateController@previewDocx | Preview Word: .docx hasil isi data contoh (tanpa konversi) |
 | POST | `api/admin/pdf-templates/{type}/reset` | PdfTemplateController@reset | Kembalikan ke template seeder |
 | GET | `api/pdf-generate/{type}/{id}` | PdfTemplateController@generate | Download PDF data nyata |
-| GET | `api/docx-generate/{type}/{id}` | PdfTemplateController@generateDocx | Download .docx data nyata terisi (tanpa LibreOffice) |
+| GET | `api/docx-generate/{type}/{id}` | PdfTemplateController@generateDocx | Download .docx data nyata terisi (murni PHP) |
 
 Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 
@@ -196,7 +196,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 - `Data Dokumen` — `tanggal_cetak`, `id`, `kop_*`, `kepala_upt`, dst.
 
 **Cara kerja `PdfGeneratorService` (pipeline HTML/DomPDF — fallback):**
-- PDF dirender dari `html_content` (hasil konversi Word); dipakai bila template tidak punya file Word atau LibreOffice tidak tersedia.
+- PDF dirender dari `html_content` (hasil konversi Word); dipakai bila template tidak punya file Word atau pipeline Word gagal.
 - `normalizePlaceholders()` mendukung 3 format placeholder: `<<nama>>`, `${nama}`, `{{ nama }}` (plus versi entity `&lt;&lt;nama&gt;&gt;`) → dinormalisasi ke `{{ nama }}`.
 - Jawaban form (`form_data` / `rekap_analis_data` dengan key `field_{id}`) dipetakan ke variabel slug via `formDataToKeys()` dan diganti nilainya di PDF (checkbox di-join koma).
 - `applySettings()` mengisi variabel identitas dari kolom `settings` (fallback ke `defaultSettings()`).
@@ -204,12 +204,15 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 - `generateDocxFromHtml()` membuat .docx dari HTML (placeholder `{{ }}` → `<<>>`), lalu meng-escape `<<`/`>>`/`&` di document.xml agar XML valid.
 
 **Cara kerja `DocxPdfService` (pipeline Word — prioritas utama):**
-- Saat template punya file Word (kolom `docx_path`), dokumen **dirender langsung dari file .docx**, bukan dari HTML: hasilnya sama persis dengan template Word.
-- `generateFilledDocx()` = hasil .docx terisi data (murni PHP/ZipArchive, **tanpa LibreOffice** — dipakai `docx-generate` & `preview-docx`).
+- Saat template punya file Word (kolom `docx_path`), dokumen **dirender langsung dari file .docx**, bukan dari HTML: hasilnya mengikuti struktur template Word (tabel, font, margin).
+- `generateFilledDocx()` = hasil .docx terisi data (murni PHP/ZipArchive, tanpa aplikasi eksternal — dipakai `docx-generate` & `preview-docx`).
 - `fillDocx()` membuka .docx, menggabungkan teks run yang terpotong oleh Word, mengganti placeholder `<<variabel>>` / `${variabel}` / `{{ variabel }}` (case-insensitive; spasi, enter, dan nama berformat judul seperti `<<Nama Pemohon>>` juga cocok ke slug data), lalu menambahkan `catatan` di akhir dokumen. `word/document.xml` + `word/header*.xml`/`footer*.xml` ikut diproses.
-- `generatePdf()` (PDF): isi docx lalu konversi ke PDF via LibreOffice headless (`soffice --headless --convert-to pdf`, profil user terpisah agar tidak konflik bila LibreOffice sedang terbuka). Bila LO tidak tersedia → `null` → fallback ke pipeline HTML/DomPDF di atas (tidak error).
-- Konfigurasi env: `PDF_DOCX_ENABLED=true` (aktifkan/disable) dan `LIBREOFFICE_PATH` (path biner soffice; kosongkan = menebak path umum Windows/Linux/macOS).
-- Setup LibreOffice di server (VPS Debian/Ubuntu, sekali saja): `apt-get update && apt-get install -y libreoffice-writer fonts-liberation` — dipakai headless sebagai dependency CLI, bukan aplikasi GUI.
+- `generatePdf()` (PDF) — urutan konversi:
+  1. **Utama: Chrome headless + docx-preview** (`docxToPdfViaChrome`) — file .docx terisi dirender oleh pustaka `docx-preview` (aset di `public/pdf-render/`, sama dengan mesin pratinjau aplikasi) lalu dicetak ke PDF via `--headless --print-to-pdf`. **Hasil identik dengan pratinjau** (spasi/font/tabel sama, bukan konversi HTML). Preview & download otomatis konsisten.
+  2. Fallback: **PhpWord → PDF (DomPDF)** (`renderDocxToPdfViaPhpWord`) — murni PHP, dipakai bila Chrome tidak tersedia (render dari template + placeholder diisi di HTML string; border/lebar tabel dibaca dari `w:tblBorders`/`w:tblW` via `docxTableInfo`).
+  3. **Opsional `PDF_USE_WORD_COM=true`:** Microsoft Word COM (`ExportAsFixedFormat`) dicoba lebih dulu — hasil persis Word. **Nonaktif default** karena bisa hang tanpa batas waktu bila Word sedang terbuka; dilindungi `isWordRunning()`/`isFileLockedByWord()`, instance yang dibuat sendiri saja yang di-`Quit()`.
+  4. Gagal semua → `null` → fallback ke pipeline HTML/DomPDF di atas (tidak error).
+- Konfigurasi env: `PDF_DOCX_ENABLED=true` (aktifkan/disable), `PDF_USE_WORD_COM=false` (pakai Word COM atau tidak), `CHROME_PATH` (path chrome/edge; kosongkan = menebak lokasi umum Windows/Linux).
 - Keterbatasan: toggle `show_kop` / `show_ttd` / `show_rincian` dan `settings` (kop/identitas) **tidak berlaku** pada template Word — tata letak sudah ter-bake di file Word.
 - Dalam `preview` dan `generate`, jika pipeline Word gagal/tidak tersedia → otomatis fallback ke pipeline HTML/DomPDF di atas.
 

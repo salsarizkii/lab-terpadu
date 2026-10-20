@@ -43,6 +43,7 @@ class AdminController extends Controller
         $request->validate([
             'status' => 'required|string|in:admin_verified,revision,rejected',
             'note' => 'required_if:status,revision|string',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:1000',
             'nomor_agenda' => [
                 'required_if:status,admin_verified',
                 'nullable',
@@ -66,6 +67,10 @@ class AdminController extends Controller
             $data['nomor_agenda'] = $request->nomor_agenda;
         }
 
+        if ($request->status === 'rejected') {
+            $data['rejection_reason'] = $request->input('rejection_reason');
+        }
+
         $beritaAcara->update($data);
 
         if ($request->status === 'revision') {
@@ -79,7 +84,7 @@ class AdminController extends Controller
         } elseif ($request->status === 'admin_verified') {
             ActivityLogService::log($beritaAcara->id, 'admin_verified', 'Menyetujui berita acara');
         } elseif ($request->status === 'rejected') {
-            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara');
+            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara: ' . ($request->input('rejection_reason') ?? ''));
         }
 
         return response()->json([

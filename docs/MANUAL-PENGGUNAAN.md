@@ -335,7 +335,7 @@ Superadmin bisa menyesuaikan tampilan 4 jenis dokumen PDF (Berita Acara, Rekap A
 
 **Unduhan dokumen (berlaku untuk Berita Acara, Rekap Analis, Tagihan, Sertifikat):**
 - Tombol **"Word …"** → file .docx = template Word + data terisi. Selalu tersedia (tanpa dependensi server).
-- Tombol **"PDF …"** → sama persis tampilannya, dihasilkan dari file Word via LibreOffice (opsional). Jika server belum memasang LibreOffice, PDF otomatis memakai rendering HTML lama. Setup di VPS: `apt-get install -y libreoffice-writer fonts-liberation` (sekali saja, headless).
+- Tombol **"PDF …"** → dihasilkan dari file Word yang sama: server merender .docx terisi lewat **Chrome headless + docx-preview** (aset di `public/pdf-render/`) — mesin render yang sama dengan pratinjau, jadi PDF identik dengan pratinjau. Bila Chrome/Edge tidak tersedia, fallback ke PhpWord→PDF (murni PHP); bila semua gagal, PDF otomatis memakai rendering HTML lama.
 
 **Daftar Variabel yang Didukung** menampilkan 4 kelompok (klik variabel untuk menyalin):
 - **Pertanyaan Form Berita Acara** — semua pertanyaan di form BA aktif (misal `<<nama_pemohon>>`, `<<nim>>`)

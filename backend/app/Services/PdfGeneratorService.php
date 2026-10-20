@@ -276,6 +276,8 @@ class PdfGeneratorService
             ['key' => '{{ nip_kepala_upt }}', 'label' => 'NIP Kepala UPT', 'example' => '197501012000121001'],
             ['key' => '{{ nama_admin }}', 'label' => 'Nama Admin / Petugas Penerima', 'example' => 'Admin UPT Lab Terpadu'],
             ['key' => '{{ nama_bendahara }}', 'label' => 'Nama Bendahara / Petugas Keuangan', 'example' => 'Petugas Keuangan'],
+            ['key' => '{{ nama_penyelia }}', 'label' => 'Nama Penyelia', 'example' => 'Penyelia Lab Terpadu'],
+            ['key' => '{{ nama_manager_teknis }}', 'label' => 'Nama Manager Teknis', 'example' => 'Manager Teknis Lab Terpadu'],
         ];
 
         switch ($type) {
@@ -330,6 +332,8 @@ class PdfGeneratorService
             'nip_kepala_upt' => '197501012000121001',
             'nama_admin' => 'Admin UPT Lab Terpadu',
             'nama_bendahara' => 'Petugas Keuangan',
+            'nama_penyelia' => 'Penyelia Lab Terpadu',
+            'nama_manager_teknis' => 'Manager Teknis Lab Terpadu',
         ];
     }
 
@@ -350,6 +354,8 @@ class PdfGeneratorService
             '{{ nip_kepala_upt }}' => $settings['nip_kepala_upt'],
             '{{ nama_admin }}' => $settings['nama_admin'],
             '{{ nama_bendahara }}' => $settings['nama_bendahara'],
+            '{{ nama_penyelia }}' => $settings['nama_penyelia'],
+            '{{ nama_manager_teknis }}' => $settings['nama_manager_teknis'],
         ];
 
         foreach ($map as $key => $value) {
@@ -506,12 +512,19 @@ HTML;
     /**
      * Normalisasi semua format placeholder ke {{ nama }}.
      * Mendukung: <<nama>>, ${nama}, {{ nama }}, dan versi entity (&lt;&lt;nama&gt;&gt;).
+     * Placeholder dari template Word sering terpecah antar tag HTML
+     * (mis. &lt;&lt;</span><span>nama</span><span>&gt;&gt;) sehingga harus
+     * digabung dulu sebelum diganti nilainya.
      */
     public static function normalizePlaceholders(string $body): string
     {
         $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $body = preg_replace('/<<([\w\-]+)>>/', '{{ $1 }}', $body) ?? $body;
-        $body = preg_replace('/\$\{([\w\-]+)\}/', '{{ $1 }}', $body) ?? $body;
+
+        // Tag/atribut yang boleh menyela placeholder (span hasil konversi docx, dll.)
+        $tags = '(?:\s*<\/?[a-zA-Z][^>]*>)*';
+
+        $body = preg_replace('/<<' . $tags . '([\w\-]+)' . $tags . '>>/s', '{{ $1 }}', $body) ?? $body;
+        $body = preg_replace('/\$\{' . $tags . '([\w\-]+)' . $tags . '\}/', '{{ $1 }}', $body) ?? $body;
         $body = preg_replace('/\{\{\s*([\w\-]+)\s*\}\}/', '{{ $1 }}', $body) ?? $body;
 
         return $body;

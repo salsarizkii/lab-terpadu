@@ -7,6 +7,8 @@ import { Upload, FileText, X } from '@lucide/vue'
 import type { FormField } from '../../types'
 
 const FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_FILE_SIZE_MB = 10
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 KB'
@@ -31,6 +33,7 @@ const emit = defineEmits<{
 
 const values = ref<Record<string, any>>({})
 const errors = ref<Set<string>>(new Set())
+const fileErrors = ref<Record<string, string>>({})
 const checkboxDropdownOpen = ref<Record<string, boolean>>({})
 const checkboxDropdownRefs = ref<Record<string, HTMLElement | null>>({})
 
@@ -70,8 +73,18 @@ function getFieldValue(f: FormField, i: number): any {
 }
 
 function setFieldValue(f: FormField, i: number, val: any) {
-  values.value[fieldKey(f, i)] = val
-  errors.value.delete(fieldKey(f, i))
+  const key = fieldKey(f, i)
+  if (f.type === 'file' && isFileValue(val) && val.size > MAX_FILE_SIZE) {
+    fileErrors.value = { ...fileErrors.value, [key]: `File terlalu besar. Maksimal ${MAX_FILE_SIZE_MB} MB.` }
+    return
+  }
+  if (fileErrors.value[key]) {
+    const next = { ...fileErrors.value }
+    delete next[key]
+    fileErrors.value = next
+  }
+  values.value[key] = val
+  errors.value.delete(key)
 }
 
 function toggleCheckbox(f: FormField, i: number, option: string) {
@@ -123,6 +136,18 @@ function validate(): { valid: boolean; firstErrorField?: string; missingFields: 
   errors.value.clear()
   let firstError: string | undefined
   const missingFields: string[] = []
+
+  const fileErrorKeys = Object.keys(fileErrors.value)
+  if (fileErrorKeys.length > 0) {
+    const firstKey = fileErrorKeys[0]
+    const idx = props.fields.findIndex((f, j) => fieldKey(f, j) === firstKey)
+    const firstField = idx >= 0 ? props.fields[idx]! : undefined
+    return {
+      valid: false,
+      firstErrorField: firstField ? fieldId(firstField, idx) : undefined,
+      missingFields: [],
+    }
+  }
 
   for (let i = 0; i < props.fields.length; i++) {
     const f = props.fields[i]
@@ -266,7 +291,7 @@ defineExpose({ values, validate })
       </div>
 
       <!-- File -->
-      <div v-else-if="field.type === 'file'" :id="fieldId(field, i)" class="df-field" :class="{ 'df-field-error': hasError(field, i) }">
+      <div v-else-if="field.type === 'file'" :id="fieldId(field, i)" class="df-field" :class="{ 'df-field-error': hasError(field, i) || fileErrors[fieldKey(field, i)] }">
         <label class="df-label">{{ field.label }} <span v-if="field.is_required" class="df-required">*</span></label>
 
         <!-- File sudah diunggah sebelumnya (edit) -->
@@ -320,6 +345,7 @@ defineExpose({ values, validate })
           />
         </label>
         <p v-if="hasError(field, i)" class="df-error-text">Pertanyaan ini wajib diisi</p>
+        <p v-else-if="fileErrors[fieldKey(field, i)]" class="df-error-text">{{ fileErrors[fieldKey(field, i)] }}</p>
       </div>
     </template>
   </div>

@@ -11,11 +11,11 @@ import DiscountRequest from '../components/user/DiscountRequest.vue'
 import CertificateDownload from '../components/user/CertificateDownload.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import UploadAksesView from '../components/common/UploadAksesView.vue'
+import DownloadMenu from '../components/common/DownloadMenu.vue'
 import { beritaAcaraApi } from '../api/beritaAcara'
 import { paymentApi } from '../api/payment'
 import { certificateApi } from '../api/certificate'
 import { formTemplateApi } from '../api/formTemplate'
-import { pdfTemplateApi } from '../api/pdfTemplate'
 import type { BeritaAcara, FormField } from '../types'
 import { toast } from 'vue-sonner'
 
@@ -145,36 +145,6 @@ async function handleDownload(certificateId: number) {
   }
 }
 
-function downloadPdfBeritaAcara() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDownloadUrl('berita_acara', item.value.id), '_blank')
-}
-
-function downloadPdfTagihan() {
-  if (!item.value?.payment) return
-  window.open(pdfTemplateApi.getDownloadUrl('tagihan', item.value.payment.id), '_blank')
-}
-
-function downloadPdfSertifikat() {
-  if (!item.value?.certificate) return
-  window.open(pdfTemplateApi.getDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
-}
-
-function downloadDocxBeritaAcara() {
-  if (!item.value) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('berita_acara', item.value.id), '_blank')
-}
-
-function downloadDocxTagihan() {
-  if (!item.value?.payment) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('tagihan', item.value.payment.id), '_blank')
-}
-
-function downloadDocxSertifikat() {
-  if (!item.value?.certificate) return
-  window.open(pdfTemplateApi.getDocxDownloadUrl('sertifikat', item.value.certificate.id), '_blank')
-}
-
 function handlePerbaiki() {
   if (!item.value) return
   hasClickedPerbaiki.value = true
@@ -220,26 +190,20 @@ function getRevisionDiff(rev: any) {
         <div class="page-header flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex items-center gap-2">
             <Button variant="outline" @click="router.push('/user/berita-acara')">Kembali</Button>
-            <Button variant="secondary" size="sm" @click="downloadPdfBeritaAcara">
-              📄 Download PDF Berita Acara
-            </Button>
-            <Button variant="secondary" size="sm" @click="downloadDocxBeritaAcara">
-              📝 Download Word Berita Acara
-            </Button>
-            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadPdfTagihan">
-              💳 Download PDF Tagihan
-            </Button>
-            <Button v-if="item.payment" variant="secondary" size="sm" @click="downloadDocxTagihan">
-              📝 Download Word Tagihan
-            </Button>
-            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadPdfSertifikat">
-              📜 Download PDF Sertifikat
-            </Button>
-            <Button v-if="item.certificate" variant="secondary" size="sm" @click="downloadDocxSertifikat">
-              📝 Download Word Sertifikat
-            </Button>
+            <DownloadMenu :berita-acara="item" />
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
+        </div>
+
+        <!-- Rejection notice -->
+        <div v-if="item.status === 'rejected'" class="revision-notice revision-notice--reject">
+          <div class="revision-notice__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          </div>
+          <div class="revision-notice__content">
+            <div class="revision-notice__title">Berita Acara Ditolak</div>
+            <div class="revision-notice__note">{{ item.rejection_reason || 'Tidak ada alasan yang diberikan' }}</div>
+          </div>
         </div>
 
         <!-- Revision notice -->
@@ -515,6 +479,17 @@ function getRevisionDiff(rev: any) {
 .revision-notice__icon {
   color: #d97706;
   flex-shrink: 0;
+}
+.revision-notice--reject {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.revision-notice--reject .revision-notice__icon {
+  color: #dc2626;
+}
+.revision-notice--reject .revision-notice__title,
+.revision-notice--reject .revision-notice__note {
+  color: #991b1b;
 }
 .revision-notice__content {
   flex: 1;

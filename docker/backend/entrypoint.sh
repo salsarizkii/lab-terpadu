@@ -65,6 +65,11 @@ AWS_USE_PATH_STYLE_ENDPOINT=false
 VITE_APP_NAME="\${APP_NAME}"
 
 FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+
+# Render PDF dari .docx (docx-preview + Chromium headless)
+PDF_DOCX_ENABLED=${PDF_DOCX_ENABLED:-true}
+PDF_USE_WORD_COM=${PDF_USE_WORD_COM:-false}
+PDF_CHROME_PATH=${PDF_CHROME_PATH:-/usr/bin/chromium-browser}
 ENVEOF
 
 if [ -z "${APP_KEY}" ]; then
@@ -88,9 +93,10 @@ echo ""
 echo "MySQL is ready!"
 
 php artisan config:cache
-php artisan route:cache
 php artisan view:cache
 php artisan storage:link --force
 php artisan migrate --force
+# Seeder idempotent (roles, permission, akun demo, harga instrumen, form template)
+php artisan db:seed --force
 
 exec "$@"

@@ -57,7 +57,8 @@ frontend/src/
 │   │   ├── FormBuilder.vue          # Drag-and-drop form editor (14 types)
 │   │   ├── FormTemplateList.vue     # Template cards grid
 │   │   ├── ActivityTimeline.vue      # Riwayat aktivitas (aktor: nama/email/role)
-│   │   └── MetodeInstrumenPicker.vue # Multi-select instruments
+│   │   ├── MetodeInstrumenPicker.vue # Multi-select instruments
+│   │   └── DownloadMenu.vue          # Dropdown unduh PDF/Word (BA, Rekap, Tagihan, Sertifikat)
 │   ├── auth/
 │   │   ├── LoginForm.vue
 │   │   └── RegisterForm.vue
@@ -223,6 +224,8 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | payment.ts | `getById(id)` | `GET /user/payments/:id` | Payment detail |
 | payment.ts | `uploadProof(id, formData)` | `POST /user/payments/:id/upload-proof` | Upload proof |
 | certificate.ts | `download(id)` | `GET /user/certificates/:id/download` | Download certificate |
+| pdfTemplate.ts | `downloadFilledPdf(type, id)` | `GET /pdf-generate/:type/:id` | Download PDF data nyata (blob) |
+| pdfTemplate.ts | `downloadFilledDocx(type, id)` | `GET /docx-generate/:type/:id` | Download .docx data nyata (blob) |
 | formTemplate.ts | `getTemplates(type?)` | `GET /admin/form-templates` | List templates |
 | formTemplate.ts | `getTemplate(id)` | `GET /admin/form-templates/:id` | Template detail |
 | formTemplate.ts | `updateTemplate(id, payload)` | `PUT /admin/form-templates/:id` | Update template |

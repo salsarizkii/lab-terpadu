@@ -12,7 +12,7 @@ export const adminApi = {
     return data
   },
 
-  async updateStatus(id: number, payload: { status: string; note?: string; nomor_agenda?: string }): Promise<BeritaAcara> {
+  async updateStatus(id: number, payload: { status: string; note?: string; nomor_agenda?: string; rejection_reason?: string }): Promise<BeritaAcara> {
     const { data } = await api.put(`/admin/berita-acara/${id}/status`, payload)
     return data.data || data
   },

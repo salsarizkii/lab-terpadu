@@ -9,6 +9,7 @@ class BeritaAcara extends Model
     protected $fillable = [
         'user_id',
         'status',
+        'rejection_reason',
         'nomor_agenda',
         'analyst_id',
         'nama_pemohon',

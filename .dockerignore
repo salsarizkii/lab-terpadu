@@ -1,4 +1,4 @@
-node_modules/
+# Git & docs (tidak dibutuhkan di image)
 .git/
 .gitattributes
 .gitignore
@@ -6,9 +6,9 @@ docs/
 *.md
 !AGENTS.md
 
-# Backend
+# Backend: source yang tidak boleh ikut ke image
 backend/.env
-backend/.env.example
+backend/.env.*
 backend/storage/app/*
 !backend/storage/app/.gitignore
 backend/storage/framework/cache/*
@@ -24,15 +24,21 @@ backend/phpunit.xml
 backend/.editorconfig
 backend/.gitattributes
 backend/.gitignore
+backend/public/build/
+backend/public/hot
 
 # Frontend
 frontend/node_modules/
 frontend/dist/
 frontend/.vscode/
 
-# Root
-file/
-package-lock.json
+# Template dokumen: hanya .docx template yang dibutuhkan backend
+file/*.xlsx
+file/~$*
+file/berita_acara_revised.docx
 
-# Docker
-docker/
+# Root
+node_modules/
+package-lock.json
+start-server.bat
+/.env

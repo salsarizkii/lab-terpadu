@@ -16,17 +16,19 @@ const props = defineProps<{
 const emit = defineEmits<{
   verify: [data: { status: string }]
   revision: [note: string]
-  reject: []
+  reject: [note: string]
 }>()
 
 const showVerify = ref(false)
 const showRevisionModal = ref(false)
 const showRejectModal = ref(false)
 const revisionNote = ref('')
+const rejectNote = ref('')
 const saving = ref(false)
 
 const canAct = computed(() => {
   const s = props.beritaAcara.status
+  if (s === props.targetStatus) return false
   return ['pending', 'admin_verified', 'penyelia_verified', 'rekap_ready', 'revision'].includes(s)
 })
 
@@ -57,9 +59,10 @@ function submitRevision() {
 }
 
 function submitReject() {
+  if (!rejectNote.value.trim()) return
   saving.value = true
   try {
-    emit('reject')
+    emit('reject', rejectNote.value.trim())
   } finally {
     saving.value = false
     showRejectModal.value = false
@@ -129,11 +132,17 @@ function submitReject() {
   <!-- Reject Modal -->
   <Modal :show="showRejectModal" title="Tolak Berita Acara" size="sm" @close="showRejectModal = false">
     <div class="revision-form">
-      <p class="revision-desc">Berita acara akan ditolak permanen. Lanjutkan?</p>
+      <p class="revision-desc">Berita acara akan ditolak permanen. Tuliskan alasan penolakan.</p>
+      <textarea
+        v-model="rejectNote"
+        class="revision-textarea"
+        rows="4"
+        placeholder="Alasan menolak berita acara ini..."
+      />
     </div>
     <template #footer>
       <Button variant="secondary" @click="showRejectModal = false">Batal</Button>
-      <Button variant="danger" :loading="saving" @click="submitReject">Ya, Tolak</Button>
+      <Button variant="danger" :loading="saving" :disabled="!rejectNote.trim()" @click="submitReject">Ya, Tolak</Button>
     </template>
   </Modal>
 </template>

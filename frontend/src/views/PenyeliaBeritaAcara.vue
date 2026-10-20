@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '../components/common/AppLayout.vue'
 import Card from '../components/common/Card.vue'
@@ -32,6 +32,9 @@ async function fetchData() {
   }
 }
 
+const pendingCount = computed(() => items.value.filter(i => i.status === 'admin_verified').length)
+const approvedCount = computed(() => items.value.filter(i => i.status === 'penyelia_verified').length)
+
 function getJudul(item: BeritaAcara) {
   if (item.judul_penelitian) return item.judul_penelitian
   if (item.form_data) {
@@ -54,7 +57,7 @@ function getJudul(item: BeritaAcara) {
 
       <Card>
         <div class="toolbar">
-          <span class="filter-count">{{ items.length }} berita acara menunggu verifikasi</span>
+          <span class="filter-count">{{ pendingCount }} menunggu verifikasi · {{ approvedCount }} disetujui</span>
         </div>
 
         <SkeletonTable v-if="loading" :cols="5" :rows="5" />
@@ -85,7 +88,7 @@ function getJudul(item: BeritaAcara) {
                 </td>
               </tr>
               <tr v-if="items.length === 0">
-                <td colspan="6" class="empty-cell">Tidak ada berita acara menunggu verifikasi</td>
+                <td colspan="6" class="empty-cell">Tidak ada berita acara</td>
               </tr>
             </tbody>
           </table>

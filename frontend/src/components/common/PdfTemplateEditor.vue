@@ -106,7 +106,7 @@ async function refreshPreview() {
   if (!template.value) return
   previewLoading.value = true
   try {
-    // Template punya file Word → render .docx asli (persis Word, tanpa LibreOffice).
+    // Template punya file Word → render .docx asli (persis Word, tanpa aplikasi eksternal).
     if (template.value.docx_path) {
       const blob = await pdfTemplateApi.previewDocx(activeType.value, buildPreviewPayload())
       clearPreview()

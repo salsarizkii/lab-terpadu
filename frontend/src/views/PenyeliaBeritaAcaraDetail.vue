@@ -70,12 +70,13 @@ async function handleRevision(note: string) {
   }
 }
 
-async function handleReject() {
+async function handleReject(note: string) {
   if (!item.value) return
   saving.value = true
   try {
     const updated = await verificationApi.penyeliaVerify(item.value.id, {
       status: 'rejected',
+      note,
     })
     item.value = updated
     toast.success('Berita acara ditolak')

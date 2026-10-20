@@ -1,0 +1,11 @@
+# --- Root dev artifacts ---
+node_modules/
+dev.log
+dev/
+
+# --- Office temp / generated files ---
+file/~$*
+file/berita_acara_revised.docx
+
+# --- Local env ---
+*.env.local

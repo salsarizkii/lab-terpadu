@@ -47,6 +47,7 @@ export interface BeritaAcara {
   analyst_id?: number
   status: BeritaAcaraStatus
   nomor_agenda?: string
+  rejection_reason?: string | null
   nama_pemohon?: string
   nim?: string
   prodi_fakultas_instansi?: string
@@ -144,18 +145,7 @@ export interface Sample {
   test_result?: string
   status: 'pending' | 'processing' | 'ready' | 'taken'
   created_at: string
-  berita_acara?: {
-    id: number
-    analyst_id?: number
-    user?: User
-    analyst?: User
-    rekap_analis_data?: Record<string, any>
-    custom_items?: Array<{ name: string; amount: number }>
-    biaya?: string
-    keterangan?: string
-    formula?: { id: number; name: string; expression: string; unit: string }
-    payment?: Payment
-  }
+  berita_acara?: BeritaAcara
 }
 
 export interface Certificate {
@@ -215,6 +205,8 @@ export interface PdfTemplateSettings {
   nip_kepala_upt: string
   nama_admin: string
   nama_bendahara: string
+  nama_penyelia: string
+  nama_manager_teknis: string
 }
 
 export interface PdfTemplate {

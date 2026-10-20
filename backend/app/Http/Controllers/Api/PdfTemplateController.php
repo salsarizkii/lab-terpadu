@@ -209,7 +209,13 @@ class PdfTemplateController extends Controller
         $dummyData = $this->getDummyData($type);
 
         // Prioritas: render dari file Word asli (hasil persis seperti template Word).
-        $docxPdf = DocxPdfService::generatePdf($template, $dummyData);
+        try {
+            $docxPdf = DocxPdfService::generatePdf($template, $dummyData);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Gagal membuat PDF dari template Word: ' . $e->getMessage(),
+            ], 500);
+        }
         if ($docxPdf !== null) {
             return response()->streamDownload(function () use ($docxPdf) {
                 echo $docxPdf;
@@ -329,7 +335,13 @@ class PdfTemplateController extends Controller
         $data = $this->getRealData($type, $id);
 
         // Prioritas: render dari file Word asli (hasil persis seperti template Word).
-        $docxPdf = DocxPdfService::generatePdf($template, $data);
+        try {
+            $docxPdf = DocxPdfService::generatePdf($template, $data);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Gagal membuat PDF dari template Word: ' . $e->getMessage(),
+            ], 500);
+        }
         if ($docxPdf !== null) {
             $filename = "{$type}_{$id}.pdf";
             return response()->streamDownload(function () use ($docxPdf) {
@@ -347,7 +359,7 @@ class PdfTemplateController extends Controller
 
     /**
      * Unduh dokumen dalam bentuk Word (.docx) dengan data asli terisi.
-     * Tidak membutuhkan LibreOffice -- murni manipulasi file template.
+     * Tidak membutuhkan aplikasi eksternal -- murni manipulasi file template.
      */
     public function generateDocx(Request $request, $type, $id)
     {

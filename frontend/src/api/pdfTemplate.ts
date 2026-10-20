@@ -82,4 +82,18 @@ export const pdfTemplateApi = {
     const token = localStorage.getItem('token')
     return `${baseURL}/docx-generate/${type}/${id}?token=${token}`
   },
+
+  async downloadFilledPdf(type: string, id: number): Promise<Blob> {
+    const { data } = await api.get<Blob>(`/pdf-generate/${type}/${id}`, {
+      responseType: 'blob',
+    })
+    return data
+  },
+
+  async downloadFilledDocx(type: string, id: number): Promise<Blob> {
+    const { data } = await api.get<Blob>(`/docx-generate/${type}/${id}`, {
+      responseType: 'blob',
+    })
+    return data
+  },
 }
