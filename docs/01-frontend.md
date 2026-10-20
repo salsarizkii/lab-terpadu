@@ -102,31 +102,34 @@ frontend/src/
 
 ### Route Map
 
-| Path | Component | Auth | Role |
+| Path | Component | Auth | Role / Permission |
 |---|---|---|---|
 | `/login` | LoginView | guest | - |
 | `/register` | RegisterView | guest | - |
 | `/dashboard` | redirect | yes | - |
-| `/user/dashboard` | UserDashboard | yes | user |
-| `/user/berita-acara` | UserBeritaAcaraList | yes | user |
-| `/user/berita-acara/create` | UserBeritaAcaraCreate | yes | user |
-| `/user/berita-acara/:id` | UserBeritaAcaraDetail | yes | user |
-| `/user/payments` | UserPayment | yes | user |
-| `/user/certificates` | UserCertificate | yes | user |
-| `/admin/dashboard` | AdminDashboard | yes | admin |
-| `/admin/berita-acara` | AdminBeritaAcara | yes | admin |
-| `/admin/payments` | AdminPayments | yes | admin |
-| `/admin/samples` | AdminSamples | yes | admin |
-| `/admin/roles` | AdminRoles | yes | superadmin |
-| `/admin/users` | AdminUsers | yes | superadmin |
-| `/admin/forms` | FormTemplateEditor | yes | admin |
-| `/admin/discounts` | AdminDiscounts | yes | admin |
-| `/analyst/dashboard` | AnalystDashboard | yes | analyst |
-| `/analyst/assigned` | AnalystAssigned | yes | analyst |
-| `/penyelia/berita-acara` | PenyeliaBeritaAcara | yes | penyelia |
-| `/penyelia/berita-acara/:id` | PenyeliaBeritaAcaraDetail | yes | penyelia |
-| `/manager-teknis/berita-acara` | ManagerBeritaAcara | yes | manager_teknis |
-| `/manager-teknis/berita-acara/:id` | ManagerBeritaAcaraDetail | yes | manager_teknis |
+| `/user/dashboard` | UserDashboard | yes | `dashboard` |
+| `/user/berita-acara` | UserBeritaAcaraList | yes | `berita_acara_create` / `berita_acara_riwayat_personal` |
+| `/user/berita-acara/create` | UserBeritaAcaraCreate | yes | `berita_acara_create` |
+| `/user/berita-acara/:id` | UserBeritaAcaraDetail | yes | `berita_acara_create` / `berita_acara_riwayat_personal` |
+| `/user/berita-acara/:id/edit` | UserBeritaAcaraEdit | yes | `berita_acara_create` |
+| `/user/payments` | UserPayment | yes | `payment_upload` / `payment_discount,payment_riwayat_personal` |
+| `/user/payments/:id` | UserPaymentDetail | yes | `payment_upload` / `payment_discount,payment_riwayat_personal` |
+| `/user/samples` | UserSamples | yes | `hasil_pengujian_riwayat_personal` |
+| `/user/certificates` | UserCertificate | yes | `certificate_view` / `certificate_download` |
+| `/admin/dashboard` | AdminDashboard | yes | `dashboard` |
+| `/admin/berita-acara` | AdminBeritaAcara | yes | `berita_acara_riwayat_semua` / `berita_acara_riwayat_personal,berita_acara_verify,berita_acara_assign,berita_acara_create` |
+| `/admin/payments` | AdminPayments | yes | `payment_riwayat_semua` |
+| `/admin/samples` | AdminSamples | yes | `hasil_pengujian_rekap` / `hasil_pengujian_riwayat_personal,hasil_pengujian_riwayat_semua` |
+| `/admin/roles` | AdminRoles | yes | superadmin only (`meta.superadminOnly`) |
+| `/admin/users` | AdminUsers | yes | `user_view` |
+| `/admin/forms` | FormTemplateEditor | yes | form manage permissions |
+| `/admin/discounts` | AdminDiscounts | yes | `discount_verifikasi` / `discount_riwayat_*` |
+| `/analyst/dashboard` | AnalystDashboard | yes | `dashboard` |
+| `/analyst/assigned` | AnalystAssigned | yes | `hasil_pengujian_rekap` / `berita_acara_riwayat_semua` |
+| `/penyelia/berita-acara` | PenyeliaBeritaAcara | yes | `berita_acara_verify` |
+| `/penyelia/berita-acara/:id` | PenyeliaBeritaAcaraDetail | yes | `berita_acara_verify` |
+| `/manager-teknis/berita-acara` | ManagerBeritaAcara | yes | `hasil_pengujian_rekap` |
+| `/manager-teknis/berita-acara/:id` | ManagerBeritaAcaraDetail | yes | `hasil_pengujian_rekap` |
 | `/:pathMatch(.*)*` | → redirect `/dashboard` | - | - |
 
 ### Guard Logic (`router/index.ts`)
@@ -135,10 +138,10 @@ frontend/src/
 beforeEach:
   1. Route auth required + not authenticated → /login
   2. Route guest + authenticated → /dashboard
-  3. Route role required:
-     - superadmin bypass (can access admin + superadmin routes)
-     - others must match exact role
-  4. /dashboard redirects by role:
+  3. meta.superadminOnly + bukan superadmin → /dashboard
+  4. meta.permission: wajib punya permission (superadmin bypass)
+     meta.permissionOr: minimal salah satu permission (koma)
+  5. /dashboard redirects by role:
      - superadmin/admin → /admin/dashboard
      - analyst → /analyst/dashboard
      - user → /user/dashboard
@@ -203,6 +206,8 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | admin.ts | `getAnalysts()` | `GET /admin/analysts` | List analyst users |
 | admin.ts | `getUsers(params?)` | `GET /admin/users` | List users |
 | admin.ts | `verifyUser(id, isVerified)` | `PUT /admin/users/:id/verify` | Verify/revoke |
+| admin.ts | `exportDatabase()` | `GET /admin/export/database` | Export database (Excel .xls multi-sheet) |
+| admin.ts | `exportPesanan()` | `GET /admin/export/pesanan` | Export daftar pesanan (CSV) |
 | analyst.ts | `getBeritaAcara(params?)` | `GET /analyst/berita-acara` | List assigned BA |
 | analyst.ts | `getBeritaAcaraDetail(id)` | `GET /analyst/berita-acara/:id` | BA detail |
 | analyst.ts | `updateSample(baId, sampleId, payload)` | `PUT .../samples/:sampleId` | Update sample result |

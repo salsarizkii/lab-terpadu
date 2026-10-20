@@ -31,4 +31,9 @@ export const beritaAcaraApi = {
     })
     return data.data || data
   },
+
+  async markSampleSubmitted(id: number): Promise<BeritaAcara> {
+    const { data } = await api.post(`/user/berita-acara/${id}/sample-submission`)
+    return data.data || data
+  },
 }

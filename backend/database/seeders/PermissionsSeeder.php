@@ -35,6 +35,7 @@ class PermissionsSeeder extends Seeder
             // Certificate
             ['name' => 'certificate_view', 'display_name' => 'Melihat Sertifikat', 'group' => 'Sertifikat'],
             ['name' => 'certificate_download', 'display_name' => 'Download Sertifikat', 'group' => 'Sertifikat'],
+            ['name' => 'certificate_upload', 'display_name' => 'Upload Sertifikat', 'group' => 'Sertifikat'],
 
             // Users
             ['name' => 'user_view', 'display_name' => 'Melihat Pengguna', 'group' => 'Pengguna'],

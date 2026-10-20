@@ -281,6 +281,118 @@ HTML
 <!-- TTD_END -->
 HTML
             ],
+            [
+                'type' => 'pengambilan_sisa_sampel',
+                'name' => 'Template PDF Form Pengambilan Sisa Sampel',
+                'paper_size' => 'a4',
+                'orientation' => 'portrait',
+                'margin_top' => 15,
+                'margin_bottom' => 15,
+                'margin_left' => 15,
+                'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
+                'html_content' => <<<HTML
+<!-- KOP_START -->
+<div class="kop-surat">
+    <table class="kop-table">
+        <tr>
+            <td style="width: 85%; text-align: center;">
+                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">{{ kop_nama_lab }}</h3>
+                <p style="margin: 2px 0; font-size: 10pt;">KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI</p>
+                <p style="margin: 0; font-size: 9pt; color: #475569;">{{ kop_alamat }} | Email: {{ kop_email }} | Telp: {{ kop_telepon }}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+<!-- KOP_END -->
+
+<h3 class="text-center" style="text-decoration: underline; margin-bottom: 5px;">FORM PENGAMBILAN SISA SAMPEL/BAHAN</h3>
+<p class="text-center" style="margin-top: 0; font-size: 10pt; color: #475569;">No. Form: {{ nomor_form }}</p>
+
+<table style="border: none; margin-top: 15px;">
+    <tr style="border: none;"><td style="border: none; width: 30%; font-weight: bold;">Nama Pemohon</td><td style="border: none;">: {{ nama_pemohon }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">NIM / NIP</td><td style="border: none;">: {{ nim }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Prodi / Fakultas / Instansi</td><td style="border: none;">: {{ instansi }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Judul Penelitian</td><td style="border: none;">: {{ judul_penelitian }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jenis / Bahan Hasil Pengujian</td><td style="border: none;">: {{ jenis_sampel }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Hasil Pengujian</td><td style="border: none;">: {{ jumlah_sampel }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Sisa Sampel/Bahan</td><td style="border: none;">: {{ sisa_sampel }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Tanggal Pengambilan</td><td style="border: none;">: {{ tanggal_pengambilan }}</td></tr>
+</table>
+
+<!-- RINCIAN_START -->
+<h4 style="margin-top: 20px; margin-bottom: 8px;">Daftar Sisa Sampel/Bahan yang Diambil:</h4>
+{{ tabel_sisa_sampel }}
+<!-- RINCIAN_END -->
+
+<p style="margin-top: 15px; font-size: 10pt; text-align: justify;">
+    Dengan ini menyatakan bahwa sisa sampel/bahan milik pemohon di atas telah diterima kembali secara lengkap
+    dan {{ kop_nama_lab }} tidak menyimpan sisa hasil pengujian dimaksud setelah tanggal pengambilan.
+</p>
+
+<!-- TTD_START -->
+<div style="margin-top: 40px;">
+    <table style="border: none;">
+        <tr style="border: none;">
+            <td style="border: none; text-align: center; width: 50%;">
+                <p>Pemohon / Penerima,</p>
+                <div class="ttd-space"></div>
+                <p><strong>({{ nama_pemohon }})</strong></p>
+            </td>
+            <td style="border: none; text-align: center; width: 50%;">
+                <p>Petugas Laboratorium,</p>
+                <div class="ttd-space"></div>
+                <p><strong>({{ nama_admin }})</strong></p>
+            </td>
+        </tr>
+    </table>
+</div>
+<!-- TTD_END -->
+            [
+                'type' => 'lembar_kendali_sampel',
+                'name' => 'Template PDF Lembar Kendali Sampel',
+                'paper_size' => 'a4',
+                'orientation' => 'portrait',
+                'margin_top' => 15,
+                'margin_bottom' => 15,
+                'margin_left' => 15,
+                'margin_right' => 15,
+                'show_kop' => true,
+                'show_ttd' => true,
+                'show_rincian' => true,
+                'catatan' => null,
+                'settings' => null,
+                'html_content' => <<<HTML
+<!-- KOP_START -->
+<div class="kop-surat">
+    <table class="kop-table">
+        <tr>
+            <td style="width: 85%; text-align: center;">
+                <h3 style="margin: 0; font-size: 14pt; text-transform: uppercase;">{{ kop_nama_lab }}</h3>
+                <p style="margin: 2px 0; font-size: 10pt;">KEMENTERIAN PENDIDIKAN, KEBUDAYAAN, RISET, DAN TEKNOLOGI</p>
+                <p style="margin: 0; font-size: 9pt; color: #475569;">{{ kop_alamat }} | Email: {{ kop_email }} | Telp: {{ kop_telepon }}</p>
+            </td>
+        </tr>
+    </table>
+</div>
+<!-- KOP_END -->
+
+<h3 class="text-center" style="text-decoration: underline; margin-bottom: 5px;">LEMBAR KENDALI SAMPEL / CONTOH UJI</h3>
+
+<table style="border: none; margin-top: 15px;">
+    <tr style="border: none;"><td style="border: none; width: 30%; font-weight: bold;">Tanggal Terima Sampel</td><td style="border: none;">: {{ tanggal_berita_acara }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Agenda No.</td><td style="border: none;">: {{ agenda }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Asal Sampel</td><td style="border: none;">: {{ agenda }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Metode/Instrumen</td><td style="border: none;">: {{ metode_instrumen }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Sampel</td><td style="border: none;">: {{ jumlah_sampel_contoh_uji }}</td></tr>
+    <tr style="border: none;"><td style="border: none; font-weight: bold;">Jumlah Pengukuran</td><td style="border: none;">: {{ pengukuran_pengulangan_per_sampel }}</td></tr>
+</table>
+HTML
+            ],
         ];
 
         foreach ($templates as $t) {

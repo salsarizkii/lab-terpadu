@@ -112,4 +112,19 @@ export const analystApi = {
   async removeAkses(beritaAcaraId: number): Promise<void> {
     await api.delete(`/analyst/berita-acara/${beritaAcaraId}/upload-akses`)
   },
+
+  async uploadBerkas(beritaAcaraId: number, file: File): Promise<{ berkas_ulang: string }> {
+    const formData = new FormData()
+    formData.append('berkas_ulang', file)
+    const { data } = await api.post(
+      `/analyst/berita-acara/${beritaAcaraId}/upload-berkas`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return data.data
+  },
+
+  async removeBerkas(beritaAcaraId: number): Promise<void> {
+    await api.delete(`/analyst/berita-acara/${beritaAcaraId}/upload-berkas`)
+  },
 }

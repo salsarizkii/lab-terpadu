@@ -86,7 +86,7 @@ php artisan db:seed
 5. **Verifikasi Manager Teknis** — Manager setujui rekap → `completed` (kembali ke user)
 6. **Pembayaran & Sertifikat** — User bayar → admin konfirmasi → sertifikat
 
-Setiap verifikator bisa juga menolak (rejected) atau minta revisi (revision → user perbaiki → alur diulang dari admin).
+Setiap verifikator bisa juga menolak atau minta revisi (revision → user perbaiki → alur diulang dari admin). Tolak dari penyelia → kembali ke antrian admin untuk diperbaiki (bukan permanen).
 
 ## 05. Role System
 

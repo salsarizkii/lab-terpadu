@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { pdfTemplateApi } from '../../api/pdfTemplate'
+import { useAuthStore } from '../../stores/authStore'
 import type { BeritaAcara } from '../../types'
 import Button from './Button.vue'
 
@@ -14,9 +15,23 @@ const props = withDefaults(defineProps<{
   label: 'Download Dokumen',
 })
 
+const auth = useAuthStore()
+
 const open = ref(false)
 const downloading = ref<string | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
+
+const isStaff = computed(() =>
+  ['superadmin', 'admin', 'manager_teknis'].includes(auth.user?.role ?? ''),
+)
+
+function hasRekapData(ba: BeritaAcara): boolean {
+  return !!ba.rekap_analis_data && Object.keys(ba.rekap_analis_data).length > 0
+}
+
+function isPaid(ba: BeritaAcara): boolean {
+  return ba.payment?.status === 'approved'
+}
 
 interface DownloadItem {
   key: string
@@ -30,7 +45,7 @@ const items = computed<DownloadItem[]>(() => {
     { key: 'ba-pdf', label: 'Berita Acara', format: 'pdf' },
     { key: 'ba-docx', label: 'Berita Acara', format: 'docx' },
   ]
-  if (props.showRekap) {
+  if (props.showRekap || isStaff.value || hasRekapData(ba)) {
     list.push(
       { key: 'rekap-pdf', label: 'Rekap Analis', format: 'pdf' },
       { key: 'rekap-docx', label: 'Rekap Analis', format: 'docx' },
@@ -42,10 +57,16 @@ const items = computed<DownloadItem[]>(() => {
       { key: 'tagihan-docx', label: 'Tagihan', format: 'docx' },
     )
   }
-  if (ba.certificate) {
+  if (ba.certificate && (isStaff.value || isPaid(ba))) {
     list.push(
       { key: 'sertifikat-pdf', label: 'Sertifikat', format: 'pdf' },
       { key: 'sertifikat-docx', label: 'Sertifikat', format: 'docx' },
+    )
+  }
+  if (isStaff.value || isPaid(ba)) {
+    list.push(
+      { key: 'pss-pdf', label: 'Pengambilan Sisa Sampel', format: 'pdf' },
+      { key: 'pss-docx', label: 'Pengambilan Sisa Sampel', format: 'docx' },
     )
   }
   return list
@@ -60,12 +81,13 @@ const grouped = computed(() => {
   push('Rekap Analis', items.value.filter(i => i.key.startsWith('rekap-')))
   push('Tagihan', items.value.filter(i => i.key.startsWith('tagihan-')))
   push('Sertifikat', items.value.filter(i => i.key.startsWith('sertifikat-')))
+  push('Pengambilan Sisa Sampel', items.value.filter(i => i.key.startsWith('pss-')))
   return groups
 })
 
 function targetId(item: DownloadItem): number | null {
   const ba = props.beritaAcara
-  if (item.key.startsWith('ba-') || item.key.startsWith('rekap-')) return ba.id
+  if (item.key.startsWith('ba-') || item.key.startsWith('rekap-') || item.key.startsWith('pss-')) return ba.id
   if (item.key.startsWith('tagihan-')) return ba.payment?.id ?? null
   if (item.key.startsWith('sertifikat-')) return ba.certificate?.id ?? null
   return null
@@ -75,6 +97,7 @@ function docType(item: DownloadItem): string {
   if (item.key.startsWith('ba-')) return 'berita_acara'
   if (item.key.startsWith('rekap-')) return 'rekap_analis'
   if (item.key.startsWith('tagihan-')) return 'tagihan'
+  if (item.key.startsWith('pss-')) return 'pengambilan_sisa_sampel'
   return 'sertifikat'
 }
 

@@ -13,6 +13,7 @@ use App\Services\SystemActivityLogService;
 use Database\Seeders\PdfTemplateSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PdfTemplateController extends Controller
 {
@@ -32,7 +33,7 @@ class PdfTemplateController extends Controller
 
     public function show($type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
@@ -54,7 +55,7 @@ class PdfTemplateController extends Controller
 
     public function update(Request $request, $type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
@@ -99,12 +100,13 @@ class PdfTemplateController extends Controller
 
     public function importDocx(Request $request, $type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
 
         $filePath = null;
+        $storedPath = null;
 
         if ($request->hasFile('docx')) {
             $request->validate([
@@ -114,16 +116,31 @@ class PdfTemplateController extends Controller
             $storedPath = $file->store('pdf_docx_templates', 'public');
             $filePath = storage_path('app/public/' . $storedPath);
         } else {
-            // Gunakan file default jika tidak ada upload
-            $defaultFile = base_path('../file/BERITA ACARA.docx');
-            if (!file_exists($defaultFile) && $type === 'berita_acara') {
-                $defaultFile = base_path('../file/Lembar kendali sampel.docx');
+            // Ambil file template default dari backend/file
+            $defaults = [
+                'berita_acara' => base_path('file/berita_acara_revised.docx'),
+                'sertifikat' => base_path('file/SHP.docx'),
+                'pengambilan_sisa_sampel' => base_path('file/PENGAMBILAN SISA SAMPELBAHAN.docx'),
+                'lembar_kendali_sampel' => base_path('file/Lembar kendali sampel.docx'),
+            ];
+            $defaultFile = $defaults[$type] ?? null;
+
+            // Fallback lama: Lembar kendali sampel untuk berita acara
+            if (($defaultFile === null || !file_exists($defaultFile)) && $type === 'berita_acara') {
+                $fallback = base_path('file/Lembar kendali sampel.docx');
+                $defaultFile = file_exists($fallback) ? $fallback : null;
             }
-            if (file_exists($defaultFile)) {
-                $filePath = $defaultFile;
-            } else {
-                return response()->json(['message' => 'File .docx tidak ditemukan'], 400);
+
+            if ($defaultFile === null || !file_exists($defaultFile)) {
+                return response()->json(['message' => 'File .docx default tidak ditemukan di backend/file'], 400);
             }
+
+            // Salin ke storage agar pipeline docx (docx_path) ikut terpakai
+            $storedPath = 'pdf_docx_templates/' . Str::random(40) . '.docx';
+            if (!copy($defaultFile, storage_path('app/public/' . $storedPath))) {
+                return response()->json(['message' => 'Gagal menyalin file default ke storage'], 500);
+            }
+            $filePath = storage_path('app/public/' . $storedPath);
         }
 
         try {
@@ -132,8 +149,8 @@ class PdfTemplateController extends Controller
             $template = PdfTemplate::where('type', $type)->first();
             if ($template) {
                 $template->html_content = $html;
-                if ($request->hasFile('docx')) {
-                    $template->docx_path = $storedPath ?? null;
+                if ($storedPath) {
+                    $template->docx_path = $storedPath;
                 }
                 $template->save();
             }
@@ -167,7 +184,7 @@ class PdfTemplateController extends Controller
      */
     public function downloadDocx($type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
@@ -234,7 +251,7 @@ class PdfTemplateController extends Controller
      */
     public function previewDocx(Request $request, $type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
@@ -299,7 +316,7 @@ class PdfTemplateController extends Controller
      */
     public function reset($type)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
@@ -326,6 +343,8 @@ class PdfTemplateController extends Controller
 
     public function generate(Request $request, $type, $id)
     {
+        $this->authorizeGenerate($type, $id);
+
         $template = PdfTemplate::where('type', $type)->where('is_active', true)->first();
         if (!$template) {
             (new PdfTemplateSeeder())->run();
@@ -363,10 +382,12 @@ class PdfTemplateController extends Controller
      */
     public function generateDocx(Request $request, $type, $id)
     {
-        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat'];
+        $validTypes = ['berita_acara', 'rekap_analis', 'tagihan', 'sertifikat', 'pengambilan_sisa_sampel', 'lembar_kendali_sampel'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Tipe template tidak valid'], 400);
         }
+
+        $this->authorizeGenerate($type, $id);
 
         $template = PdfTemplate::where('type', $type)->where('is_active', true)->first();
         if (!$template) {
@@ -459,6 +480,36 @@ class PdfTemplateController extends Controller
                 ];
                 break;
 
+            case 'lembar_kendali_sampel':
+                $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
+                    '{{ id }}' => 'BA-2026-001',
+                    '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
+                    '{{ kode_nama_sampel }}' => 'HP-001',
+                    '{{ metode_instrumen }}' => 'PSA Particle Size',
+                    '{{ jumlah_sampel_contoh_uji }}' => '2',
+                    '{{ pengukuran_pengulangan_per_sampel }}' => '3x',
+                ];
+                break;
+
+            case 'pengambilan_sisa_sampel':
+                $data = [
+                    '{{ agenda }}' => 'AGD-2026-0006',
+                    '{{ nomor_form }}' => 'PSS-2026-001',
+                    '{{ id }}' => 'BA-2026-001',
+                    '{{ nama_pemohon }}' => 'Budi Santoso, S.Si',
+                    '{{ nim }}' => '200101099',
+                    '{{ instansi }}' => 'Teknik Kimia / Fakultas Teknik',
+                    '{{ judul_penelitian }}' => 'Analisis Karakteristik Senyawa Aktif Ekstrak Daun',
+                    '{{ jenis_sampel }}' => 'Ekstrak Cairan Herbal',
+                    '{{ jumlah_sampel }}' => '2 Sampel',
+                    '{{ sisa_sampel }}' => '± 150 ml',
+                    '{{ tanggal_pengajuan }}' => date('d F Y'),
+                    '{{ tanggal_pengambilan }}' => date('d F Y'),
+                    '{{ tabel_sisa_sampel }}' => '<table><thead><tr><th>No</th><th>Kode Hasil Pengujian</th><th>Nama Sisa Sampel/Bahan</th><th>Jumlah Diambil</th></tr></thead><tbody><tr><td>1</td><td>HP-001</td><td>Ekstrak Cairan Herbal</td><td>± 100 ml</td></tr><tr><td>2</td><td>HP-002</td><td>Serbuk Daun Kering</td><td>± 50 gr</td></tr></tbody></table>',
+                ];
+                break;
+
             default:
                 $data = [];
         }
@@ -470,6 +521,48 @@ class PdfTemplateController extends Controller
             PdfGeneratorService::formFieldDummyValues('rekap_analis'),
             PdfGeneratorService::dateDummyValues()
         );
+    }
+
+    /**
+     * RBAC: hanya pemilik dokumen, analis yang ditugaskan, atau staf dengan
+     * permission riwayat semua yang boleh generate PDF/DOCX.
+     */
+    private function authorizeGenerate(string $type, $id): void
+    {
+        $ba = null;
+
+        switch ($type) {
+            case 'tagihan':
+                $payment = Payment::with('beritaAcara')->findOrFail($id);
+                $ba = $payment->beritaAcara;
+                break;
+            case 'sertifikat':
+                $certificate = Certificate::with('beritaAcara')->findOrFail($id);
+                $ba = $certificate->beritaAcara;
+                break;
+            default:
+                $ba = BeritaAcara::findOrFail($id);
+        }
+
+        if (!$ba) {
+            abort(404);
+        }
+
+        $user = auth()->user();
+
+        if ($ba->user_id === $user->id) {
+            return;
+        }
+
+        if ($user->hasPermission('berita_acara_riwayat_semua')) {
+            return;
+        }
+
+        if ($ba->analysts()->where('users.id', $user->id)->exists()) {
+            return;
+        }
+
+        abort(403, 'Anda tidak memiliki akses ke dokumen ini');
     }
 
     private function getRealData($type, $id): array
@@ -506,6 +599,19 @@ class PdfTemplateController extends Controller
                     '{{ tanggal_pengajuan }}' => $ba->created_at ? $ba->created_at->format('d F Y') : '-',
                     '{{ total_biaya }}' => $ba->biaya ? 'Rp ' . number_format((float)$ba->biaya, 0, ',', '.') : 'Rp 0',
                     '{{ tabel_sampel }}' => $samplesHtml,
+                    // Alias slug form template → kolom berita_acaras (untuk template Word ber-slug form)
+                    '{{ telp_no_hp }}' => $ba->telp_hp ?? '-',
+                    '{{ judul_tema_penelitian }}' => $ba->judul_penelitian ?? '-',
+                    '{{ bahan_contoh_uji_material }}' => $ba->bahan_contoh_uji ?? '-',
+                    '{{ jumlah_sampel_contoh_uji }}' => $ba->jumlah_sampel ?? '-',
+                    '{{ kode_nama_sampel }}' => $ba->kode_nama_sampel ?? '-',
+                    '{{ keterangan_sampel }}' => $ba->keterangan_sampel ?? '-',
+                    '{{ keterangan_tambahan }}' => $ba->keterangan_tambahan ?? '-',
+                    '{{ pengukuran_pengulangan_per_sampel }}' => $ba->pengukuran_per_sampel ?? '-',
+                    '{{ kemasan_packing }}' => $ba->kemasan_packing ?? '-',
+                    '{{ akses_lab_di_upt_lab_terpadu }}' => $ba->akses_lab ?? '-',
+                    '{{ masa_berlaku_akses }}' => $ba->masa_berlaku_akses ?? '-',
+                    '{{ permintaan_analisa_instrumentasi_metode }}' => $ba->permintaan_analisa ?? '-',
                 ];
                 break;
 
@@ -587,6 +693,67 @@ class PdfTemplateController extends Controller
                     '{{ jumlah_sampel }}' => $ba->jumlah_sampel ?? '-',
                     '{{ tanggal_selesai }}' => $cert->issued_at ? date('d F Y', strtotime($cert->issued_at)) : date('d F Y'),
                     '{{ tabel_hasil_uji }}' => $tabelHasil,
+                    // Alias slug form template → kolom berita_acaras
+                    '{{ kode_nama_sampel }}' => $ba->kode_nama_sampel ?? '-',
+                    '{{ kemasan_packing }}' => $ba->kemasan_packing ?? '-',
+                ];
+                break;
+
+            case 'lembar_kendali_sampel':
+                $ba = BeritaAcara::with(['user'])->findOrFail($id);
+                $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
+                    '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
+                    '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
+                    '{{ kode_nama_sampel }}' => $ba->kode_nama_sampel ?? '-',
+                    '{{ jumlah_sampel_contoh_uji }}' => $ba->jumlah_sampel ?? '-',
+                    '{{ pengukuran_pengulangan_per_sampel }}' => $ba->pengukuran_per_sampel ?? '-',
+                    // Diisi jawaban form "Metode/Instrumen" bila ada; fallback '-'
+                    '{{ metode_instrumen }}' => '-',
+                ];
+                break;
+
+            case 'pengambilan_sisa_sampel':
+                $ba = BeritaAcara::with(['user', 'samples'])->findOrFail($id);
+
+                $sisaHtml = '<table><thead><tr><th>No</th><th>Kode Hasil Pengujian</th><th>Nama Sisa Sampel/Bahan</th><th>Jumlah Diambil</th></tr></thead><tbody>';
+                if ($ba->samples && count($ba->samples) > 0) {
+                    foreach ($ba->samples as $idx => $s) {
+                        $num = $idx + 1;
+                        $nama = $s->name ?? $ba->kode_nama_sampel ?? '-';
+                        $jumlah = $s->quantity ? $s->quantity . ($s->unit ? ' ' . $s->unit : '') : '-';
+                        $sisaHtml .= "<tr><td>{$num}</td><td>" . e($s->sample_code ?? '-') . "</td><td>" . e($nama) . "</td><td>" . e($jumlah) . "</td></tr>";
+                    }
+                } else {
+                    $sisaHtml .= "<tr><td colspan='4'>" . e($ba->kode_nama_sampel ?? 'Tidak ada data sampel') . "</td></tr>";
+                }
+                $sisaHtml .= '</tbody></table>';
+
+                $data = [
+                    '{{ agenda }}' => $ba->nomor_agenda ?? '-',
+                    '{{ nomor_form }}' => 'PSS-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
+                    '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
+                    '{{ nama_pemohon }}' => $ba->nama_pemohon ?? $ba->user?->name ?? '-',
+                    '{{ nim }}' => $ba->nim ?? '-',
+                    '{{ instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
+                    '{{ judul_penelitian }}' => $ba->judul_penelitian ?? '-',
+                    '{{ jenis_sampel }}' => $ba->bahan_contoh_uji ?? '-',
+                    '{{ jumlah_sampel }}' => $ba->jumlah_sampel ?? '-',
+                    '{{ sisa_sampel }}' => $ba->sisa_sampel ?? '-',
+                    '{{ tanggal_pengajuan }}' => $ba->created_at ? $ba->created_at->format('d F Y') : '-',
+                    '{{ tanggal_pengambilan }}' => date('d F Y'),
+                    '{{ tabel_sisa_sampel }}' => $sisaHtml,
+                    // Alias slug form template → kolom berita_acaras
+                    '{{ telp_no_hp }}' => $ba->telp_hp ?? '-',
+                    '{{ judul_tema_penelitian }}' => $ba->judul_penelitian ?? '-',
+                    '{{ akses_lab_di_upt_lab_terpadu }}' => $ba->akses_lab ?? '-',
+                    '{{ bahan_contoh_uji_material }}' => $ba->bahan_contoh_uji ?? '-',
+                    '{{ kemasan_packing }}' => $ba->kemasan_packing ?? '-',
+                    '{{ kode_nama_sampel }}' => $ba->kode_nama_sampel ?? '-',
+                    '{{ keterangan_sampel }}' => $ba->keterangan_sampel ?? '-',
+                    '{{ jumlah_sampel_contoh_uji }}' => $ba->jumlah_sampel ?? '-',
+                    '{{ permintaan_analisa_instrumentasi_metode }}' => $ba->permintaan_analisa ?? '-',
+                    '{{ pengukuran_pengulangan_per_sampel }}' => $ba->pengukuran_per_sampel ?? '-',
                 ];
                 break;
 

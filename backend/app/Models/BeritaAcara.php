@@ -32,6 +32,9 @@ class BeritaAcara extends Model
         'pengukuran_per_sampel',
         'sisa_sampel',
         'upload_akses',
+        'berkas_ulang',
+        'sample_submitted',
+        'sample_submitted_at',
         'masa_berlaku_akses',
         'status_pelanggan',
         'status_berkas',
@@ -50,6 +53,8 @@ class BeritaAcara extends Model
         return [
             'status' => 'string',
             'diskon_diizinkan' => 'boolean',
+            'sample_submitted' => 'boolean',
+            'sample_submitted_at' => 'datetime',
             'form_data' => 'array',
             'rekap_analis_data' => 'array',
             'custom_items' => 'array',

@@ -9,6 +9,7 @@ import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { paymentApi } from '../api/payment'
+import { pdfTemplateApi } from '../api/pdfTemplate'
 import type { Payment } from '../types'
 import { toast } from 'vue-sonner'
 import {
@@ -33,6 +34,7 @@ const router = useRouter()
 
 const payment = ref<Payment | null>(null)
 const loading = ref(true)
+const downloadingTagihan = ref(false)
 
 const showDiscountModal = ref(false)
 const discountReason = ref('')
@@ -293,6 +295,25 @@ async function handleUploadProof() {
     uploadingProof.value = false
   }
 }
+
+async function handleDownloadTagihan() {
+  if (!payment.value) return
+  downloadingTagihan.value = true
+  try {
+    const blob = await pdfTemplateApi.downloadFilledPdf('tagihan', payment.value.id)
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tagihan-${payment.value.id}.pdf`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    toast.success('Tagihan berhasil diunduh')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal mengunduh tagihan')
+  } finally {
+    downloadingTagihan.value = false
+  }
+}
 </script>
 
 <template>
@@ -427,6 +448,12 @@ async function handleUploadProof() {
 
           <div class="detail-sidebar">
             <Card title="Aksi Pembayaran">
+              <!-- Download tagihan button -->
+              <Button block variant="outline" :loading="downloadingTagihan" @click="handleDownloadTagihan" style="margin-bottom: 10px;">
+                <FileText :size="18" style="margin-right: 6px;" />
+                Download Tagihan (PDF)
+              </Button>
+
               <!-- Upload proof button -->
               <Button v-if="!payment.payment_proof || payment.status === 'rejected'" block variant="primary" @click="openUploadModal" style="margin-bottom: 10px;">
                 <UploadCloud :size="18" style="margin-right: 6px;" />

@@ -43,6 +43,9 @@ const templateFields = ref<FormField[]>([])
 const showAssignForm = ref(false)
 const showPenyeliaForm = ref(false)
 const showManagerTeknisForm = ref(false)
+const showAssignConfirm = ref(false)
+const pendingAnalystIds = ref<number[]>([])
+const assignSampleAnswer = ref<'sudah' | 'belum' | null>(null)
 const nomorAgenda = ref('')
 const savingAgenda = ref(false)
 const checkingAgenda = ref(false)
@@ -110,6 +113,10 @@ const assignedAnalysts = computed<User[]>(() => {
 
 const assignedPenyelias = computed<User[]>(() => item.value?.penyelias || [])
 const assignedManagerTeknis = computed<User[]>(() => item.value?.manager_teknis || [])
+
+const selectedAnalystNames = computed(() =>
+  analysts.value.filter(a => pendingAnalystIds.value.includes(a.id)).map(a => a.name)
+)
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Menunggu Admin', revision: 'Perlu Perbaikan', admin_verified: 'Diverifikasi Admin',
@@ -197,7 +204,18 @@ async function saveNomorAgenda() {
   }
 }
 
-async function handleAssign(analystIds: number[]) {
+function handleAssign(analystIds: number[]) {
+  pendingAnalystIds.value = analystIds
+  assignSampleAnswer.value = null
+  showAssignConfirm.value = true
+}
+
+async function confirmAssign() {
+  showAssignConfirm.value = false
+  await doAssign(pendingAnalystIds.value)
+}
+
+async function doAssign(analystIds: number[]) {
  if (!item.value) return
  savingAnalyst.value = true
  try {
@@ -206,6 +224,9 @@ async function handleAssign(analystIds: number[]) {
    item.value = updated
    showAssignForm.value = false
    toast.success(res.message)
+   if (assignSampleAnswer.value === 'belum') {
+     toast.warning('Jangan lupa update penyerahan sampel di sistem jika sampel sudah diterima.')
+   }
  } catch (e: any) {
    toast.error(e.response?.data?.message || 'Gagal')
  } finally {
@@ -346,6 +367,16 @@ function getRevisionDiff(rev: any) {
             <DownloadMenu :berita-acara="item" show-rekap />
           </div>
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
+        </div>
+
+        <div v-if="item.rejection_reason && item.status === 'pending'" class="rejection-banner">
+          <div class="rejection-banner__icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          </div>
+          <div class="rejection-banner__content">
+            <div class="rejection-banner__title">Dikembalikan oleh Penyelia</div>
+            <div class="rejection-banner__note">{{ item.rejection_reason }}</div>
+          </div>
         </div>
 
         <div class="detail-grid">
@@ -617,6 +648,34 @@ function getRevisionDiff(rev: any) {
         </div>
       </Modal>
 
+      <!-- Assign Analis Confirmation Modal -->
+      <Modal :show="showAssignConfirm" title="Konfirmasi Assign Analis" size="sm" :closable="false">
+        <p class="assign-confirm-question">Apakah Anda yakin ingin assign analis ini?</p>
+        <div v-if="selectedAnalystNames.length" class="assign-confirm-list">
+          <span v-for="name in selectedAnalystNames" :key="name" class="assign-confirm-chip">{{ name }}</span>
+        </div>
+        <div class="sample-question">
+          <p class="sample-question__label">
+            Apakah sampel sudah diterima lab?
+            <span class="sample-question__optional">(opsional)</span>
+          </p>
+          <div class="sample-question__options">
+            <label class="radio-option" :class="{ 'radio-option--active': assignSampleAnswer === 'sudah' }">
+              <input type="radio" value="sudah" v-model="assignSampleAnswer" />
+              <span>Sudah</span>
+            </label>
+            <label class="radio-option" :class="{ 'radio-option--active': assignSampleAnswer === 'belum' }">
+              <input type="radio" value="belum" v-model="assignSampleAnswer" />
+              <span>Belum</span>
+            </label>
+          </div>
+        </div>
+        <template #footer>
+          <Button variant="outline" @click="showAssignConfirm = false">Batal</Button>
+          <Button variant="success" :loading="savingAnalyst" @click="confirmAssign">Ya, Assign</Button>
+        </template>
+      </Modal>
+
       <!-- Verification Modal -->
       <Modal :show="showVerification" title="Verifikasi Berita Acara" @close="showVerification = false">
         <BeritaAcaraVerification :berita-acara="item!" @submit="handleVerify" />
@@ -642,6 +701,33 @@ function getRevisionDiff(rev: any) {
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.rejection-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+}
+.rejection-banner__icon {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.rejection-banner__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+.rejection-banner__note {
+  font-size: 13px;
+  color: #991b1b;
+  margin-top: 2px;
+  line-height: 1.5;
 }
 
 .detail-grid {
@@ -886,4 +972,70 @@ function getRevisionDiff(rev: any) {
 .agenda-hint { font-size: 11px; color: #94a3b8; }
 .agenda-hint--error { color: #ef4444; }
 .agenda-saving { font-size: 11px; color: #2563eb; }
+
+.assign-confirm-question {
+  font-size: 15px;
+  color: var(--color-text);
+  margin: 0 0 12px;
+}
+.assign-confirm-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.assign-confirm-chip {
+  padding: 4px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 999px;
+}
+.sample-question {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.sample-question__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+.sample-question__optional {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.sample-question__options {
+  display: flex;
+  gap: 10px;
+}
+.radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.radio-option input {
+  accent-color: var(--color-accent);
+}
+.radio-option--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
 </style>

@@ -303,6 +303,20 @@ class PdfGeneratorService
                     ['key' => '{{ tempat_ttd_kosong }}', 'label' => 'Area Tanda Tangan Basah Kepala UPT', 'example' => '[Area TTD Kepala UPT Lab]'],
                 ]);
 
+            case 'pengambilan_sisa_sampel':
+                return array_merge($common, [
+                    ['key' => '{{ nomor_form }}', 'label' => 'No. Form Pengambilan Sisa Sampel', 'example' => 'PSS-2026-001'],
+                    ['key' => '{{ nama_pemohon }}', 'label' => 'Nama Pemohon', 'example' => 'Budi Santoso, S.Si'],
+                    ['key' => '{{ nim }}', 'label' => 'NIM / NIP Pemohon', 'example' => '200101099'],
+                    ['key' => '{{ instansi }}', 'label' => 'Prodi / Fakultas / Instansi', 'example' => 'Teknik Kimia / Fakultas Teknik'],
+                    ['key' => '{{ judul_penelitian }}', 'label' => 'Judul Penelitian', 'example' => 'Analisis Karakteristik Senyawa Ekstrak'],
+                    ['key' => '{{ jenis_sampel }}', 'label' => 'Jenis / Bahan Hasil Pengujian', 'example' => 'Ekstrak Cairan Herbal'],
+                    ['key' => '{{ jumlah_sampel }}', 'label' => 'Jumlah Hasil Pengujian', 'example' => '2 Sampel'],
+                    ['key' => '{{ sisa_sampel }}', 'label' => 'Jumlah Sisa Sampel/Bahan', 'example' => '± 150 ml'],
+                    ['key' => '{{ tanggal_pengambilan }}', 'label' => 'Tanggal Pengambilan Sisa Sampel', 'example' => '1 Agustus 2026'],
+                    ['key' => '{{ tabel_sisa_sampel }}', 'label' => 'Tabel Daftar Sisa Sampel (HTML)', 'example' => '[Tabel Kode, Nama & Jumlah Sisa Sampel]'],
+                ]);
+
             default:
                 return $common;
         }

@@ -145,6 +145,8 @@ class VerificationController extends Controller
 
     /**
      * Terapkan status verifikasi + catat activity log & revision.
+     * Catatan: penolakan (rejected) dari penyelia mengembalikan BA ke antrian admin
+     * (status pending) untuk direvisi & diverifikasi ulang oleh admin.
      */
     private function applyVerification(BeritaAcara $beritaAcara, string $newStatus, ?string $note, string $approveAction)
     {
@@ -153,6 +155,9 @@ class VerificationController extends Controller
         $data = ['status' => $newStatus];
         if ($newStatus === 'rejected') {
             $data['rejection_reason'] = $note;
+            if ($approveAction === 'penyelia_verified') {
+                $data['status'] = 'pending';
+            }
         }
         $beritaAcara->update($data);
 
@@ -165,7 +170,10 @@ class VerificationController extends Controller
             ]);
             ActivityLogService::log($beritaAcara->id, 'revision_requested', $note, null, $revision->id);
         } elseif ($newStatus === 'rejected') {
-            ActivityLogService::log($beritaAcara->id, 'rejected', 'Menolak berita acara: ' . ($note ?? ''));
+            $logMessage = $approveAction === 'penyelia_verified'
+                ? 'Menolak dan mengembalikan berita acara ke admin: ' . ($note ?? '')
+                : 'Menolak berita acara: ' . ($note ?? '');
+            ActivityLogService::log($beritaAcara->id, 'rejected', $logMessage);
         } else {
             ActivityLogService::log($beritaAcara->id, $approveAction, 'Menyetujui berita acara');
         }

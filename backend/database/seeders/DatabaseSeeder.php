@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
         );
         $superadminRole->permissions()->sync($allPermissions->pluck('id'));
 
-        // Admin — full access
+        // Admin
         $adminRole = Role::firstOrCreate(
             ['name' => 'admin'],
             [
@@ -37,30 +37,47 @@ class DatabaseSeeder extends Seeder
                 'requires_verification' => true,
             ]
         );
-        $adminRole->permissions()->sync($allPermissions->pluck('id'));
+        $adminRole->permissions()->sync(Permission::whereIn('name', [
+            'berita_acara_assign',
+            'berita_acara_create',
+            'berita_acara_riwayat_personal',
+            'berita_acara_riwayat_semua',
+            'berita_acara_verify',
+            'certificate_download',
+            'certificate_upload',
+            'certificate_view',
+            'dashboard',
+            'form_manage_berita_acara',
+            'form_manage_kelola_harga_instrumen',
+            'form_manage_perhitungan_biaya',
+            'payment_confirm',
+            'payment_riwayat_personal',
+            'payment_riwayat_semua',
+        ])->pluck('id'));
 
         // Analyst
         $analystRole = Role::firstOrCreate(
             ['name' => 'analyst'],
             [
-                'description' => 'Analis laboratorium untuk pengelolaan hasil pengujian dan rekap analisis',
+                'description' => 'Analis laboratorium untuk pengelolaan sampel dan rekap analisis',
                 'is_system' => false,
                 'requires_verification' => true,
             ]
         );
         $analystRole->permissions()->sync(Permission::whereIn('name', [
             'dashboard',
+            'form_manage_kelola_harga_instrumen',
+            'form_manage_perhitungan_biaya',
+            'form_manage_rekap_analis',
             'hasil_pengujian_rekap',
             'hasil_pengujian_riwayat_personal',
-            'certificate_view',
-            'certificate_download',
         ])->pluck('id'));
 
         // User
         $userRole = Role::firstOrCreate(
             ['name' => 'user'],
             [
-                'description' => 'Pengguna biasa untuk pengajuan pengujian hasil pengujian',
+                'description' => 'Pengguna biasa untuk pengajuan pengujian sampel',
                 'is_system' => false,
                 'requires_verification' => false,
             ]
@@ -88,22 +105,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $penyeliaRole->permissions()->sync(Permission::whereIn('name', [
-            'dashboard',
-            'berita_acara_verify',
             'berita_acara_assign',
-            'berita_acara_riwayat_semua',
             'berita_acara_riwayat_personal',
+            'berita_acara_riwayat_semua',
+            'berita_acara_verify',
+            'dashboard',
             'hasil_pengujian_rekap',
-            'hasil_pengujian_riwayat_semua',
             'hasil_pengujian_riwayat_personal',
-            'payment_confirm',
-            'payment_riwayat_semua',
-            'certificate_view',
-            'certificate_download',
-            'discount_verifikasi',
-            'discount_riwayat_semua',
-            'user_view',
-            'user_verify',
+            'hasil_pengujian_riwayat_semua',
         ])->pluck('id'));
 
         // Manager Teknis (Technical Manager)
@@ -116,23 +125,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $managerTeknisRole->permissions()->sync(Permission::whereIn('name', [
-            'dashboard',
-            'berita_acara_riwayat_semua',
             'berita_acara_riwayat_personal',
-            'hasil_pengujian_rekap',
-            'hasil_pengujian_riwayat_semua',
+            'berita_acara_riwayat_semua',
+            'dashboard',
             'hasil_pengujian_riwayat_personal',
+            'hasil_pengujian_riwayat_semua',
             'payment_confirm',
+            'payment_riwayat_personal',
             'payment_riwayat_semua',
-            'certificate_view',
-            'certificate_download',
-            'form_manage_berita_acara',
-            'form_manage_rekap_analis',
-            'form_manage_perhitungan_biaya',
-            'form_manage_kelola_harga_instrumen',
-            'user_view',
-            'discount_verifikasi',
-            'discount_riwayat_semua',
+            'payment_upload',
         ])->pluck('id'));
 
         // Akun test

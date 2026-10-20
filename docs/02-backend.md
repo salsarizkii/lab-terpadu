@@ -132,8 +132,12 @@ backend/
 | PUT | `api/admin/payments/{id}/confirm` | AdminPaymentController@confirm | Confirm payment |
 | GET | `api/admin/samples` | AdminSampleController@index | All samples |
 | PUT | `api/admin/samples/{id}/mark-taken` | AdminSampleController@markTaken | Mark sample taken |
+| POST | `api/admin/certificates/{beritaAcaraId}/upload` | CertificateController@upload | Upload sertifikat (permission `certificate_upload`; BA completed + pembayaran approved) |
+| DELETE | `api/admin/certificates/{beritaAcaraId}` | CertificateController@remove | Hapus sertifikat |
 | GET | `api/admin/users` | AdminUserController@index | All users |
 | PUT | `api/admin/users/{id}/verify` | AdminUserController@verify | Verify/revoke |
+| GET | `api/admin/export/database` | ExportController@database | Export seluruh data (Excel .xls multi-sheet: Pesanan, Pengguna, Pembayaran, Sampel, Aktivitas) — permission `berita_acara_riwayat_semua` + `user_view` |
+| GET | `api/admin/export/pesanan` | ExportController@pesanan | Export daftar pesanan (CSV, delimiter `;`, BOM UTF-8) — permission `berita_acara_riwayat_semua` |
 
 ### Penyelia Routes (permission: `berita_acara_verify`)
 
@@ -186,7 +190,7 @@ backend/
 | GET | `api/pdf-generate/{type}/{id}` | PdfTemplateController@generate | Download PDF data nyata |
 | GET | `api/docx-generate/{type}/{id}` | PdfTemplateController@generateDocx | Download .docx data nyata terisi (murni PHP) |
 
-Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
+Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`, `pengambilan_sisa_sampel` (Form Pengambilan Sisa Sampel/Bahan — data nyata diambil dari `BeritaAcara` + daftar sampelnya).
 
 **Kolom `pdf_templates`:** `show_kop`, `show_ttd`, `show_rincian` (boolean toggle), `catatan` (teks), `settings` (JSON identitas: `kop_nama_lab`, `kop_alamat`, `kop_email`, `kop_telepon`, `kepala_upt`, `nip_kepala_upt`, `nama_admin`, `nama_bendahara`).
 
@@ -226,6 +230,8 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 | PUT | `api/analyst/berita-acara/{id}/samples/{sampleId}` | AnalystController@updateSample | Update sample |
 | PUT | `api/analyst/berita-acara/{id}/samples/{sampleId}/ready` | AnalystController@markSampleReady | Mark ready |
 | PUT | `api/analyst/berita-acara/{id}/rekap-analis` | AnalystController@storeRekapAnalis | Simpan rekap → status otomatis `rekap_ready` |
+| POST | `api/analyst/berita-acara/{id}/upload-berkas` | AnalystController@uploadBerkas | Upload file berkas ulang (`berkas_ulang`, terpisah dari `upload_akses`) |
+| DELETE | `api/analyst/berita-acara/{id}/upload-berkas` | AnalystController@removeBerkas | Hapus file berkas ulang |
 
 ## Models & Relationships
 
@@ -247,7 +253,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`.
 - `hasMany(BeritaAcaraRevision)`
 - `hasMany(Pengujian)`
 - `hasMany(ActivityLog)` — ordered `latest('created_at')`
-- `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan, nomor_agenda, rekap_analis_data, rekap_analis_template_id, formula_id, custom_items, keterangan
+- `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan, nomor_agenda, rekap_analis_data, rekap_analis_template_id, formula_id, custom_items, keterangan, berkas_ulang
 - `status` enum: `draft | pending | revision | admin_verified | penyelia_verified | rekap_ready | completed | rejected`
 
 ### BeritaAcaraRevision

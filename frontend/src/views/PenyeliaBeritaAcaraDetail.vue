@@ -37,7 +37,7 @@ onMounted(async () => {
   }
 })
 
-async function handleVerify(data: { status: string }) {
+async function handleVerify(data: { status: string; sample_answer?: 'sudah' | 'belum' | null }) {
   if (!item.value) return
   saving.value = true
   try {
@@ -46,6 +46,9 @@ async function handleVerify(data: { status: string }) {
     })
     item.value = updated
     toast.success('Berita acara telah disetujui, siap dikerjakan analis')
+    if (data.sample_answer === 'belum') {
+      toast.warning('Jangan lupa update penyerahan sampel di sistem jika sampel sudah diterima.')
+    }
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   } finally {
@@ -79,7 +82,7 @@ async function handleReject(note: string) {
       note,
     })
     item.value = updated
-    toast.success('Berita acara ditolak')
+    toast.success('Berita acara ditolak dan dikembalikan ke admin untuk diperbaiki')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   } finally {

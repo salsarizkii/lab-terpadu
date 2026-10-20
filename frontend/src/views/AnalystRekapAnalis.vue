@@ -33,8 +33,8 @@ const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 const biaya = ref<string>('')
 const keterangan = ref('')
 
-const uploadAksesFile = ref<File | null>(null)
-const uploadingAkses = ref(false)
+const berkasFile = ref<File | null>(null)
+const uploadingBerkas = ref(false)
 
 const formulas = ref<Formula[]>([])
 
@@ -216,46 +216,46 @@ function formatPrice(val: number) {
   return new Intl.NumberFormat('id-ID').format(Math.round(val))
 }
 
-const uploadAksesPath = computed(() => item.value?.upload_akses || null)
-const uploadAksesUrl = computed(() => {
-  if (!uploadAksesPath.value) return null
+const berkasPath = computed(() => item.value?.berkas_ulang || null)
+const berkasUrl = computed<string | undefined>(() => {
+  if (!berkasPath.value) return undefined
   const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api\/?$/, '')
-  return `${base}/storage/${uploadAksesPath.value}`
+  return `${base}/storage/${berkasPath.value}`
 })
-const uploadAksesFileName = computed(() => uploadAksesPath.value?.split('/').pop() || '')
-const uploadAksesIsImage = computed(() => /\.(jpg|jpeg|png|gif|webp)$/i.test(uploadAksesFileName.value))
+const berkasFileName = computed(() => berkasPath.value?.split('/').pop() || '')
+const berkasIsImage = computed(() => /\.(jpg|jpeg|png|gif|webp)$/i.test(berkasFileName.value))
 const showPreviewModal = ref(false)
 
-function onAksesFileChange(e: Event) {
+function onBerkasFileChange(e: Event) {
   const input = e.target as HTMLInputElement
-  uploadAksesFile.value = input.files?.[0] || null
+  berkasFile.value = input.files?.[0] || null
 }
 
-async function handleUploadAkses() {
-  if (!uploadAksesFile.value || !item.value) return
-  uploadingAkses.value = true
+async function handleUploadBerkas() {
+  if (!berkasFile.value || !item.value) return
+  uploadingBerkas.value = true
   try {
-    const result = await analystApi.uploadAkses(item.value.id, uploadAksesFile.value)
+    const result = await analystApi.uploadBerkas(item.value.id, berkasFile.value)
     if (item.value) {
-      item.value = { ...item.value, upload_akses: result.upload_akses }
+      item.value = { ...item.value, berkas_ulang: result.berkas_ulang }
     }
-    uploadAksesFile.value = null
-    toast.success('File Upload Akses berhasil diupload')
+    berkasFile.value = null
+    toast.success('File Upload Berkas Ulang berhasil diupload')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal upload file')
   } finally {
-    uploadingAkses.value = false
+    uploadingBerkas.value = false
   }
 }
 
-async function handleRemoveAkses() {
+async function handleRemoveBerkas() {
   if (!item.value) return
   try {
-    await analystApi.removeAkses(item.value.id)
+    await analystApi.removeBerkas(item.value.id)
     if (item.value) {
-      item.value = { ...item.value, upload_akses: undefined }
+      item.value = { ...item.value, berkas_ulang: undefined }
     }
-    toast.success('File Upload Akses berhasil dihapus')
+    toast.success('File Upload Berkas Ulang berhasil dihapus')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal menghapus file')
   }
@@ -436,47 +436,47 @@ async function handleSubmit() {
               @update:values="handleValuesUpdate"
             />
 
-            <!-- Upload Akses Section -->
+            <!-- Upload Berkas Ulang Section -->
             <div class="akses-section">
-              <label class="akses-label">Upload Akses</label>
-              <p class="akses-desc">File akses yang diupload saat pembuatan berita acara.</p>
+              <label class="akses-label">Upload Berkas Ulang</label>
+              <p class="akses-desc">File berkas ulang untuk rekap analis (terpisah dari file upload akses berita acara).</p>
 
               <!-- Existing file -->
-              <div v-if="uploadAksesPath && !uploadAksesFile" class="akses-file-preview">
+              <div v-if="berkasPath && !berkasFile" class="akses-file-preview">
                 <div class="akses-file-info">
                   <FileText :size="18" class="akses-file-icon" />
-                  <span class="akses-file-name">{{ uploadAksesFileName }}</span>
+                  <span class="akses-file-name">{{ berkasFileName }}</span>
                 </div>
                 <div class="akses-file-actions">
                   <button class="akses-btn-icon" title="Preview" @click="showPreviewModal = true">
                     <Eye :size="14" />
                   </button>
-                  <a :href="uploadAksesUrl" :download="uploadAksesFileName" class="akses-btn-icon" title="Download">
+                  <a :href="berkasUrl" :download="berkasFileName" class="akses-btn-icon" title="Download">
                     <Download :size="14" />
                   </a>
                   <label class="akses-btn-replace">
                     <Upload :size="14" />
                     Ganti
-                    <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onAksesFileChange" />
+                    <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onBerkasFileChange" />
                   </label>
-                  <button class="akses-btn-remove" @click="handleRemoveAkses" title="Hapus file">
+                  <button class="akses-btn-remove" @click="handleRemoveBerkas" title="Hapus file">
                     <X :size="14" />
                   </button>
                 </div>
               </div>
 
               <!-- New file selected -->
-              <div v-else-if="uploadAksesFile" class="akses-file-selected">
+              <div v-else-if="berkasFile" class="akses-file-selected">
                 <div class="akses-file-info">
                   <FileText :size="18" class="akses-file-icon" />
-                  <span class="akses-file-name">{{ uploadAksesFile.name }}</span>
-                  <span class="akses-file-size">({{ (uploadAksesFile.size / 1024).toFixed(1) }} KB)</span>
+                  <span class="akses-file-name">{{ berkasFile.name }}</span>
+                  <span class="akses-file-size">({{ (berkasFile.size / 1024).toFixed(1) }} KB)</span>
                 </div>
                 <div class="akses-file-actions">
-                  <Button size="sm" :disabled="uploadingAkses" @click="handleUploadAkses">
-                    {{ uploadingAkses ? 'Mengupload...' : 'Upload' }}
+                  <Button size="sm" :disabled="uploadingBerkas" @click="handleUploadBerkas">
+                    {{ uploadingBerkas ? 'Mengupload...' : 'Upload' }}
                   </Button>
-                  <button class="akses-btn-cancel" @click="uploadAksesFile = null">Batal</button>
+                  <button class="akses-btn-cancel" @click="berkasFile = null">Batal</button>
                 </div>
               </div>
 
@@ -485,7 +485,7 @@ async function handleSubmit() {
                 <label class="akses-upload-trigger">
                   <Upload :size="16" />
                   <span>Pilih file untuk diupload</span>
-                  <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onAksesFileChange" />
+                  <input type="file" class="akses-input-hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onBerkasFileChange" />
                 </label>
                 <span class="akses-hint">PDF, JPG, PNG, DOC, DOCX (maks 10MB)</span>
               </div>
@@ -598,15 +598,15 @@ async function handleSubmit() {
   </AppLayout>
 
   <!-- Preview Modal -->
-  <Modal :show="showPreviewModal" :title="uploadAksesFileName" size="lg" @close="showPreviewModal = false">
+  <Modal :show="showPreviewModal" :title="berkasFileName" size="lg" @close="showPreviewModal = false">
     <div class="preview-container">
-      <img v-if="uploadAksesIsImage" :src="uploadAksesUrl" :alt="uploadAksesFileName" class="preview-image" />
+      <img v-if="berkasIsImage" :src="berkasUrl" :alt="berkasFileName" class="preview-image" />
       <div v-else class="preview-frame-wrap">
-        <iframe :src="uploadAksesUrl" class="preview-iframe" frameborder="0" />
+        <iframe :src="berkasUrl" class="preview-iframe" frameborder="0" />
       </div>
     </div>
     <template #footer>
-      <a :href="uploadAksesUrl" :download="uploadAksesFileName" class="preview-download-btn">
+      <a :href="berkasUrl" :download="berkasFileName" class="preview-download-btn">
         <Download :size="14" />
         Download
       </a>

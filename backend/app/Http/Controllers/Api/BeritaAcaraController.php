@@ -13,7 +13,7 @@ class BeritaAcaraController extends Controller
 {
     public function index()
     {
-        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate']);
+        $query = BeritaAcara::with(['user', 'revisions', 'payment', 'samples', 'certificate']);
 
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->where('user_id', auth()->id());
@@ -183,6 +183,29 @@ class BeritaAcaraController extends Controller
         }
 
         return null;
+    }
+
+    public function markSampleSubmitted($id)
+    {
+        $beritaAcara = BeritaAcara::where('user_id', auth()->id())
+            ->findOrFail($id);
+
+        if ($beritaAcara->status === 'completed') {
+            return response()->json([
+                'message' => 'Berita acara sudah selesai, tidak dapat mengubah status penyerahan sampel',
+            ], 422);
+        }
+
+        $beritaAcara->sample_submitted = true;
+        $beritaAcara->sample_submitted_at = now();
+        $beritaAcara->save();
+
+        ActivityLogService::log($beritaAcara->id, 'sample_submitted', 'Menandai sampel sudah diserahkan');
+
+        return response()->json([
+            'message' => 'Sampel berhasil ditandai sebagai sudah diserahkan',
+            'data' => $beritaAcara->fresh(),
+        ]);
     }
 
     public function sampleIndex()

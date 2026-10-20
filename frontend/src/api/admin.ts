@@ -176,5 +176,19 @@ export const adminApi = {
     const { data } = await api.get('/admin/system-activity-logs', { params })
     return data
   },
+
+  async exportDatabase(): Promise<Blob> {
+    const { data } = await api.get<Blob>('/admin/export/database', {
+      responseType: 'blob',
+    })
+    return data
+  },
+
+  async exportPesanan(): Promise<Blob> {
+    const { data } = await api.get<Blob>('/admin/export/pesanan', {
+      responseType: 'blob',
+    })
+    return data
+  },
 }
 

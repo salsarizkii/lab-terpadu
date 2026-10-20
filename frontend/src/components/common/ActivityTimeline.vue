@@ -72,6 +72,8 @@ const ACTION_META: Record<string, { label: string; type: 'success' | 'warning' |
   payment_confirmed: { label: 'Pembayaran Disetujui', type: 'success' },
   payment_rejected: { label: 'Pembayaran Ditolak', type: 'danger' },
   payment_uploaded: { label: 'Bukti Pembayaran Diunggah', type: 'info' },
+  berkas_ulang_updated: { label: 'Upload Berkas Ulang Diperbarui', type: 'info' },
+  berkas_ulang_removed: { label: 'Upload Berkas Ulang Dihapus', type: 'warning' },
   sample_taken: { label: 'Sampel Diambil', type: 'success' },
   sample_ready: { label: 'Hasil Siap Diambil', type: 'success' },
   sample_updated: { label: 'Hasil Pengujian Diperbarui', type: 'info' },
@@ -85,6 +87,8 @@ const ACTION_META: Record<string, { label: string; type: 'success' | 'warning' |
   discount_updated: { label: 'Diskon Diperbarui', type: 'info' },
   discount_removed: { label: 'Diskon Dihapus', type: 'warning' },
   certificate_downloaded: { label: 'Sertifikat Diunduh', type: 'info' },
+  certificate_uploaded: { label: 'Sertifikat Diunggah', type: 'success' },
+  certificate_removed: { label: 'Sertifikat Dihapus', type: 'warning' },
 }
 
 function isRevisionFixed(log: ActivityLog) {

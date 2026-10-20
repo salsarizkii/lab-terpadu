@@ -188,124 +188,134 @@ watch(() => props.beritaAcara, () => {
 
     <!-- Template fields (latest version) -->
     <table v-if="templateInputFields.length > 0" class="detail__table">
-      <template v-for="field in templateInputFields" :key="field.id">
-        <tr>
-          <td class="detail__td-label">{{ field.label }}</td>
-          <td class="detail__td-value">
-            <UploadAksesView v-if="beritaAcara.upload_akses && isUploadAksesField(field)" :path="beritaAcara.upload_akses" />
-            <template v-else>{{ formatFieldValue(resolveFieldValue(field)) }}</template>
-          </td>
-        </tr>
-        <tr v-if="beritaAcara.upload_akses && isSisaField(field) && !templateHasUploadAksesField">
-          <td class="detail__td-label">Upload Akses</td>
-          <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
-        </tr>
-      </template>
+      <tbody>
+        <template v-for="field in templateInputFields" :key="field.id">
+          <tr>
+            <td class="detail__td-label">{{ field.label }}</td>
+            <td class="detail__td-value">
+              <UploadAksesView v-if="beritaAcara.upload_akses && isUploadAksesField(field)" :path="beritaAcara.upload_akses" />
+              <template v-else>{{ formatFieldValue(resolveFieldValue(field)) }}</template>
+            </td>
+          </tr>
+          <tr v-if="beritaAcara.upload_akses && isSisaField(field) && !templateHasUploadAksesField">
+            <td class="detail__td-label">Upload Akses</td>
+            <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+          </tr>
+        </template>
+      </tbody>
     </table>
 
     <!-- Extra form_data not matched to template (old submissions) -->
     <table v-if="Object.keys(extraFormData).length > 0" class="detail__table">
-      <template v-for="(value, key) in extraFormData" :key="key">
-        <tr>
-          <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
-          <td class="detail__td-value">
-            <UploadAksesView v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('upload akses')" :path="beritaAcara.upload_akses" />
-            <template v-else>{{ formatFieldValue(value) }}</template>
-          </td>
-        </tr>
-        <tr v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('sisa') && !templateHasUploadAksesField && !extraHasUploadAksesKey">
+      <tbody>
+        <template v-for="(value, key) in extraFormData" :key="key">
+          <tr>
+            <td class="detail__td-label">{{ formatFieldKey(String(key)) }}</td>
+            <td class="detail__td-value">
+              <UploadAksesView v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('upload akses')" :path="beritaAcara.upload_akses" />
+              <template v-else>{{ formatFieldValue(value) }}</template>
+            </td>
+          </tr>
+          <tr v-if="beritaAcara.upload_akses && formatFieldKey(String(key)).toLowerCase().includes('sisa') && !templateHasUploadAksesField && !extraHasUploadAksesKey">
+            <td class="detail__td-label">Upload Akses</td>
+            <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+          </tr>
+        </template>
+        <tr v-if="beritaAcara.upload_akses && !templateHasUploadAksesField && !extraHasUploadAksesKey && !extraHasSisaKey">
           <td class="detail__td-label">Upload Akses</td>
           <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
         </tr>
-      </template>
-      <tr v-if="beritaAcara.upload_akses && !templateHasUploadAksesField && !extraHasUploadAksesKey && !extraHasSisaKey">
-        <td class="detail__td-label">Upload Akses</td>
-        <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
-      </tr>
+      </tbody>
     </table>
 
     <!-- Legacy hardcoded fields -->
     <table v-if="!hasFormData() && templateInputFields.length === 0" class="detail__table">
-      <template v-for="f in legacyFields" :key="f.key">
-        <tr>
-          <td class="detail__td-label">{{ f.label }}</td>
-          <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>
-        </tr>
-        <tr v-if="beritaAcara.upload_akses && f.key === 'sisa_sampel'">
-          <td class="detail__td-label">Upload Akses</td>
-          <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
-        </tr>
-      </template>
+      <tbody>
+        <template v-for="f in legacyFields" :key="f.key">
+          <tr>
+            <td class="detail__td-label">{{ f.label }}</td>
+            <td class="detail__td-value">{{ formatFieldValue((beritaAcara as any)[f.key]) }}</td>
+          </tr>
+          <tr v-if="beritaAcara.upload_akses && f.key === 'sisa_sampel'">
+            <td class="detail__td-label">Upload Akses</td>
+            <td class="detail__td-value"><UploadAksesView :path="beritaAcara.upload_akses" /></td>
+          </tr>
+        </template>
+      </tbody>
     </table>
 
     <div v-if="!props.hideSections?.includes('verifikasi') && (verifiedStatuses.includes(beritaAcara.status) || beritaAcara.status === 'revision' || beritaAcara.status === 'rejected')" class="detail__section">
       <div class="detail__section-title">Informasi Verifikasi</div>
       <table class="detail__table">
-        <tr>
-          <td class="detail__td-label">Hasil Verifikasi</td>
-          <td class="detail__td-value">
-            <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
-          </td>
-        </tr>
-        <tr v-if="beritaAcara.biaya">
-          <td class="detail__td-label">Biaya</td>
-          <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
-        </tr>
-        <tr v-if="beritaAcara.biaya">
-          <td class="detail__td-label">Diskon Diizinkan</td>
-          <td class="detail__td-value">{{ beritaAcara.diskon_diizinkan ? 'Ya' : 'Tidak' }}</td>
-        </tr>
-        <tr v-if="beritaAcara.revisions && beritaAcara.revisions.length">
-          <td class="detail__td-label">Catatan Revisi</td>
-          <td class="detail__td-value">
-            <div v-for="rev in beritaAcara.revisions" :key="rev.id" class="revision-note">
-              <div>{{ rev.note }}</div>
-              <div class="revision-date">{{ formatDateTime(rev.created_at) }}</div>
-            </div>
-          </td>
-        </tr>
+        <tbody>
+          <tr>
+            <td class="detail__td-label">Hasil Verifikasi</td>
+            <td class="detail__td-value">
+              <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
+            </td>
+          </tr>
+          <tr v-if="beritaAcara.biaya">
+            <td class="detail__td-label">Biaya</td>
+            <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
+          </tr>
+          <tr v-if="beritaAcara.biaya">
+            <td class="detail__td-label">Diskon Diizinkan</td>
+            <td class="detail__td-value">{{ beritaAcara.diskon_diizinkan ? 'Ya' : 'Tidak' }}</td>
+          </tr>
+          <tr v-if="beritaAcara.revisions && beritaAcara.revisions.length">
+            <td class="detail__td-label">Catatan Revisi</td>
+            <td class="detail__td-value">
+              <div v-for="rev in beritaAcara.revisions" :key="rev.id" class="revision-note">
+                <div>{{ rev.note }}</div>
+                <div class="revision-date">{{ formatDateTime(rev.created_at) }}</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
     <div v-if="!props.hideSections?.includes('pembayaran')" class="detail__section">
       <div class="detail__section-title">Informasi Pembayaran</div>
       <table class="detail__table">
-        <tr v-if="beritaAcara.biaya">
-          <td class="detail__td-label">Nominal Biaya</td>
-          <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
-        </tr>
-        <tr>
-          <td class="detail__td-label">Status Pembayaran</td>
-          <td class="detail__td-value">
-            <template v-if="beritaAcara.payment">
-              <Badge
-                :type="beritaAcara.payment.status === 'approved' ? 'success' : beritaAcara.payment.status === 'rejected' ? 'danger' : 'warning'"
-                :text="beritaAcara.payment.status === 'approved' ? 'Lunas' : beritaAcara.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'"
-              />
-            </template>
-            <span v-else>Belum dibayar</span>
-          </td>
-        </tr>
-        <tr v-if="beritaAcara.payment">
-          <td class="detail__td-label">Jumlah Dibayar</td>
-          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.amount).toLocaleString('id-ID') }}</td>
-        </tr>
-        <tr v-if="beritaAcara.payment?.discount_request">
-          <td class="detail__td-label">Diskon Diminta</td>
-          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_request).toLocaleString('id-ID') }}</td>
-        </tr>
-        <tr v-if="beritaAcara.payment?.discount_reason">
-          <td class="detail__td-label">Alasan Diskon</td>
-          <td class="detail__td-value">{{ beritaAcara.payment.discount_reason }}</td>
-        </tr>
-        <tr v-if="beritaAcara.payment?.discount_approved">
-          <td class="detail__td-label">Diskon Disetujui</td>
-          <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_approved).toLocaleString('id-ID') }}</td>
-        </tr>
-        <tr v-if="beritaAcara.payment?.payment_proof">
-          <td class="detail__td-label">Bukti Pembayaran</td>
-          <td class="detail__td-value">Sudah diupload</td>
-        </tr>
+        <tbody>
+          <tr v-if="beritaAcara.biaya">
+            <td class="detail__td-label">Nominal Biaya</td>
+            <td class="detail__td-value">Rp {{ Number(beritaAcara.biaya).toLocaleString('id-ID') }}</td>
+          </tr>
+          <tr>
+            <td class="detail__td-label">Status Pembayaran</td>
+            <td class="detail__td-value">
+              <template v-if="beritaAcara.payment">
+                <Badge
+                  :type="beritaAcara.payment.status === 'approved' ? 'success' : beritaAcara.payment.status === 'rejected' ? 'danger' : 'warning'"
+                  :text="beritaAcara.payment.status === 'approved' ? 'Lunas' : beritaAcara.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'"
+                />
+              </template>
+              <span v-else>Belum dibayar</span>
+            </td>
+          </tr>
+          <tr v-if="beritaAcara.payment">
+            <td class="detail__td-label">Jumlah Dibayar</td>
+            <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.amount).toLocaleString('id-ID') }}</td>
+          </tr>
+          <tr v-if="beritaAcara.payment?.discount_request">
+            <td class="detail__td-label">Diskon Diminta</td>
+            <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_request).toLocaleString('id-ID') }}</td>
+          </tr>
+          <tr v-if="beritaAcara.payment?.discount_reason">
+            <td class="detail__td-label">Alasan Diskon</td>
+            <td class="detail__td-value">{{ beritaAcara.payment.discount_reason }}</td>
+          </tr>
+          <tr v-if="beritaAcara.payment?.discount_approved">
+            <td class="detail__td-label">Diskon Disetujui</td>
+            <td class="detail__td-value">Rp {{ Number(beritaAcara.payment.discount_approved).toLocaleString('id-ID') }}</td>
+          </tr>
+          <tr v-if="beritaAcara.payment?.payment_proof">
+            <td class="detail__td-label">Bukti Pembayaran</td>
+            <td class="detail__td-value">Sudah diupload</td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>

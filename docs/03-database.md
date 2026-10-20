@@ -122,6 +122,7 @@ Composite primary key: (role_id, permission_id)
 | pengukuran_per_sampel | varchar(255) | yes | null | Measurement per sample |
 | sisa_sampel | varchar(255) | yes | null | Remaining sample |
 | upload_akses | varchar(255) | yes | null | Upload access file path |
+| berkas_ulang | varchar(255) | yes | null | Rekap uploaded file path (terpisah dari upload_akses) |
 | masa_berlaku_akses | varchar(255) | yes | null | Access validity period |
 | status_pelanggan | varchar(100) | yes | null | Customer status |
 | status_berkas | varchar(100) | yes | null | Document status |

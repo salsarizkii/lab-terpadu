@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BeritaAcaraController;
 use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\DiscountController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\InstrumentPriceController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\FormTemplateController;
@@ -35,13 +36,16 @@ Route::middleware('api.token')->group(function () {
     Route::get('/instrument-prices', [InstrumentPriceController::class, 'index']);
 
     Route::middleware('api.token:berita_acara_create,berita_acara_riwayat_personal,hasil_pengujian_rekap,hasil_pengujian_riwayat_personal,payment_upload,payment_discount,payment_riwayat_personal,certificate_view,certificate_download,discount_riwayat_personal')->prefix('/user')->group(function () {
-        Route::get('/samples', [BeritaAcaraController::class, 'sampleIndex']);
+        Route::get('/samples', [BeritaAcaraController::class, 'sampleIndex'])
+            ->middleware('permission:hasil_pengujian_riwayat_personal');
         // Berita Acara — permission: berita_acara_create
         Route::get('/berita-acara', [BeritaAcaraController::class, 'index']);
         Route::post('/berita-acara', [BeritaAcaraController::class, 'store'])
             ->middleware('permission:berita_acara_create');
         Route::get('/berita-acara/{id}', [BeritaAcaraController::class, 'show']);
         Route::put('/berita-acara/{id}', [BeritaAcaraController::class, 'update'])
+            ->middleware('permission:berita_acara_create');
+        Route::post('/berita-acara/{id}/sample-submission', [BeritaAcaraController::class, 'markSampleSubmitted'])
             ->middleware('permission:berita_acara_create');
         Route::delete('/berita-acara/{id}', [BeritaAcaraController::class, 'destroy'])
             ->middleware('permission:berita_acara_create');
@@ -61,7 +65,7 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:certificate_download');
     });
 
-    Route::middleware('api.token:berita_acara_riwayat_semua,berita_acara_verify,berita_acara_assign,hasil_pengujian_rekap,hasil_pengujian_riwayat_semua,payment_riwayat_semua,payment_confirm,user_view,user_verify,form_manage_berita_acara,form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen,discount_verifikasi,discount_riwayat_semua')->prefix('/admin')->group(function () {
+    Route::middleware('api.token:berita_acara_riwayat_semua,berita_acara_verify,berita_acara_assign,hasil_pengujian_rekap,hasil_pengujian_riwayat_semua,payment_riwayat_semua,payment_confirm,user_view,user_verify,form_manage_berita_acara,form_manage_rekap_analis,form_manage_perhitungan_biaya,form_manage_kelola_harga_instrumen,discount_verifikasi,discount_riwayat_semua,certificate_upload')->prefix('/admin')->group(function () {
         Route::get('/berita-acara', [AdminController::class, 'beritaAcaraIndex']);
         Route::get('/berita-acara/check-nomor-agenda', [AdminController::class, 'checkNomorAgenda'])
             ->middleware('permission:berita_acara_verify');
@@ -82,6 +86,12 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:payment_riwayat_semua');
         Route::put('/payments/{id}/confirm', [AdminController::class, 'confirmPayment'])
             ->middleware('permission:payment_confirm');
+
+        // Sertifikat — upload oleh superadmin/admin (permission: certificate_upload)
+        Route::post('/certificates/{beritaAcara}/upload', [CertificateController::class, 'upload'])
+            ->middleware('permission:certificate_upload');
+        Route::delete('/certificates/{beritaAcara}', [CertificateController::class, 'remove'])
+            ->middleware('permission:certificate_upload');
         Route::get('/samples', [AdminController::class, 'sampleIndex']);
         Route::put('/samples/{id}/mark-taken', [AdminController::class, 'markSampleTaken'])
             ->middleware('permission:hasil_pengujian_rekap');
@@ -122,7 +132,14 @@ Route::middleware('api.token')->group(function () {
             ->middleware('permission:user_verify');
 
         // System activity logs
-        Route::get('/system-activity-logs', [AdminController::class, 'systemActivityLogs']);
+        Route::get('/system-activity-logs', [AdminController::class, 'systemActivityLogs'])
+            ->middleware('permission:user_view');
+
+        // Export data (Excel .xls multi-sheet & CSV)
+        Route::get('/export/database', [ExportController::class, 'database'])
+            ->middleware('permission:berita_acara_riwayat_semua,user_view');
+        Route::get('/export/pesanan', [ExportController::class, 'pesanan'])
+            ->middleware('permission:berita_acara_riwayat_semua');
 
         Route::apiResource('/form-templates', FormTemplateController::class)
             ->middleware('permission:form_manage_berita_acara');
@@ -180,6 +197,12 @@ Route::middleware('api.token')->group(function () {
         Route::post('/berita-acara/{id}/upload-akses', [AnalystController::class, 'uploadAkses'])
             ->middleware('permission:hasil_pengujian_rekap');
         Route::delete('/berita-acara/{id}/upload-akses', [AnalystController::class, 'removeAkses'])
+            ->middleware('permission:hasil_pengujian_rekap');
+
+        // Upload Berkas Ulang file (terpisah dari upload_akses berita acara)
+        Route::post('/berita-acara/{id}/upload-berkas', [AnalystController::class, 'uploadBerkas'])
+            ->middleware('permission:hasil_pengujian_rekap');
+        Route::delete('/berita-acara/{id}/upload-berkas', [AnalystController::class, 'removeBerkas'])
             ->middleware('permission:hasil_pengujian_rekap');
 
         // Discount Request — permission: hasil_pengujian_rekap

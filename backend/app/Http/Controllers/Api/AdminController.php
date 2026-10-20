@@ -32,10 +32,14 @@ class AdminController extends Controller
 
     public function beritaAcaraShow($id)
     {
-        $beritaAcara = BeritaAcara::with(['user', 'analyst', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'activityLogs.user'])
-            ->findOrFail($id);
+        $query = BeritaAcara::with(['user', 'analyst', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']);
 
-        return response()->json($beritaAcara);
+        // RBAC: tanpa permission riwayat semua, hanya boleh lihat BA milik sendiri
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return response()->json($query->findOrFail($id));
     }
 
     public function updateStatus(Request $request, $id)
@@ -65,6 +69,10 @@ class AdminController extends Controller
 
         if ($request->filled('nomor_agenda')) {
             $data['nomor_agenda'] = $request->nomor_agenda;
+        }
+
+        if ($request->status === 'admin_verified') {
+            $data['rejection_reason'] = null;
         }
 
         if ($request->status === 'rejected') {

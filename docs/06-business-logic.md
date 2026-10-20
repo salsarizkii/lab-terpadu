@@ -32,7 +32,8 @@ Alur verifikasi bertingkat:
 | `penyelia_verified` | Penyelia | Penyelia approve, siap dikerjakan analis |
 | `rekap_ready` | Analyst (otomatis) | Rekap analis disimpan, menunggu verifikasi manager teknis |
 | `completed` | Manager Teknis | Rekap disetujui, kembali ke user (pembayaran) |
-| `rejected` | Admin/Penyelia/Manager | BA ditolak permanen |
+| `rejected` | Admin/Manager | BA ditolak permanen |
+| *(pending)* | Penyelia (reject) | Tolak dari penyelia → kembali ke antrian admin untuk direvisi |
 
 ### Transisi Status
 
@@ -41,13 +42,15 @@ draft → pending            (User submit)
 pending → admin_verified   (Admin approve, wajib nomor_agenda)
 pending → rejected         (Admin reject)
 pending → revision         (Admin minta revisi)
-admin_verified → penyelia_verified | revision | rejected   (Penyelia)
+admin_verified → penyelia_verified | revision | rejected   (Penyelia; rejected → dikembalikan ke pending/admin)
 penyelia_verified → rekap_ready   (Analis simpan rekap → otomatis)
 rekap_ready → completed | revision | rejected              (Manager Teknis)
 revision → pending         (User re-submit setelah revisi)
 ```
 
 > Revisi dari penyelia/manager mengembalikan BA ke `pending` — user perbaiki → alur diulang dari admin.
+> **Tolak (rejected) dari penyelia**: BA dikembalikan ke antrian admin (`pending`) dengan alasan penolakan tersimpan di `rejection_reason` — admin memperbaiki lalu verifikasi ulang. `rejection_reason` dibersihkan otomatis saat admin memverifikasi ulang.
+> **Tolak (rejected) dari admin/manager**: BA ditolak permanen.
 
 ### Validasi Transisi
 

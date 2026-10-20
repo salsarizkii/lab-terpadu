@@ -46,49 +46,49 @@ const routes = [
     path: '/user/berita-acara',
     name: 'UserBeritaAcaraList',
     component: () => import('../views/UserBeritaAcaraList.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'berita_acara_create', permissionOr: 'berita_acara_riwayat_personal' },
   },
   {
     path: '/user/berita-acara/create',
     name: 'UserBeritaAcaraCreate',
     component: () => import('../views/UserBeritaAcaraCreate.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'berita_acara_create' },
   },
   {
     path: '/user/berita-acara/:id',
     name: 'UserBeritaAcaraDetail',
     component: () => import('../views/UserBeritaAcaraDetail.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'berita_acara_create', permissionOr: 'berita_acara_riwayat_personal' },
   },
   {
     path: '/user/berita-acara/:id/edit',
     name: 'UserBeritaAcaraEdit',
     component: () => import('../views/UserBeritaAcaraEdit.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'berita_acara_create' },
   },
   {
     path: '/user/payments',
     name: 'UserPayment',
     component: () => import('../views/UserPayment.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'payment_upload', permissionOr: 'payment_discount,payment_riwayat_personal' },
   },
   {
     path: '/user/payments/:id',
     name: 'UserPaymentDetail',
     component: () => import('../views/UserPaymentDetail.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'payment_upload', permissionOr: 'payment_discount,payment_riwayat_personal' },
   },
   {
     path: '/user/samples',
     name: 'UserSamples',
     component: () => import('../views/UserSamples.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'hasil_pengujian_riwayat_personal' },
   },
   {
     path: '/user/certificates',
     name: 'UserCertificate',
     component: () => import('../views/UserCertificate.vue'),
-    meta: { auth: true },
+    meta: { auth: true, permission: 'certificate_view', permissionOr: 'certificate_download' },
   },
   {
     path: '/admin/dashboard',
@@ -124,7 +124,7 @@ const routes = [
     path: '/admin/roles',
     name: 'AdminRoles',
     component: () => import('../views/AdminRoles.vue'),
-    meta: { auth: true },
+    meta: { auth: true, superadminOnly: true },
   },
   {
     path: '/admin/users',
@@ -229,6 +229,11 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.meta.guest && auth.isAuthenticated) {
+    return next('/dashboard')
+  }
+
+  // Route khusus superadmin (mis. kelola role)
+  if (to.meta.superadminOnly && !auth.isSuperAdmin) {
     return next('/dashboard')
   }
 

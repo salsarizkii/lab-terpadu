@@ -20,98 +20,109 @@ Role-Based Access Control — granular permission management.
      └── Hybrid system: string column + pivot table
 ```
 
-## Permission List (22)
+## Permission List (26)
 
-### Group: berita_acara (5)
+Sumber: `database/seeders/PermissionsSeeder.php`.
 
-| Name | Display Name | Description |
-|---|---|---|
-| `ba_create` | Buat Berita Acara | Create new BA |
-| `ba_read` | Lihat Berita Acara | View BA list |
-| `ba_update` | Edit Berita Acara | Edit BA |
-| `ba_delete` | Hapus Berita Acara | Delete BA |
-| `ba_verify` | Verifikasi Berita Acara | Verify/reject BA (admin) |
+### Group: Umum (1)
 
-### Group: pembayaran (2)
+| Name | Display Name |
+|---|---|
+| `dashboard` | Dashboard |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `payment_read` | Lihat Pembayaran | View payment list |
-| `payment_confirm` | Konfirmasi Pembayaran | Confirm/reject payment |
+### Group: Berita Acara (5)
 
-### Group: sample (2)
+| Name | Display Name |
+|---|---|
+| `berita_acara_create` | Buat Berita Acara |
+| `berita_acara_verify` | Verifikasi Berita Acara |
+| `berita_acara_assign` | Menugaskan Analis |
+| `berita_acara_riwayat_personal` | Personal Riwayat Berita Acara |
+| `berita_acara_riwayat_semua` | Riwayat Seluruh Berita Acara |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `sample_read` | Lihat Hasil Pengujian | View samples |
-| `sample_update` | Update Hasil Pengujian | Update sample status/result |
+### Group: Pembayaran (5)
 
-### Group: sertifikat (2)
+| Name | Display Name |
+|---|---|
+| `payment_upload` | Upload Bukti Bayar |
+| `payment_discount` | Ajukan Diskon Pembayaran |
+| `payment_confirm` | Konfirmasi Pembayaran |
+| `payment_riwayat_personal` | Personal Riwayat Pembayaran |
+| `payment_riwayat_semua` | Riwayat Seluruh Pembayaran |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `certificate_read` | Lihat Sertifikat | View certificates |
-| `certificate_download` | Download Sertifikat | Download certificate |
+### Group: Hasil Pengujian (3)
 
-### Group: pengujian (3)
+| Name | Display Name |
+|---|---|
+| `hasil_pengujian_rekap` | Buat Rekap Analis |
+| `hasil_pengujian_riwayat_personal` | Personal Riwayat Rekap Analisis |
+| `hasil_pengujian_riwayat_semua` | Riwayat Seluruh Rekap Analisis |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `pengujian_read` | Lihat Pengujian | View test data |
-| `pengujian_create` | Buat Pengujian | Create test entry |
-| `pengujian_update` | Edit Pengujian | Update test data |
+### Group: Sertifikat (3)
 
-### Group: user (3)
+| Name | Display Name |
+|---|---|
+| `certificate_view` | Melihat Sertifikat |
+| `certificate_download` | Download Sertifikat |
+| `certificate_upload` | Upload Sertifikat |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `user_read` | Lihat User | View user list |
-| `user_verify` | Verifikasi User | Verify/revoke user |
-| `user_manage` | Kelola User | Full user management |
+### Group: Pengguna (2)
 
-### Group: role (2)
+| Name | Display Name |
+|---|---|
+| `user_view` | Melihat Pengguna |
+| `user_verify` | Verifikasi Pengguna |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `role_read` | Lihat Role | View roles |
-| `(superadmin only)` | Kelola Role | Create/edit/delete roles |
+### Group: Form (4)
 
-### Group: form_template (2)
+| Name | Display Name |
+|---|---|
+| `form_manage_berita_acara` | Kelola Form Berita Acara |
+| `form_manage_rekap_analis` | Kelola Form Rekap Analis |
+| `form_manage_perhitungan_biaya` | Kelola Form Perhitungan Biaya |
+| `form_manage_kelola_harga_instrumen` | Kelola Form Harga Instrumen |
 
-| Name | Display Name | Description |
-|---|---|---|
-| `form_read` | Lihat Form Template | View form templates |
-| `form_manage` | Kelola Form Template | Create/edit form templates |
+### Group: Diskon (3)
+
+| Name | Display Name |
+|---|---|
+| `discount_verifikasi` | Verifikasi Diskon |
+| `discount_riwayat_semua` | Riwayat Seluruh Diskon |
+| `discount_riwayat_personal` | Personal Riwayat Diskon |
+
+## Default Role → Permission Mapping
+
+Sumber: `database/seeders/DatabaseSeeder.php` (per-install baru via `migrate:fresh --seed`).
+
+| Role | Permissions |
+|---|---|
+| `superadmin` | Semua 26 permission (plus bypass middleware) |
+| `admin` | `berita_acara_assign`, `berita_acara_create`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `berita_acara_verify`, `certificate_download`, `certificate_upload`, `certificate_view`, `dashboard`, `form_manage_berita_acara`, `form_manage_kelola_harga_instrumen`, `form_manage_perhitungan_biaya`, `payment_confirm`, `payment_riwayat_personal`, `payment_riwayat_semua` |
+| `penyelia` | `berita_acara_assign`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `berita_acara_verify`, `dashboard`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua` |
+| `manager_teknis` | `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `dashboard`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua`, `payment_confirm`, `payment_riwayat_personal`, `payment_riwayat_semua`, `payment_upload` |
+| `analyst` | `dashboard`, `form_manage_kelola_harga_instrumen`, `form_manage_perhitungan_biaya`, `form_manage_rekap_analis`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal` |
+| `user` | `dashboard`, `berita_acara_create`, `berita_acara_riwayat_personal`, `hasil_pengujian_riwayat_personal`, `payment_upload`, `payment_discount`, `payment_riwayat_personal`, `discount_riwayat_personal`, `certificate_view`, `certificate_download` |
 
 ## Role Management
 
 ### Default Roles
 
-| Role | is_system | Users | Permissions |
+| Role | is_system | Users | Keterangan |
 |---|---|---|---|
 | `superadmin` | true | 1 (seeded) | All (bypass) |
-| `admin` | false | 0 (created via UI) | Managed by superadmin |
-| `analyst` | false | 0 (created via UI) | Managed by superadmin |
-| `user` | false | 0 (created via UI) | Managed by superadmin |
+| `admin` | false | seeded | 15 permission (lihat tabel di atas) |
+| `analyst` | false | seeded | 6 permission |
+| `user` | false | seeded | 10 permission |
+| `penyelia` | false | seeded | 8 permission |
+| `manager_teknis` | false | seeded | 9 permission |
 
 ### Role CRUD Rules
 
-- Only superadmin can manage roles (`/admin/roles`)
-- System roles (`is_system = true`) cannot be deleted
-- System roles cannot have `is_system` toggled off
-- Role name is unique
-- Permissions are synced via `role_permission` pivot
-
-### Create Role Flow
-
-```
-1. Superadmin klik "Tambah Role"
-2. Fill: name, description
-3. Check permission checkboxes (grouped by category)
-4. POST /admin/roles { name, description, permissions: [...] }
-5. Backend: Role::create() + $role->permissions()->sync($permissionIds)
-6. Return role with permissions
-```
+- Hanya superadmin yang bisa mengelola role (`/admin/roles`, `meta.superadminOnly`)
+- System roles (`is_system = true`) tidak bisa dihapus
+- System roles tidak dapat diubah namanya
+- Nama role unik
+- Permissions di-sync via pivot `role_permission`
 
 ## Superadmin Bypass
 
@@ -123,41 +134,33 @@ if ($user->role === 'superadmin') {
 ```
 
 Superadmin:
-- Can access ALL routes (admin, analyst, user)
-- Can manage roles and permissions
-- Cannot be deleted or have role changed
-- Does NOT use permission system (has implicit full access)
+- Bisa akses SEMUA routes (admin, analyst, user)
+- Bisa mengelola role dan permission
+- Tidak bisa dihapus atau diubah rolenya
+- Punya akses penuh implisit (tidak bergantung pada permission role)
+
+## Permission Dependencies (AdminRoles.vue)
+
+Permission dependen nonaktif (disabled) sampai prerequisite-nya dicentang:
+
+| Permission | Prerequisite (minimal salah satu untuk OR) |
+|---|---|
+| `berita_acara_verify` | `berita_acara_riwayat_semua` |
+| `berita_acara_assign` | `berita_acara_verify` |
+| `hasil_pengujian_rekap` | `hasil_pengujian_riwayat_personal` **OR** `hasil_pengujian_riwayat_semua` |
+| `payment_upload` | `payment_riwayat_personal` |
+| `payment_discount` | `payment_upload` |
+| `payment_confirm` | `payment_riwayat_semua` |
+| `user_verify` | `user_view` |
+| `certificate_download` | `certificate_view` |
+| `discount_verifikasi` | `discount_riwayat_semua` |
+
+Saat prerequisite di-uncheck, permission dependennya otomatis ikut ter-uncheck.
 
 ## Permission Seeding
 
 ```php
 // PermissionsSeeder.php
-// 22 permissions across 8 groups
-// Created in migrate:fresh --seed
+// 26 permissions, dibuat via firstOrCreate (idempotent)
+// DatabaseSeeder.php sync permission ke 6 role default
 ```
-
-## Frontend Role Guard
-
-```typescript
-// router/index.ts
-meta: {
-  auth: true,
-  role: ['admin', 'superadmin']  // Only these roles can access
-}
-
-// In beforeEach guard:
-if (isSuperAdmin) {
-  // Superadmin bypass: can access admin routes
-}
-```
-
-## Permission UI (AdminRoles.vue)
-
-### Features
-
-1. **Role List** — Table with name, description, is_system, users_count
-2. **Role Detail** — Click to expand/edit
-3. **Permission Checkboxes** — Grouped by category (8 groups)
-4. **Inline Editing** — Edit role name/description
-5. **Delete** — Disabled for system roles
-6. **Users Count** — Shows how many users have this role

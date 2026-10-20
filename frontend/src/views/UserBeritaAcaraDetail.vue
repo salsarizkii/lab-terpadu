@@ -58,6 +58,47 @@ const hasClickedPerbaiki = ref(false)
 const isRevision = computed(() => item.value?.status === 'revision')
 const showRevisionDetail = ref(false)
 const selectedRevision = ref<any>(null)
+const showSampleConfirm = ref(false)
+const sampleSubmitting = ref(false)
+const sampleAnswer = ref<'sudah' | 'belum' | null>(null)
+
+function formatSampleDate(iso?: string | null): string {
+  if (!iso) return '-'
+  return new Date(iso).toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function openSampleConfirm() {
+  sampleAnswer.value = null
+  showSampleConfirm.value = true
+}
+
+async function confirmSampleSubmitted() {
+  if (!item.value) return
+  if (sampleAnswer.value === 'belum') {
+    showSampleConfirm.value = false
+    sampleAnswer.value = null
+    toast.warning('Jangan lupa update di sistem jika sudah menyerahkan sampel.')
+    return
+  }
+  sampleSubmitting.value = true
+  try {
+    item.value = await beritaAcaraApi.markSampleSubmitted(item.value.id)
+    const date = new Date(item.value.sample_submitted_at || '')
+    toast.success(`Sampel sudah diserahkan pada ${date.toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`)
+    showSampleConfirm.value = false
+    sampleAnswer.value = null
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal memperbarui status penyerahan sampel')
+  } finally {
+    sampleSubmitting.value = false
+  }
+}
 
 function getLabelForKey(key: string): string {
   const field = templateFields.value.find(f => `field_${f.id}` === key || `field_${templateFields.value.indexOf(f)}` === key)
@@ -219,50 +260,71 @@ function getRevisionDiff(rev: any) {
 
         <Card title="Detail Berita Acara">
           <table v-if="item.form_data && Object.keys(item.form_data).length" class="detail-table">
-            <template v-for="(value, key) in item.form_data" :key="key">
-              <tr>
-                <td class="label">{{ getLabelForKey(String(key)) }}</td>
-                <td>
-                  <UploadAksesView v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('upload akses')" :path="item.upload_akses" />
-                  <template v-else>{{ formatFieldValue(value) }}</template>
-                </td>
-              </tr>
-              <tr v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('sisa') && !formDataHasUploadAksesKey">
+            <tbody>
+              <template v-for="(value, key) in item.form_data" :key="key">
+                <tr>
+                  <td class="label">{{ getLabelForKey(String(key)) }}</td>
+                  <td>
+                    <UploadAksesView v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('upload akses')" :path="item.upload_akses" />
+                    <template v-else>{{ formatFieldValue(value) }}</template>
+                  </td>
+                </tr>
+                <tr v-if="item.upload_akses && getLabelForKey(String(key)).toLowerCase().includes('sisa') && !formDataHasUploadAksesKey">
+                  <td class="label">Upload Akses</td>
+                  <td><UploadAksesView :path="item.upload_akses" /></td>
+                </tr>
+              </template>
+              <tr v-if="item.upload_akses && !formDataHasSisaKey && !formDataHasUploadAksesKey">
                 <td class="label">Upload Akses</td>
                 <td><UploadAksesView :path="item.upload_akses" /></td>
               </tr>
-            </template>
-            <tr v-if="item.upload_akses && !formDataHasSisaKey && !formDataHasUploadAksesKey">
-              <td class="label">Upload Akses</td>
-              <td><UploadAksesView :path="item.upload_akses" /></td>
-            </tr>
+            </tbody>
           </table>
           <table v-else class="detail-table">
-            <tr><td class="label">Nama Pemohon</td><td>{{ item.nama_pemohon || '-' }}</td></tr>
-            <tr><td class="label">NIM</td><td>{{ item.nim || '-' }}</td></tr>
-            <tr><td class="label">Prodi/Fakultas/Instansi</td><td>{{ item.prodi_fakultas_instansi || '-' }}</td></tr>
-            <tr><td class="label">Dosen Pembimbing</td><td>{{ item.dosen_pembimbing || '-' }}</td></tr>
-            <tr><td class="label">Telp/HP</td><td>{{ item.telp_hp || '-' }}</td></tr>
-            <tr><td class="label">Email</td><td>{{ item.email || '-' }}</td></tr>
-            <tr><td class="label">Alamat</td><td>{{ item.alamat || '-' }}</td></tr>
-            <tr><td class="label">Judul Penelitian</td><td>{{ item.judul_penelitian || '-' }}</td></tr>
-            <tr><td class="label">Akses Lab</td><td>{{ item.akses_lab || '-' }}</td></tr>
-            <tr><td class="label">Bahan Contoh Uji</td><td>{{ item.bahan_contoh_uji || '-' }}</td></tr>
-            <tr><td class="label">Kemasan/Packing</td><td>{{ item.kemasan_packing || '-' }}</td></tr>
-            <tr><td class="label">Permintaan Analisa</td><td>{{ item.permintaan_analisa || '-' }}</td></tr>
-            <tr><td class="label">Jumlah Hasil Pengujian</td><td>{{ item.jumlah_sampel || '-' }}</td></tr>
-            <tr><td class="label">Kode/Nama Hasil Pengujian</td><td>{{ item.kode_nama_sampel || '-' }}</td></tr>
-            <tr><td class="label">Keterangan Hasil Pengujian</td><td>{{ item.keterangan_sampel || '-' }}</td></tr>
-            <tr><td class="label">Keterangan Tambahan</td><td>{{ item.keterangan_tambahan || '-' }}</td></tr>
-            <tr><td class="label">Pengukuran/Hasil Pengujian</td><td>{{ item.pengukuran_per_sampel || '-' }}</td></tr>
-            <tr><td class="label">Sisa Hasil Pengujian</td><td>{{ item.sisa_sampel || '-' }}</td></tr>
-            <tr v-if="item.upload_akses">
-              <td class="label">Upload Akses</td>
-              <td><UploadAksesView :path="item.upload_akses" /></td>
-            </tr>
-            <tr><td class="label">Masa Berlaku Akses</td><td>{{ item.masa_berlaku_akses || '-' }}</td></tr>
+            <tbody>
+              <tr><td class="label">Nama Pemohon</td><td>{{ item.nama_pemohon || '-' }}</td></tr>
+              <tr><td class="label">NIM</td><td>{{ item.nim || '-' }}</td></tr>
+              <tr><td class="label">Prodi/Fakultas/Instansi</td><td>{{ item.prodi_fakultas_instansi || '-' }}</td></tr>
+              <tr><td class="label">Dosen Pembimbing</td><td>{{ item.dosen_pembimbing || '-' }}</td></tr>
+              <tr><td class="label">Telp/HP</td><td>{{ item.telp_hp || '-' }}</td></tr>
+              <tr><td class="label">Email</td><td>{{ item.email || '-' }}</td></tr>
+              <tr><td class="label">Alamat</td><td>{{ item.alamat || '-' }}</td></tr>
+              <tr><td class="label">Judul Penelitian</td><td>{{ item.judul_penelitian || '-' }}</td></tr>
+              <tr><td class="label">Akses Lab</td><td>{{ item.akses_lab || '-' }}</td></tr>
+              <tr><td class="label">Bahan Contoh Uji</td><td>{{ item.bahan_contoh_uji || '-' }}</td></tr>
+              <tr><td class="label">Kemasan/Packing</td><td>{{ item.kemasan_packing || '-' }}</td></tr>
+              <tr><td class="label">Permintaan Analisa</td><td>{{ item.permintaan_analisa || '-' }}</td></tr>
+              <tr><td class="label">Jumlah Hasil Pengujian</td><td>{{ item.jumlah_sampel || '-' }}</td></tr>
+              <tr><td class="label">Kode/Nama Hasil Pengujian</td><td>{{ item.kode_nama_sampel || '-' }}</td></tr>
+              <tr><td class="label">Keterangan Hasil Pengujian</td><td>{{ item.keterangan_sampel || '-' }}</td></tr>
+              <tr><td class="label">Keterangan Tambahan</td><td>{{ item.keterangan_tambahan || '-' }}</td></tr>
+              <tr><td class="label">Pengukuran/Hasil Pengujian</td><td>{{ item.pengukuran_per_sampel || '-' }}</td></tr>
+              <tr><td class="label">Sisa Hasil Pengujian</td><td>{{ item.sisa_sampel || '-' }}</td></tr>
+              <tr v-if="item.upload_akses">
+                <td class="label">Upload Akses</td>
+                <td><UploadAksesView :path="item.upload_akses" /></td>
+              </tr>
+              <tr><td class="label">Masa Berlaku Akses</td><td>{{ item.masa_berlaku_akses || '-' }}</td></tr>
+            </tbody>
           </table>
         </Card>
+
+        <div class="section">
+          <Card title="Penyerahan Sampel">
+            <div v-if="item.sample_submitted" class="sample-status sample-status--done">
+              <div class="sample-status__title">Sampel sudah diserahkan pada {{ formatSampleDate(item.sample_submitted_at) }}</div>
+            </div>
+            <div v-else>
+              <div class="sample-status sample-status--pending">
+                <div class="sample-status__title">Sampel belum diserahkan</div>
+                <p class="sample-status__desc">Jangan lupa update di sistem jika sudah menyerahkan sampel.</p>
+              </div>
+              <div v-if="!isCompleted" class="action-group">
+                <Button @click="openSampleConfirm">Update Penyerahan Sampel</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
 
         <div class="section">
           <Card title="Riwayat Aktivitas">
@@ -292,13 +354,15 @@ function getRevisionDiff(rev: any) {
             <div v-if="!item.payment" class="empty-text">Belum ada pembayaran</div>
             <template v-else>
               <table class="detail-table">
-                <tr><td class="label">Jumlah</td><td>Rp {{ Number(item.payment.amount).toLocaleString('id-ID') }}</td></tr>
-                <tr v-if="item.payment.discount_request"><td class="label">Diskon Diminta</td><td>Rp {{ Number(item.payment.discount_request).toLocaleString('id-ID') }}</td></tr>
-                <tr v-if="item.payment.discount_reason"><td class="label">Alasan Diskon</td><td>{{ item.payment.discount_reason }}</td></tr>
-                <tr v-if="item.payment.discount_status"><td class="label">Status Diskon</td><td><Badge :type="(item.payment as any).discount_status === 'approved' ? 'success' : (item.payment as any).discount_status === 'rejected' ? 'danger' : 'warning'" :text="(item.payment as any).discount_status === 'approved' ? 'Disetujui' : (item.payment as any).discount_status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td></tr>
-                <tr v-if="item.payment.discount_approved"><td class="label">Diskon Disetujui</td><td>Rp {{ Number(item.payment.discount_approved).toLocaleString('id-ID') }}</td></tr>
-                <tr v-if="item.payment.payment_proof"><td class="label">Bukti Pembayaran</td><td>Sudah diupload</td></tr>
-                <tr><td class="label">Status</td><td><Badge :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'" :text="item.payment.status === 'approved' ? 'Lunas' : item.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td></tr>
+                <tbody>
+                  <tr><td class="label">Jumlah</td><td>Rp {{ Number(item.payment.amount).toLocaleString('id-ID') }}</td></tr>
+                  <tr v-if="item.payment.discount_request"><td class="label">Diskon Diminta</td><td>Rp {{ Number(item.payment.discount_request).toLocaleString('id-ID') }}</td></tr>
+                  <tr v-if="item.payment.discount_reason"><td class="label">Alasan Diskon</td><td>{{ item.payment.discount_reason }}</td></tr>
+                  <tr v-if="item.payment.discount_status"><td class="label">Status Diskon</td><td><Badge :type="(item.payment as any).discount_status === 'approved' ? 'success' : (item.payment as any).discount_status === 'rejected' ? 'danger' : 'warning'" :text="(item.payment as any).discount_status === 'approved' ? 'Disetujui' : (item.payment as any).discount_status === 'rejected' ? 'Ditolak' : 'Menunggu'" /></td></tr>
+                  <tr v-if="item.payment.discount_approved"><td class="label">Diskon Disetujui</td><td>Rp {{ Number(item.payment.discount_approved).toLocaleString('id-ID') }}</td></tr>
+                  <tr v-if="item.payment.payment_proof"><td class="label">Bukti Pembayaran</td><td>Sudah diupload</td></tr>
+                  <tr><td class="label">Status</td><td><Badge :type="item.payment.status === 'approved' ? 'success' : item.payment.status === 'rejected' ? 'danger' : 'warning'" :text="item.payment.status === 'approved' ? 'Lunas' : item.payment.status === 'rejected' ? 'Ditolak' : 'Diajukan'" /></td></tr>
+                </tbody>
               </table>
             </template>
             <div class="action-group">
@@ -322,6 +386,30 @@ function getRevisionDiff(rev: any) {
             <CertificateDownload :certificate-id="item.certificate!.id" @download="handleDownload" />
           </Card>
         </div>
+
+        <Modal :show="showSampleConfirm" title="Konfirmasi Submit" size="sm" :closable="false">
+          <p class="sample-confirm-question">Apakah Anda yakin ingin menandai sampel sudah diserahkan?</p>
+          <div class="sample-question">
+            <p class="sample-question__label">
+              Apakah Anda sudah menyerahkan sampel?
+              <span class="sample-question__optional">(opsional)</span>
+            </p>
+            <div class="sample-question__options">
+              <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'sudah' }">
+                <input type="radio" value="sudah" v-model="sampleAnswer" />
+                <span>Sudah</span>
+              </label>
+              <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'belum' }">
+                <input type="radio" value="belum" v-model="sampleAnswer" />
+                <span>Belum</span>
+              </label>
+            </div>
+          </div>
+          <template #footer>
+            <Button variant="outline" @click="showSampleConfirm = false">Batal</Button>
+            <Button variant="success" :loading="sampleSubmitting" @click="confirmSampleSubmitted">Ya, Submit</Button>
+          </template>
+        </Modal>
 
         <Modal :show="showDiscountModal" title="Ajukan Diskon" @close="showDiscountModal = false">
           <DiscountRequest v-if="item.payment" :payment="item.payment" @submit="handleDiscount" />
@@ -455,6 +543,83 @@ function getRevisionDiff(rev: any) {
   border-bottom: 1px solid #f1f5f9;
 }
 .sample-name { font-weight: 500; }
+.sample-status {
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.sample-status--done {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.sample-status--done .sample-status__title {
+  color: #15803d;
+}
+.sample-status--pending {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  margin-bottom: 16px;
+}
+.sample-status__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+.sample-status__desc {
+  font-size: 13px;
+  color: #a16207;
+  margin: 4px 0 0;
+}
+.sample-confirm-question {
+  font-size: 15px;
+  color: var(--color-text);
+  margin: 0;
+}
+.sample-question {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.sample-question__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+.sample-question__optional {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.sample-question__options {
+  display: flex;
+  gap: 10px;
+}
+.radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.radio-option input {
+  accent-color: var(--color-accent);
+}
+.radio-option--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
 .action-group {
   display: flex;
   gap: 12px;

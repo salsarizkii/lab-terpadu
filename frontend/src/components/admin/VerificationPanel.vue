@@ -5,16 +5,19 @@ import Modal from '../common/Modal.vue'
 import BeritaAcaraVerification from './BeritaAcaraVerification.vue'
 import type { BeritaAcara } from '../../types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   beritaAcara: BeritaAcara
   targetStatus: string
   approveLabel?: string
   showRevision?: boolean
   showReject?: boolean
-}>()
+}>(), {
+  showRevision: true,
+  showReject: true,
+})
 
 const emit = defineEmits<{
-  verify: [data: { status: string }]
+  verify: [data: { status: string; sample_answer?: 'sudah' | 'belum' | null }]
   revision: [note: string]
   reject: [note: string]
 }>()
@@ -25,20 +28,57 @@ const showRejectModal = ref(false)
 const revisionNote = ref('')
 const rejectNote = ref('')
 const saving = ref(false)
+const showConfirmVerify = ref(false)
+const pendingVerify = ref<{ status: string } | null>(null)
+const sampleAnswer = ref<'sudah' | 'belum' | null>(null)
+
+const isForwardToAnalis = computed(() => props.targetStatus === 'penyelia_verified')
 
 const canAct = computed(() => {
   const s = props.beritaAcara.status
   if (s === props.targetStatus) return false
-  return ['pending', 'admin_verified', 'penyelia_verified', 'rekap_ready', 'revision'].includes(s)
+  // Hanya status yang benar-benar menunggu aksi verifikator ini
+  return props.targetStatus === 'penyelia_verified'
+    ? s === 'admin_verified'
+    : s === 'rekap_ready'
 })
 
+const rejectDescription = computed(() =>
+  props.targetStatus === 'penyelia_verified'
+    ? 'Berita acara akan dikembalikan ke admin untuk diperbaiki. Tuliskan alasan penolakan.'
+    : 'Berita acara akan ditolak permanen. Tuliskan alasan penolakan.'
+)
+
 function onVerify(data: { status: string }) {
+  saving.value = false
+  showVerify.value = false
+  if (isForwardToAnalis.value) {
+    pendingVerify.value = data
+    sampleAnswer.value = null
+    showConfirmVerify.value = true
+    return
+  }
   saving.value = true
   try {
     emit('verify', data)
   } finally {
     saving.value = false
-    showVerify.value = false
+  }
+}
+
+function confirmVerify() {
+  if (!pendingVerify.value) return
+  showConfirmVerify.value = false
+  saving.value = true
+  try {
+    emit('verify', {
+      ...pendingVerify.value,
+      sample_answer: sampleAnswer.value,
+    })
+  } finally {
+    saving.value = false
+    pendingVerify.value = null
+    sampleAnswer.value = null
   }
 }
 
@@ -110,6 +150,31 @@ function submitReject() {
     />
   </Modal>
 
+  <!-- Konfirmasi Kirim ke Analis Modal -->
+  <Modal v-if="isForwardToAnalis" :show="showConfirmVerify" title="Konfirmasi Setujui & Kirim ke Analis" size="sm" :closable="false">
+    <p class="confirm-question">Apakah Anda yakin ingin menyetujui dan meneruskan berita acara ini ke analis?</p>
+    <div class="sample-question">
+      <p class="sample-question__label">
+        Apakah sampel sudah diterima lab?
+        <span class="sample-question__optional">(opsional)</span>
+      </p>
+      <div class="sample-question__options">
+        <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'sudah' }">
+          <input type="radio" value="sudah" v-model="sampleAnswer" />
+          <span>Sudah</span>
+        </label>
+        <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'belum' }">
+          <input type="radio" value="belum" v-model="sampleAnswer" />
+          <span>Belum</span>
+        </label>
+      </div>
+    </div>
+    <template #footer>
+      <Button variant="outline" @click="showConfirmVerify = false">Batal</Button>
+      <Button variant="success" @click="confirmVerify">Ya, Setujui</Button>
+    </template>
+  </Modal>
+
   <!-- Revision Modal -->
   <Modal :show="showRevisionModal" title="Perlu Perbaikan" size="sm" @close="showRevisionModal = false">
     <div class="revision-form">
@@ -132,7 +197,7 @@ function submitReject() {
   <!-- Reject Modal -->
   <Modal :show="showRejectModal" title="Tolak Berita Acara" size="sm" @close="showRejectModal = false">
     <div class="revision-form">
-      <p class="revision-desc">Berita acara akan ditolak permanen. Tuliskan alasan penolakan.</p>
+      <p class="revision-desc">{{ rejectDescription }}</p>
       <textarea
         v-model="rejectNote"
         class="revision-textarea"
@@ -172,4 +237,55 @@ function submitReject() {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 .revision-textarea::placeholder { color: #94a3b8; }
+
+.confirm-question {
+  font-size: 15px;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+.sample-question {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.sample-question__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+.sample-question__optional {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.sample-question__options {
+  display: flex;
+  gap: 10px;
+}
+.radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.radio-option input {
+  accent-color: var(--color-accent);
+}
+.radio-option--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
 </style>

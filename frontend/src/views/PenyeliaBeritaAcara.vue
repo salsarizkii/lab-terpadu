@@ -57,7 +57,7 @@ function getJudul(item: BeritaAcara) {
 
       <Card>
         <div class="toolbar">
-          <span class="filter-count">{{ pendingCount }} menunggu verifikasi · {{ approvedCount }} disetujui</span>
+          <span class="filter-count">{{ pendingCount }} menunggu verifikasi · {{ approvedCount }} diverifikasi</span>
         </div>
 
         <SkeletonTable v-if="loading" :cols="5" :rows="5" />

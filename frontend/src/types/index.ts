@@ -67,6 +67,9 @@ export interface BeritaAcara {
   pengukuran_per_sampel?: string
   sisa_sampel?: string
   upload_akses?: string
+  berkas_ulang?: string
+  sample_submitted?: boolean
+  sample_submitted_at?: string | null
   masa_berlaku_akses?: string
   status_pelanggan?: string
   status_berkas?: string
@@ -211,7 +214,7 @@ export interface PdfTemplateSettings {
 
 export interface PdfTemplate {
   id: number
-  type: 'berita_acara' | 'rekap_analis' | 'tagihan' | 'sertifikat'
+  type: 'berita_acara' | 'rekap_analis' | 'tagihan' | 'sertifikat' | 'pengambilan_sisa_sampel' | 'lembar_kendali_sampel'
   name: string
   html_content: string
   docx_path?: string | null

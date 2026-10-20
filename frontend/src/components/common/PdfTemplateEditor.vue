@@ -26,9 +26,10 @@ const copiedKey = ref<string | null>(null)
 
 const docTypes = [
   { type: 'berita_acara', label: 'Berita Acara', desc: 'Form pengajuan & data pemohon', color: 'blue' },
-  { type: 'rekap_analis', label: 'Rekap Analisis', desc: 'Hasil pengujian & lembar analis', color: 'green' },
   { type: 'tagihan', label: 'Tagihan Pembayaran', desc: 'Nota, subtotal & rincian biaya', color: 'orange' },
   { type: 'sertifikat', label: 'Sertifikat (LHU)', desc: 'Laporan Hasil Uji (TTD basah)', color: 'purple' },
+  { type: 'pengambilan_sisa_sampel', label: 'Pengambilan Sisa Sampel', desc: 'Form serah terima sisa sampel/bahan hasil uji', color: 'rose' },
+  { type: 'lembar_kendali_sampel', label: 'Lembar Kendali Sampel', desc: 'Lembar kendali & disposisi analis', color: 'green' },
 ]
 
 const tabs = [

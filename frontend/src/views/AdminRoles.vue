@@ -37,24 +37,26 @@ const groupedPermissions = computed(() => {
   return groups
 })
 
-const permissionDependencies: Record<string, string> = {
-  'berita_acara_verify': 'berita_acara_riwayat_semua',
-  'berita_acara_assign': 'berita_acara_verify',
-  'hasil_pengujian_rekap': 'hasil_pengujian_riwayat_semua',
-  'payment_upload': 'payment_riwayat_personal',
-  'payment_discount': 'payment_upload',
-  'payment_confirm': 'payment_riwayat_semua',
-  'user_verify': 'user_view',
-  'certificate_download': 'certificate_view',
-  'discount_verifikasi': 'discount_riwayat_semua',
+const permissionDependencies: Record<string, string[]> = {
+  'berita_acara_verify': ['berita_acara_riwayat_semua'],
+  'berita_acara_assign': ['berita_acara_verify'],
+  'hasil_pengujian_rekap': ['hasil_pengujian_riwayat_personal', 'hasil_pengujian_riwayat_semua'],
+  'payment_upload': ['payment_riwayat_personal'],
+  'payment_discount': ['payment_upload'],
+  'payment_confirm': ['payment_riwayat_semua'],
+  'user_verify': ['user_view'],
+  'certificate_download': ['certificate_view'],
+  'discount_verifikasi': ['discount_riwayat_semua'],
 }
 
 function isPermissionDisabled(p: Permission): boolean {
-  const prereq = permissionDependencies[p.name]
-  if (!prereq) return false
-  const prereqPerm = allPermissions.value.find(perm => perm.name === prereq)
-  if (!prereqPerm) return false
-  return !formPermissionIds.value.includes(prereqPerm.id)
+  const prereqs = permissionDependencies[p.name]
+  if (!prereqs || prereqs.length === 0) return false
+  const prereqIds = prereqs
+    .map(pr => allPermissions.value.find(perm => perm.name === pr)?.id)
+    .filter((id): id is number => !!id)
+  if (prereqIds.length === 0) return false
+  return !prereqIds.some(id => formPermissionIds.value.includes(id))
 }
 
 async function fetchRoles() {
@@ -88,15 +90,23 @@ function togglePermission(id: number) {
     formPermissionIds.value.push(id)
   } else {
     formPermissionIds.value.splice(idx, 1)
-    // Uncheck all dependent permissions when prerequisite is unchecked
+    // Uncheck dependent permissions ketika prerequisite di-uncheck
+    // (untuk dependency OR: hanya uncheck jika tidak ada prereq lain yang masih checked)
     const perm = allPermissions.value.find(p => p.id === id)
     if (perm) {
-      for (const [dep, prereq] of Object.entries(permissionDependencies)) {
-        if (prereq === perm.name) {
-          const depPerm = allPermissions.value.find(p => p.name === dep)
-          if (depPerm) {
-            const depIdx = formPermissionIds.value.indexOf(depPerm.id)
-            if (depIdx !== -1) formPermissionIds.value.splice(depIdx, 1)
+      for (const [dep, prereqs] of Object.entries(permissionDependencies)) {
+        if (prereqs.includes(perm.name)) {
+          const otherPrereqIds = prereqs
+            .filter(pr => pr !== perm.name)
+            .map(pr => allPermissions.value.find(p => p.name === pr)?.id)
+            .filter((pid): pid is number => !!pid)
+          const stillSatisfied = otherPrereqIds.some(pid => formPermissionIds.value.includes(pid))
+          if (!stillSatisfied) {
+            const depPerm = allPermissions.value.find(p => p.name === dep)
+            if (depPerm) {
+              const depIdx = formPermissionIds.value.indexOf(depPerm.id)
+              if (depIdx !== -1) formPermissionIds.value.splice(depIdx, 1)
+            }
           }
         }
       }
@@ -356,26 +366,26 @@ async function deleteRole() {
 
 <style scoped>
 .roles-page { max-width: 960px; }
-.roles-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+.roles-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
 .roles-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
 .roles-subtitle { font-size: 14px; color: #64748b; margin: 4px 0 0; }
 .flex-align-center { display: flex; align-items: center; }
 .gap-2 { gap: 8px; }
 
-.roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.role-item { background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e2e8f0); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; }
+.roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+.role-item { background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e2e8f0); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; min-width: 0; overflow: hidden; }
 .role-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
-.role-item__header { margin-bottom: 16px; }
-.role-item__title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.role-item__name { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0; text-transform: capitalize; }
-.role-item__desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; }
-.role-item__perms { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-.perm-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #eff6ff; color: #2563eb; font-weight: 500; }
+.role-item__header { margin-bottom: 16px; min-width: 0; }
+.role-item__title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; min-width: 0; }
+.role-item__name { font-size: 16px; font-weight: 600; color: #1e293b; margin: 0; text-transform: capitalize; min-width: 0; overflow-wrap: anywhere; }
+.role-item__desc { font-size: 13px; color: #64748b; margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.role-item__perms { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; min-width: 0; }
+.perm-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: #eff6ff; color: #2563eb; font-weight: 500; max-width: 100%; }
 .perm-tag--more { background: #f1f5f9; color: #64748b; }
 
-.role-item__footer { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid #f1f5f9; }
-.role-item__count { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
-.role-item__actions { display: flex; gap: 4px; }
+.role-item__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+.role-item__count { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.role-item__actions { display: flex; gap: 4px; flex-shrink: 0; }
 .role-action-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent; cursor: pointer; transition: all 0.15s ease; color: #94a3b8; }
 .role-action-btn:hover { background: #f1f5f9; }
 .role-action-btn--edit:hover { color: #2563eb; background: #eff6ff; }

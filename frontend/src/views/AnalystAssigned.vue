@@ -224,20 +224,22 @@ async function handleRejectDiscount() {
           <div v-if="showDiscountSidebar" class="detail-discount-sidebar">
             <Card title="Ajuan Diskon">
               <table class="discount-table">
-                <tr>
-                  <td class="discount-td-label">Jumlah Diajukan</td>
-                  <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment?.discount_request || 0)) }}</td>
-                </tr>
-                <tr v-if="item.payment?.discount_reason">
-                  <td class="discount-td-label">Alasan</td>
-                  <td class="discount-td-value">{{ item.payment.discount_reason }}</td>
-                </tr>
-                <tr>
-                  <td class="discount-td-label">Status</td>
-                  <td class="discount-td-value">
-                    <Badge type="warning" text="Menunggu" />
-                  </td>
-                </tr>
+                <tbody>
+                  <tr>
+                    <td class="discount-td-label">Jumlah Diajukan</td>
+                    <td class="discount-td-value">Rp {{ formatPrice(Number(item.payment?.discount_request || 0)) }}</td>
+                  </tr>
+                  <tr v-if="item.payment?.discount_reason">
+                    <td class="discount-td-label">Alasan</td>
+                    <td class="discount-td-value">{{ item.payment.discount_reason }}</td>
+                  </tr>
+                  <tr>
+                    <td class="discount-td-label">Status</td>
+                    <td class="discount-td-value">
+                      <Badge type="warning" text="Menunggu" />
+                    </td>
+                  </tr>
+                </tbody>
               </table>
               <div v-if="auth.hasPermission('discount_verifikasi')" class="discount-actions-row">
                 <Button variant="outline" size="sm" @click="handleApproveDiscount">Setujui</Button>

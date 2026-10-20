@@ -7,7 +7,7 @@ export const baStatusMap: Record<string, string> = {
   pending: 'Menunggu Admin',
   revision: 'Revisi',
   admin_verified: 'Diverifikasi Admin',
-  penyelia_verified: 'Disetujui Penyelia',
+  penyelia_verified: 'Diverifikasi Penyelia',
   rekap_ready: 'Menunggu Manager Teknis',
   completed: 'Selesai',
   rejected: 'Ditolak',

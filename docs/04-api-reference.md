@@ -323,6 +323,34 @@ Response 200: Binary file (PDF)
 Response 404: { "message": "Certificate not found." }
 ```
 
+### Upload Sertifikat (superadmin/admin)
+
+```
+POST /api/admin/certificates/{beritaAcaraId}/upload
+Content-Type: multipart/form-data
+
+Fields:
+  certificate: file (required, pdf/jpg/jpeg/png, maks 10MB)
+
+Syarat: berita acara berstatus `completed` dan pembayaran `approved`.
+Sertifikat lama (jika ada) otomatis diganti.
+
+Response 200:
+{
+  "message": "Sertifikat berhasil diupload",
+  "data": { "id", "berita_acara_id", "file_path", ... }
+}
+```
+
+### Hapus Sertifikat
+
+```
+DELETE /api/admin/certificates/{beritaAcaraId}
+
+Response 200:
+{ "message": "Sertifikat berhasil dihapus" }
+```
+
 ---
 
 ## Admin Endpoints
@@ -476,6 +504,38 @@ Response 200:
   "message": "Sample marked as taken.",
   "data": { "id", "status": "taken", ... }
 }
+```
+
+---
+
+## Admin — Export Data
+
+### Export Database (Excel multi-sheet)
+
+```
+GET /api/admin/export/database
+
+Permission: berita_acara_riwayat_semua + user_view (superadmin bypass)
+
+Response 200: file .xls (XML Spreadsheet 2003) berisi sheet:
+- Pesanan      — pemohon, tanggal masuk, judul, status, siapa & kapan
+                 admin/penyelia/analis/manager teknis memproses, biaya,
+                 pembayaran, sertifikat
+- Pengguna     — seluruh user beserta role dan status verifikasi
+- Pembayaran   — seluruh record pembayaran
+- Sampel       — seluruh sampel
+- Aktivitas    — seluruh activity log per pesanan
+```
+
+### Export Pesanan (CSV)
+
+```
+GET /api/admin/export/pesanan
+
+Permission: berita_acara_riwayat_semua (superadmin bypass)
+
+Response 200: file .csv (delimiter ';', BOM UTF-8) berisi kolom sama
+dengan sheet "Pesanan" pada export database.
 ```
 
 ---
@@ -793,6 +853,36 @@ Response 200:
 {
   "message": "Sample marked as ready.",
   "data": { "id", "status": "ready", ... }
+}
+```
+
+### Upload Berkas Ulang
+
+```
+POST /api/analyst/berita-acara/{id}/upload-berkas
+Content-Type: multipart/form-data
+
+Fields:
+  berkas_ulang: file (required, pdf/jpg/jpeg/png/doc/docx, maks 10MB)
+
+Response 200:
+{
+  "message": "File berhasil diupload",
+  "data": { "berkas_ulang": "berkas_ulang/xxx.pdf" }
+}
+
+Catatan: file tersimpan di kolom `berita_acaras.berkas_ulang`,
+terpisah dari `upload_akses` milik berita acara.
+```
+
+### Hapus Berkas Ulang
+
+```
+DELETE /api/analyst/berita-acara/{id}/upload-berkas
+
+Response 200:
+{
+  "message": "File berhasil dihapus"
 }
 ```
 

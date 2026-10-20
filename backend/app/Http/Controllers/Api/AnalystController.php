@@ -428,4 +428,51 @@ class AnalystController extends Controller
             'message' => 'File berhasil dihapus',
         ]);
     }
+
+    /**
+     * Upload or replace the berkas_ulang file for a berita_acara.
+     * Terpisah dari upload_akses milik berita acara.
+     */
+    public function uploadBerkas(Request $request, $id)
+    {
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
+
+        $request->validate([
+            'berkas_ulang' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+        ]);
+
+        $file = $request->file('berkas_ulang');
+        $path = $file->store('berkas_ulang', 'public');
+
+        $beritaAcara->update(['berkas_ulang' => $path]);
+
+        ActivityLogService::log($beritaAcara->id, 'berkas_ulang_updated', 'Memperbarui file Upload Berkas Ulang');
+
+        return response()->json([
+            'message' => 'File berhasil diupload',
+            'data' => [
+                'berkas_ulang' => $path,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove the berkas_ulang file for a berita_acara.
+     */
+    public function removeBerkas($id)
+    {
+        $beritaAcara = $this->findBeritaAcaraForUser($id, false);
+
+        if ($beritaAcara->berkas_ulang && \Illuminate\Support\Facades\Storage::disk('public')->exists($beritaAcara->berkas_ulang)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($beritaAcara->berkas_ulang);
+        }
+
+        $beritaAcara->update(['berkas_ulang' => null]);
+
+        ActivityLogService::log($beritaAcara->id, 'berkas_ulang_removed', 'Menghapus file Upload Berkas Ulang');
+
+        return response()->json([
+            'message' => 'File berhasil dihapus',
+        ]);
+    }
 }
