@@ -156,6 +156,7 @@ class AdminController extends Controller
         $request->validate([
             'analyst_ids' => 'required|array|min:1',
             'analyst_ids.*' => 'exists:users,id',
+            'note' => 'nullable|string|max:2000',
         ]);
 
         $beritaAcara = BeritaAcara::findOrFail($id);
@@ -175,9 +176,15 @@ class AdminController extends Controller
 
         $beritaAcara->analysts()->sync($validAnalysts);
 
-        if ($changed) {
+        $note = trim((string) $request->note ?: '');
+
+        if ($changed || $note !== '') {
             $names = User::whereIn('id', $validAnalysts)->pluck('name')->implode(', ');
-            ActivityLogService::log($beritaAcara->id, 'analyst_assigned', 'Menugaskan analis: ' . $names);
+            $description = $changed ? 'Menugaskan analis: ' . $names : 'Penugasan analis: ' . $names;
+            if ($note !== '') {
+                $description .= ' — Catatan: ' . $note;
+            }
+            ActivityLogService::log($beritaAcara->id, 'analyst_assigned', $description);
         }
 
         return response()->json([

@@ -52,7 +52,7 @@ async function handleExportDatabase() {
   exporting.value = 'database'
   try {
     const blob = await adminApi.exportDatabase()
-    downloadBlob(blob, `export-database-${fileTimestamp()}.xls`)
+    downloadBlob(blob, `export-database-${fileTimestamp()}.xlsx`)
     toast.success('Export database berhasil diunduh')
   } catch {
     toast.error('Gagal export database')
@@ -80,6 +80,14 @@ async function handleExportPesanan() {
     <div class="dashboard">
       <div class="dashboard-header">
         <h1>Dashboard Admin</h1>
+        <div class="export-actions" v-if="canExportDatabase || canExportPesanan">
+          <Button v-if="canExportPesanan" variant="outline" :loading="exporting === 'pesanan'" :disabled="exporting !== null" @click="handleExportPesanan">
+            Export Pesanan (CSV)
+          </Button>
+          <Button v-if="canExportDatabase" variant="primary" :loading="exporting === 'database'" :disabled="exporting !== null" @click="handleExportDatabase">
+            Export Database (Excel)
+          </Button>
+        </div>
       </div>
 
       <SkeletonStats v-if="loading" />
@@ -104,21 +112,6 @@ async function handleExportPesanan() {
           </Card>
         </div>
 
-        <Card title="Export Data" class="export-card" v-if="canExportDatabase || canExportPesanan">
-          <p class="export-desc">
-            Unduh data sistem dalam bentuk file Excel atau CSV. Export database memuat seluruh
-            pesanan, pengguna, pembayaran, sampel, dan aktivitas dalam satu file Excel multi-sheet.
-          </p>
-          <div class="export-actions">
-            <Button v-if="canExportDatabase" variant="primary" :loading="exporting === 'database'" :disabled="exporting !== null" @click="handleExportDatabase">
-              Export Database (Excel)
-            </Button>
-            <Button v-if="canExportPesanan" variant="outline" :loading="exporting === 'pesanan'" :disabled="exporting !== null" @click="handleExportPesanan">
-              Export Pesanan (CSV)
-            </Button>
-          </div>
-        </Card>
-
         <Card title="Berita Acara Diajukan">
           <div v-if="items.filter(i => i.status === 'pending').length === 0" class="empty">Tidak ada yang diajukan</div>
           <div v-else class="ba-mini-list">
@@ -134,16 +127,14 @@ async function handleExportPesanan() {
 </template>
 
 <style scoped>
-.dashboard-header { margin-bottom: 24px; }
+.dashboard-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .dashboard-header h1 { font-size: 24px; font-weight: 700; color: #1e293b; margin: 0; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { text-align: center; }
 .stat-value { font-size: 32px; font-weight: 700; color: #1e3a5f; }
 .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
 .empty { text-align: center; padding: 40px; color: #94a3b8; }
-.export-card { margin-bottom: 24px; }
-.export-desc { font-size: 13px; color: #64748b; margin: 0 0 12px; line-height: 1.6; }
-.export-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .ba-mini-list { display: flex; flex-direction: column; gap: 8px; }
 .ba-mini-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
 .ba-mini-title { font-weight: 500; color: #1e293b; }

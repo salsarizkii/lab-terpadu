@@ -24,6 +24,8 @@ const router = useRouter()
 const item = ref<BeritaAcara | null>(null)
 const loading = ref(true)
 const saving = ref(false)
+const showConfirmSubmit = ref(false)
+const sampleAnswer = ref<'sudah' | 'belum' | null>(null)
 
 const templateFields = ref<FormField[]>([])
 const templateIdVal = ref<number | null>(null)
@@ -360,7 +362,7 @@ function scrollToField(fieldId: string) {
   }
 }
 
-async function handleSubmit() {
+function handleSubmit() {
   if (!dynamicFormRef.value || !item.value) {
     toast.error('Form belum siap')
     return
@@ -377,6 +379,17 @@ async function handleSubmit() {
     return
   }
 
+  sampleAnswer.value = null
+  showConfirmSubmit.value = true
+}
+
+async function confirmSubmit() {
+  showConfirmSubmit.value = false
+  await doSubmit()
+}
+
+async function doSubmit() {
+  if (!item.value) return
   saving.value = true
   try {
     const firstFormula = formulaRows.value.find(r => r.formulaId && r.formulaId !== -1)
@@ -396,6 +409,9 @@ async function handleSubmit() {
     const updated = await analystApi.getBeritaAcaraDetail(item.value.id)
     item.value = updated
     toast.success('Rekap analis berhasil disimpan')
+    if (sampleAnswer.value === 'belum') {
+      toast.warning('Jangan lupa update penyerahan sampel di sistem jika sampel sudah diterima.')
+    }
     router.push(`/analyst/samples/${item.value.id}`)
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal menyimpan rekap analis')
@@ -596,6 +612,31 @@ async function handleSubmit() {
       </template>
     </div>
   </AppLayout>
+
+  <!-- Konfirmasi Submit Modal -->
+  <Modal :show="showConfirmSubmit" title="Konfirmasi Submit Rekap Analis" size="sm" :closable="false">
+    <p class="confirm-question">Apakah Anda yakin ingin mengirim rekap analis ini?</p>
+    <div class="sample-question">
+      <p class="sample-question__label">
+        Apakah sampel sudah diterima lab?
+        <span class="sample-question__optional">(opsional)</span>
+      </p>
+      <div class="sample-question__options">
+        <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'sudah' }">
+          <input type="radio" value="sudah" v-model="sampleAnswer" />
+          <span>Sudah</span>
+        </label>
+        <label class="radio-option" :class="{ 'radio-option--active': sampleAnswer === 'belum' }">
+          <input type="radio" value="belum" v-model="sampleAnswer" />
+          <span>Belum</span>
+        </label>
+      </div>
+    </div>
+    <template #footer>
+      <Button variant="outline" @click="showConfirmSubmit = false">Batal</Button>
+      <Button variant="success" @click="confirmSubmit">Ya, Kirim</Button>
+    </template>
+  </Modal>
 
   <!-- Preview Modal -->
   <Modal :show="showPreviewModal" :title="berkasFileName" size="lg" @close="showPreviewModal = false">
@@ -901,5 +942,56 @@ async function handleSubmit() {
 }
 .preview-download-btn:hover {
   background: #1d4ed8;
+}
+
+.confirm-question {
+  font-size: 15px;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+.sample-question {
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+.sample-question__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+.sample-question__optional {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.sample-question__options {
+  display: flex;
+  gap: 10px;
+}
+.radio-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.radio-option input {
+  accent-color: var(--color-accent);
+}
+.radio-option--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 </style>

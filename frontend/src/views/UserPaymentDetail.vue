@@ -34,7 +34,6 @@ const router = useRouter()
 
 const payment = ref<Payment | null>(null)
 const loading = ref(true)
-const downloadingTagihan = ref(false)
 
 const showDiscountModal = ref(false)
 const discountReason = ref('')
@@ -296,23 +295,10 @@ async function handleUploadProof() {
   }
 }
 
-async function handleDownloadTagihan() {
+function handleDownloadTagihan() {
   if (!payment.value) return
-  downloadingTagihan.value = true
-  try {
-    const blob = await pdfTemplateApi.downloadFilledPdf('tagihan', payment.value.id)
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tagihan-${payment.value.id}.pdf`
-    a.click()
-    window.URL.revokeObjectURL(url)
-    toast.success('Tagihan berhasil diunduh')
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal mengunduh tagihan')
-  } finally {
-    downloadingTagihan.value = false
-  }
+  window.location.href = pdfTemplateApi.getDownloadUrl('tagihan', payment.value.id)
+  toast.success('Tagihan sedang diunduh')
 }
 </script>
 
@@ -449,7 +435,7 @@ async function handleDownloadTagihan() {
           <div class="detail-sidebar">
             <Card title="Aksi Pembayaran">
               <!-- Download tagihan button -->
-              <Button block variant="outline" :loading="downloadingTagihan" @click="handleDownloadTagihan" style="margin-bottom: 10px;">
+              <Button block variant="outline" @click="handleDownloadTagihan" style="margin-bottom: 10px;">
                 <FileText :size="18" style="margin-right: 6px;" />
                 Download Tagihan (PDF)
               </Button>

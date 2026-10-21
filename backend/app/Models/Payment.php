@@ -33,4 +33,9 @@ class Payment extends Model
     {
         return $this->belongsTo(BeritaAcara::class);
     }
+
+    public function discountHistories()
+    {
+        return $this->hasMany(DiscountHistory::class);
+    }
 }

@@ -397,9 +397,14 @@ class PdfTemplateController extends Controller
 
         $docx = DocxPdfService::generateFilledDocx($template, $this->getRealData($type, $id));
         if ($docx === null) {
-            return response()->json([
-                'message' => 'Template belum memiliki file Word. Gunakan unduhan PDF.',
-            ], 422);
+            // Fallback: template tanpa file Word → generate .docx dari render HTML.
+            $body = PdfGeneratorService::renderBody($template, $this->getRealData($type, $id));
+            $docx = PdfGeneratorService::generateDocxFromHtml($body);
+            if ($docx === null || $docx === '') {
+                return response()->json([
+                    'message' => 'Gagal membuat dokumen Word dari template.',
+                ], 422);
+            }
         }
 
         $filename = "{$type}_{$id}.docx";
@@ -765,6 +770,10 @@ class PdfTemplateController extends Controller
         $formData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->form_data ?? [], 'berita_acara') : [];
         $rekapData = isset($ba) ? PdfGeneratorService::formDataToKeys($ba->rekap_analis_data ?? [], 'rekap_analis') : [];
 
+        // Petugas yang mengurus BA ini: admin/penyelia/manager teknis aktual.
+        // Kalau belum diverifikasi/terverifikasi, tampilkan "Belum diverifikasi".
+        $petugasData = isset($ba) ? self::petugasVariables($ba) : [];
+
         $dateData = [];
         if (isset($ba)) {
             $dateData = PdfGeneratorService::dateVariables(
@@ -774,6 +783,34 @@ class PdfTemplateController extends Controller
             );
         }
 
-        return array_merge($data, $formData, $rekapData, $dateData);
+        return array_merge($data, $formData, $rekapData, $dateData, $petugasData);
+    }
+
+    /**
+     * Nama petugas yang menangani sebuah berita acara:
+     * - Admin: user yang melakukan verifikasi admin (log `admin_verified`)
+     * - Penyelia: user yang memverifikasi (log `penyelia_verified`), fallback ke yang di-assign
+     * - Manager Teknis: user yang memverifikasi (log `rekap_verified`), fallback ke yang di-assign
+     * Bila belum ada → "Belum diverifikasi".
+     */
+    private function petugasVariables(BeritaAcara $ba): array
+    {
+        $belum = 'Belum diverifikasi';
+
+        $adminLog = $ba->activityLogs()->where('action', 'admin_verified')->latest()->first();
+        $penyeliaLog = $ba->activityLogs()->where('action', 'penyelia_verified')->latest()->first();
+        $managerLog = $ba->activityLogs()->where('action', 'rekap_verified')->latest()->first();
+
+        $adminName = $adminLog?->user?->name;
+        $penyeliaName = $penyeliaLog?->user?->name
+            ?? $ba->penyelias->pluck('name')->filter()->first();
+        $managerName = $managerLog?->user?->name
+            ?? $ba->managerTeknis->pluck('name')->filter()->first();
+
+        return [
+            '{{ nama_admin }}' => $adminName ?: $belum,
+            '{{ nama_penyelia }}' => $penyeliaName ?: $belum,
+            '{{ nama_manager_teknis }}' => $managerName ?: $belum,
+        ];
     }
 }

@@ -497,6 +497,22 @@ HTML;
      */
     public static function generatePdf(PdfTemplate $template, array $data = [])
     {
+        $body = self::renderBody($template, $data);
+
+        $fullHtml = self::buildFullHtml($template, $body);
+
+        $pdf = Pdf::loadHTML($fullHtml)
+            ->setPaper($template->paper_size ?? 'a4', $template->orientation ?? 'portrait');
+
+        return $pdf;
+    }
+
+    /**
+     * Render isi (body) template: apply settings, normalisasi placeholder,
+     * ganti data, aplikasikan toggle section & catatan.
+     */
+    public static function renderBody(PdfTemplate $template, array $data = []): string
+    {
         self::applySettings($template, $data);
 
         $data['{{ tanggal_cetak }}'] = $data['{{ tanggal_cetak }}'] ?? date('d F Y');
@@ -515,12 +531,7 @@ HTML;
             $body .= '<div style="margin-top:20px;font-size:10pt;">' . nl2br(e($template->catatan)) . '</div>';
         }
 
-        $fullHtml = self::buildFullHtml($template, $body);
-
-        $pdf = Pdf::loadHTML($fullHtml)
-            ->setPaper($template->paper_size ?? 'a4', $template->orientation ?? 'portrait');
-
-        return $pdf;
+        return $body;
     }
 
     /**

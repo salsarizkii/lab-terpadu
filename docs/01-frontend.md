@@ -206,7 +206,7 @@ Semua module pakai shared Axios instance (`api/axios.ts`):
 | admin.ts | `getAnalysts()` | `GET /admin/analysts` | List analyst users |
 | admin.ts | `getUsers(params?)` | `GET /admin/users` | List users |
 | admin.ts | `verifyUser(id, isVerified)` | `PUT /admin/users/:id/verify` | Verify/revoke |
-| admin.ts | `exportDatabase()` | `GET /admin/export/database` | Export database (Excel .xls multi-sheet) |
+| admin.ts | `exportDatabase()` | `GET /admin/export/database` | Export database (Excel .xlsx multi-sheet) |
 | admin.ts | `exportPesanan()` | `GET /admin/export/pesanan` | Export daftar pesanan (CSV) |
 | analyst.ts | `getBeritaAcara(params?)` | `GET /analyst/berita-acara` | List assigned BA |
 | analyst.ts | `getBeritaAcaraDetail(id)` | `GET /analyst/berita-acara/:id` | BA detail |

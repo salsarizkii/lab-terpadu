@@ -11,6 +11,7 @@ import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue
 import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification.vue'
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import UserAssignList from '../components/admin/UserAssignList.vue'
+import FormTextarea from '../components/common/FormTextarea.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import DownloadMenu from '../components/common/DownloadMenu.vue'
 import { adminApi } from '../api/admin'
@@ -45,7 +46,7 @@ const showPenyeliaForm = ref(false)
 const showManagerTeknisForm = ref(false)
 const showAssignConfirm = ref(false)
 const pendingAnalystIds = ref<number[]>([])
-const assignSampleAnswer = ref<'sudah' | 'belum' | null>(null)
+const assignNote = ref('')
 const nomorAgenda = ref('')
 const savingAgenda = ref(false)
 const checkingAgenda = ref(false)
@@ -114,9 +115,19 @@ const assignedAnalysts = computed<User[]>(() => {
 const assignedPenyelias = computed<User[]>(() => item.value?.penyelias || [])
 const assignedManagerTeknis = computed<User[]>(() => item.value?.manager_teknis || [])
 
-const selectedAnalystNames = computed(() =>
-  analysts.value.filter(a => pendingAnalystIds.value.includes(a.id)).map(a => a.name)
+const selectedAnalysts = computed(() =>
+  analysts.value.filter(a => pendingAnalystIds.value.includes(a.id))
 )
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map(w => w.charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Menunggu Admin', revision: 'Perlu Perbaikan', admin_verified: 'Diverifikasi Admin',
@@ -206,7 +217,7 @@ async function saveNomorAgenda() {
 
 function handleAssign(analystIds: number[]) {
   pendingAnalystIds.value = analystIds
-  assignSampleAnswer.value = null
+  assignNote.value = ''
   showAssignConfirm.value = true
 }
 
@@ -219,14 +230,11 @@ async function doAssign(analystIds: number[]) {
  if (!item.value) return
  savingAnalyst.value = true
  try {
-   const res = await adminApi.assignAnalyst(item.value.id, analystIds)
+   const res = await adminApi.assignAnalyst(item.value.id, analystIds, assignNote.value.trim() || undefined)
    const updated = await adminApi.getBeritaAcaraDetail(item.value.id)
    item.value = updated
    showAssignForm.value = false
    toast.success(res.message)
-   if (assignSampleAnswer.value === 'belum') {
-     toast.warning('Jangan lupa update penyerahan sampel di sistem jika sampel sudah diterima.')
-   }
  } catch (e: any) {
    toast.error(e.response?.data?.message || 'Gagal')
  } finally {
@@ -335,6 +343,17 @@ function formatFieldValue(value: any): string {
   return String(value)
 }
 
+function formatSampleDate(iso?: string | null): string {
+  if (!iso) return '-'
+  return new Date(iso).toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function getRevisionDiff(rev: any) {
   if (!rev.previous_form_data || !item.value?.form_data) return []
   const diffs: { label: string; old: string; new: string }[] = []
@@ -383,6 +402,16 @@ function getRevisionDiff(rev: any) {
           <div class="detail-main">
             <Card title="Data Berita Acara">
               <BeritaAcaraDetailView :berita-acara="item" />
+            </Card>
+
+            <Card title="Penyerahan Sampel" style="margin-top: 24px;">
+              <div v-if="item.sample_submitted" class="sample-status sample-status--done">
+                <div class="sample-status__title">Sampel sudah diserahkan pada {{ formatSampleDate(item.sample_submitted_at) }}</div>
+              </div>
+              <div v-else class="sample-status sample-status--pending">
+                <div class="sample-status__title">Sampel belum diserahkan</div>
+                <p class="sample-status__desc">Jangan lupa update di sistem jika sudah menyerahkan sampel.</p>
+              </div>
             </Card>
 
             <Card title="Riwayat Aktivitas" style="margin-top: 24px;">
@@ -530,6 +559,7 @@ function getRevisionDiff(rev: any) {
                         v-model="currentPenyeliaIds"
                         :loading="savingPenyelia"
                         submit-label="Assign"
+                        hint="Pilih satu atau lebih penyelia untuk memverifikasi berita acara ini."
                         @assign="handleAssignPenyelia"
                       />
                     </div>
@@ -572,6 +602,7 @@ function getRevisionDiff(rev: any) {
                         v-model="currentManagerTeknisIds"
                         :loading="savingManagerTeknis"
                         submit-label="Assign"
+                        hint="Pilih satu atau lebih manager teknis untuk berita acara ini."
                         @assign="handleAssignManagerTeknis"
                       />
                     </div>
@@ -649,26 +680,37 @@ function getRevisionDiff(rev: any) {
       </Modal>
 
       <!-- Assign Analis Confirmation Modal -->
-      <Modal :show="showAssignConfirm" title="Konfirmasi Assign Analis" size="sm" :closable="false">
-        <p class="assign-confirm-question">Apakah Anda yakin ingin assign analis ini?</p>
-        <div v-if="selectedAnalystNames.length" class="assign-confirm-list">
-          <span v-for="name in selectedAnalystNames" :key="name" class="assign-confirm-chip">{{ name }}</span>
-        </div>
-        <div class="sample-question">
-          <p class="sample-question__label">
-            Apakah sampel sudah diterima lab?
-            <span class="sample-question__optional">(opsional)</span>
-          </p>
-          <div class="sample-question__options">
-            <label class="radio-option" :class="{ 'radio-option--active': assignSampleAnswer === 'sudah' }">
-              <input type="radio" value="sudah" v-model="assignSampleAnswer" />
-              <span>Sudah</span>
-            </label>
-            <label class="radio-option" :class="{ 'radio-option--active': assignSampleAnswer === 'belum' }">
-              <input type="radio" value="belum" v-model="assignSampleAnswer" />
-              <span>Belum</span>
-            </label>
+      <Modal :show="showAssignConfirm" title="Assign Analis" size="sm" :closable="false">
+        <div class="assign-confirm">
+          <div class="assign-confirm__intro">
+            <div class="assign-confirm__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>
+            </div>
+            <div class="assign-confirm__intro-text">
+              <p class="assign-confirm__title">Konfirmasi Penugasan</p>
+              <p class="assign-confirm__desc">Analis berikut akan ditugaskan pada berita acara ini.</p>
+            </div>
           </div>
+
+          <div class="assign-confirm__people">
+            <div v-for="a in selectedAnalysts" :key="a.id" class="assign-confirm__person">
+              <span class="person-avatar">{{ initials(a.name) }}</span>
+              <div class="person-info">
+                <span class="person-name">{{ a.name }}</span>
+                <span class="person-email">{{ a.email }}</span>
+              </div>
+              <span class="person-check">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <FormTextarea
+            v-model="assignNote"
+            label="Catatan untuk analis"
+            :rows="3"
+            placeholder="Opsional — instrumen prioritas, tenggat pengerjaan, atau instruksi khusus..."
+          />
         </div>
         <template #footer>
           <Button variant="outline" @click="showAssignConfirm = false">Batal</Button>
@@ -973,69 +1015,127 @@ function getRevisionDiff(rev: any) {
 .agenda-hint--error { color: #ef4444; }
 .agenda-saving { font-size: 11px; color: #2563eb; }
 
-.assign-confirm-question {
-  font-size: 15px;
-  color: var(--color-text);
-  margin: 0 0 12px;
-}
-.assign-confirm-list {
+.assign-confirm {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 16px;
 }
-.assign-confirm-chip {
-  padding: 4px 12px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 999px;
-}
-.sample-question {
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-.sample-question__label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin: 0 0 10px;
-}
-.sample-question__optional {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--color-text-muted);
-}
-.sample-question__options {
+.assign-confirm__intro {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
 }
-.radio-option {
-  flex: 1;
+.assign-confirm__icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: var(--transition);
-}
-.radio-option input {
-  accent-color: var(--color-accent);
-}
-.radio-option--active {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
+  background: linear-gradient(135deg, var(--color-accent-soft), #eef2ff);
   color: var(--color-accent);
+  border: 1px solid var(--color-accent-border);
+}
+.assign-confirm__intro-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.assign-confirm__title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+.assign-confirm__desc {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.assign-confirm__people {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+.assign-confirm__person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+.assign-confirm__person + .assign-confirm__person {
+  border-top: 1px solid var(--color-border-light);
+}
+.person-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-info));
+  color: #fff;
+}
+.person-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.person-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.person-email {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person-check {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.sample-status {
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.sample-status--done {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.sample-status--done .sample-status__title {
+  color: #15803d;
+}
+.sample-status--pending {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+}
+.sample-status__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+.sample-status__desc {
+  font-size: 13px;
+  color: #a16207;
+  margin: 4px 0 0;
 }
 </style>

@@ -31,9 +31,10 @@ export const adminApi = {
     return data
   },
 
-  async assignAnalyst(id: number, analystIds: number[]): Promise<{ message: string; data: BeritaAcara }> {
+  async assignAnalyst(id: number, analystIds: number[], note?: string): Promise<{ message: string; data: BeritaAcara }> {
     const { data } = await api.put(`/admin/berita-acara/${id}/assign-analyst`, {
       analyst_ids: analystIds,
+      note: note || undefined,
     })
     return data
   },

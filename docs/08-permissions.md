@@ -99,7 +99,7 @@ Sumber: `database/seeders/DatabaseSeeder.php` (per-install baru via `migrate:fre
 | `superadmin` | Semua 26 permission (plus bypass middleware) |
 | `admin` | `berita_acara_assign`, `berita_acara_create`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `berita_acara_verify`, `certificate_download`, `certificate_upload`, `certificate_view`, `dashboard`, `form_manage_berita_acara`, `form_manage_kelola_harga_instrumen`, `form_manage_perhitungan_biaya`, `payment_confirm`, `payment_riwayat_personal`, `payment_riwayat_semua` |
 | `penyelia` | `berita_acara_assign`, `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `berita_acara_verify`, `dashboard`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua` |
-| `manager_teknis` | `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `dashboard`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua`, `payment_confirm`, `payment_riwayat_personal`, `payment_riwayat_semua`, `payment_upload` |
+| `manager_teknis` | `berita_acara_riwayat_personal`, `berita_acara_riwayat_semua`, `dashboard`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal`, `hasil_pengujian_riwayat_semua`, `payment_confirm`, `payment_riwayat_personal`, `payment_riwayat_semua`, `payment_upload` |
 | `analyst` | `dashboard`, `form_manage_kelola_harga_instrumen`, `form_manage_perhitungan_biaya`, `form_manage_rekap_analis`, `hasil_pengujian_rekap`, `hasil_pengujian_riwayat_personal` |
 | `user` | `dashboard`, `berita_acara_create`, `berita_acara_riwayat_personal`, `hasil_pengujian_riwayat_personal`, `payment_upload`, `payment_discount`, `payment_riwayat_personal`, `discount_riwayat_personal`, `certificate_view`, `certificate_download` |
 
@@ -114,7 +114,7 @@ Sumber: `database/seeders/DatabaseSeeder.php` (per-install baru via `migrate:fre
 | `analyst` | false | seeded | 6 permission |
 | `user` | false | seeded | 10 permission |
 | `penyelia` | false | seeded | 8 permission |
-| `manager_teknis` | false | seeded | 9 permission |
+| `manager_teknis` | false | seeded | 10 permission |
 
 ### Role CRUD Rules
 

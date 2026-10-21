@@ -517,14 +517,19 @@ GET /api/admin/export/database
 
 Permission: berita_acara_riwayat_semua + user_view (superadmin bypass)
 
-Response 200: file .xls (XML Spreadsheet 2003) berisi sheet:
+Response 200: file .xlsx (Office Open XML) berisi sheet:
 - Pesanan      — pemohon, tanggal masuk, judul, status, siapa & kapan
                  admin/penyelia/analis/manager teknis memproses, biaya,
-                 pembayaran, sertifikat
+                 pembayaran, sertifikat (+ tanggal upload/download sertifikat,
+                 tanggal ditolak, jumlah/tanggal/catatan revisi, tanggal
+                 dikirim ulang, tanggal nomor agenda)
 - Pengguna     — seluruh user beserta role dan status verifikasi
-- Pembayaran   — seluruh record pembayaran
+- Pembayaran   — seluruh record pembayaran + riwayat diskon & pembayaran
+                 (ajuan/status/tipe/asalasn diskon, tanggal & pelaku upload
+                 bukti, ajuan diskon, diskon disetujui/ditolak/diberikan/
+                 diubah/dihapus, konfirmasi & penolakan pembayaran)
 - Sampel       — seluruh sampel
-- Aktivitas    — seluruh activity log per pesanan
+- Aktivitas    — seluruh activity log per pesanan (ID log & ID revisi)
 ```
 
 ### Export Pesanan (CSV)

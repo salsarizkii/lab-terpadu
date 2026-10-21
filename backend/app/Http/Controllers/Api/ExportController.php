@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\BeritaAcara;
+use App\Models\FormField;
+use App\Models\FormTemplate;
 use App\Models\Payment;
 use App\Models\Sample;
 use App\Models\User;
@@ -12,14 +14,8 @@ use Illuminate\Support\Carbon;
 
 class ExportController extends Controller
 {
-    public const SHEET_XML_HEADER = <<<'XML'
-<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
-XML;
-
     /**
-     * Export seluruh data (Excel .xls multi-sheet).
+     * Export seluruh data (Excel .xlsx multi-sheet).
      */
     public function database()
     {
@@ -33,20 +29,35 @@ XML;
             ['name' => 'Aktivitas', 'rows' => $this->activityRows($beritaAcaras)],
         ];
 
-        $xml = self::SHEET_XML_HEADER . "\n";
-        $xml .= "<Styles>\n"
-            . '<Style ss:ID="hdr"><Font ss:Bold="1"/><Interior ss:Color="#DDEBF7" ss:Pattern="Solid"/></Style>'
-            . "\n</Styles>\n";
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        $zip = new \ZipArchive();
 
-        foreach ($sheets as $sheet) {
-            $xml .= $this->worksheet($sheet['name'], $sheet['rows']);
+        if ($zip->open($tmp, \ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'Gagal membuat file export');
         }
-        $xml .= "</Workbook>";
 
-        $filename = 'export-database-' . now()->format('Ymd-His') . '.xls';
+        $zip->addFromString('[Content_Types].xml', $this->contentTypes(count($sheets)));
+        $zip->addFromString('_rels/.rels', $this->rootRels());
+        $zip->addFromString('xl/workbook.xml', $this->workbook($sheets));
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $this->workbookRels(count($sheets)));
+        $zip->addFromString('xl/styles.xml', $this->styles());
 
-        return response($xml)
-            ->header('Content-Type', 'application/vnd.ms-excel')
+        foreach ($sheets as $index => $sheet) {
+            $zip->addFromString(
+                'xl/worksheets/sheet' . ($index + 1) . '.xml',
+                $this->worksheet($sheet['rows'])
+            );
+        }
+
+        $zip->close();
+
+        $content = file_get_contents($tmp);
+        @unlink($tmp);
+
+        $filename = 'export-database-' . now()->format('Ymd-His') . '.xlsx';
+
+        return response($content)
+            ->header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
@@ -96,16 +107,13 @@ XML;
      */
     private function pesananRows($beritaAcaras): array
     {
+        $dynamicFields = $this->dynamicColumns();
+
         $headers = [
             'No',
             'ID',
             'Nomor Agenda',
-            'Nama Pemohon',
-            'NIM',
-            'Prodi/Fakultas/Instansi',
-            'Email',
-            'No HP',
-            'Judul Penelitian',
+            ...array_map(fn ($field) => $field->label, $dynamicFields),
             'Tanggal Masuk',
             'Terakhir Update',
             'Status',
@@ -151,12 +159,7 @@ XML;
                 $no++,
                 $ba->id,
                 $ba->nomor_agenda,
-                $ba->nama_pemohon ?: ($ba->user?->name ?? ''),
-                $ba->nim,
-                $ba->prodi_fakultas_instansi,
-                $ba->email ?: ($ba->user?->email ?? ''),
-                $ba->telp_hp,
-                $ba->judul_penelitian,
+                ...array_map(fn ($field) => $this->dynamicValue($ba, $field), $dynamicFields),
                 $this->fmt($ba->created_at),
                 $this->fmt($ba->updated_at),
                 $ba->status,
@@ -168,7 +171,7 @@ XML;
                 $this->latestLogInfo($ba, 'rekap_saved', 'date'),
                 $managers,
                 $this->latestLogInfo($ba, 'rekap_verified', 'date'),
-                $ba->jumlah_sampel,
+                $this->formValue($ba, ['jumlah sampel', 'jumlah contoh uji'], 'jumlah_sampel'),
                 $ba->biaya,
                 $ba->payment?->status ?? '',
                 $ba->payment?->amount ?? '',
@@ -225,40 +228,30 @@ XML;
             'ID',
             'ID Pesanan',
             'Pemohon',
-            'Nominal',
-            'Ajuan Diskon',
-            'Status Diskon',
-            'Diskon Disetujui',
+            'Nominal Total',
+            'Nominal Ajuan Diskon',
+            'Alasan Diskon',
+            'Alasan Penolakan Pembayaran',
+            'Catatan',
+            'Nominal Diskon Disetujui',
             'Tipe Diskon',
             'Diskon Persen',
             'Diskon Nominal',
-            'Alasan Diskon',
-            'Status',
-            'Keterangan',
-            'Alasan Penolakan Pembayaran',
+            'Status Diskon',
+            'Status Pembayaran',
             'Bukti Pembayaran',
-            'Tanggal Upload Bukti',
+            'Tanggal Dibuat',
+            'Tanggal Upload Bukti Pembayaran',
             'Upload Bukti Oleh',
-            'Tanggal Ajuan Diskon',
-            'Ajuan Diskon Oleh',
-            'Tanggal Diskon Disetujui',
-            'Diskon Disetujui Oleh',
-            'Tanggal Diskon Ditolak',
-            'Diskon Ditolak Oleh',
-            'Tanggal Diskon Diberikan',
-            'Diskon Diberikan Oleh',
-            'Tanggal Diskon Diubah',
-            'Diskon Diubah Oleh',
-            'Tanggal Diskon Dihapus',
-            'Diskon Dihapus Oleh',
             'Tanggal Konfirmasi Pembayaran',
-            'Konfirmasi Pembayaran Oleh',
+            'Konfirmasi Oleh',
             'Tanggal Penolakan Pembayaran',
-            'Penolakan Pembayaran Oleh',
-            'Dibuat',
+            'Penolakan Oleh',
+            'Riwayat Diskon (JSON)',
+            'Riwayat Aktivitas Pembayaran (JSON)',
         ]];
 
-        $payments = Payment::with('beritaAcara.user', 'beritaAcara.activityLogs.user')->orderBy('id')->get();
+        $payments = Payment::with('beritaAcara.user', 'beritaAcara.activityLogs.user', 'discountHistories.changedBy')->orderBy('id')->get();
 
         foreach ($payments as $payment) {
             $ba = $payment->beritaAcara;
@@ -269,39 +262,80 @@ XML;
                 $ba?->user?->name ?? ($ba?->nama_pemohon ?? ''),
                 $payment->amount,
                 $payment->discount_request,
-                $payment->discount_status,
+                $payment->discount_reason,
+                $payment->rejection_reason,
+                $payment->keterangan,
                 $payment->discount_approved,
                 $payment->discount_type,
                 $payment->discount_percent,
                 $payment->discount_nominal,
-                $payment->discount_reason,
+                $payment->discount_status,
                 $payment->status,
-                $payment->keterangan,
-                $payment->rejection_reason,
                 $payment->payment_proof ? 'Ya' : 'Tidak',
+                $this->fmt($payment->created_at),
                 $this->latestLogInfo($ba, 'payment_uploaded', 'date'),
                 $this->latestLogInfo($ba, 'payment_uploaded', 'name'),
-                $this->latestLogInfo($ba, 'discount_requested', 'date'),
-                $this->latestLogInfo($ba, 'discount_requested', 'name'),
-                $this->latestLogInfo($ba, 'discount_approved', 'date'),
-                $this->latestLogInfo($ba, 'discount_approved', 'name'),
-                $this->latestLogInfo($ba, 'discount_rejected', 'date'),
-                $this->latestLogInfo($ba, 'discount_rejected', 'name'),
-                $this->latestLogInfo($ba, 'discount_given', 'date'),
-                $this->latestLogInfo($ba, 'discount_given', 'name'),
-                $this->latestLogInfo($ba, 'discount_updated', 'date'),
-                $this->latestLogInfo($ba, 'discount_updated', 'name'),
-                $this->latestLogInfo($ba, 'discount_removed', 'date'),
-                $this->latestLogInfo($ba, 'discount_removed', 'name'),
                 $this->latestLogInfo($ba, 'payment_confirmed', 'date'),
                 $this->latestLogInfo($ba, 'payment_confirmed', 'name'),
                 $this->latestLogInfo($ba, 'payment_rejected', 'date'),
                 $this->latestLogInfo($ba, 'payment_rejected', 'name'),
-                $this->fmt($payment->created_at),
+                $this->discountHistoryJson($payment),
+                $this->paymentActivityJson($payment),
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * Riwayat diskon berulang (tabel discount_histories) dijadikan satu cell JSON.
+     */
+    private function discountHistoryJson(Payment $payment): string
+    {
+        $entries = [];
+
+        foreach ($payment->discountHistories->sortBy('created_at') as $history) {
+            $entries[] = [
+                'waktu' => $this->fmt($history->created_at),
+                'aksi' => $history->action,
+                'status' => $history->status,
+                'ajuan_diskon' => $history->discount_request,
+                'diskon_disetujui' => $history->discount_approved,
+                'alasan' => $history->discount_reason,
+                'oleh' => $history->changedBy?->name ?? '',
+            ];
+        }
+
+        return $entries ? json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
+    }
+
+    /**
+     * Activity log terkait pembayaran & diskon dijadikan satu cell JSON.
+     */
+    private function paymentActivityJson(Payment $payment): string
+    {
+        $ba = $payment->beritaAcara;
+
+        if (!$ba) {
+            return '';
+        }
+
+        $entries = [];
+
+        foreach ($ba->activityLogs->sortBy('created_at') as $log) {
+            if (!str_starts_with($log->action, 'payment_') && !str_starts_with($log->action, 'discount_')) {
+                continue;
+            }
+
+            $entries[] = [
+                'waktu' => $this->fmt($log->created_at),
+                'aksi' => $log->action,
+                'deskripsi' => $log->description,
+                'oleh' => $log->user?->name ?? '',
+            ];
+        }
+
+        return $entries ? json_encode($entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
     }
 
     private function samplesRows(): array
@@ -391,6 +425,211 @@ XML;
         return trim($name . ($dateStr ? " (tgl assign: {$dateStr})" : ''));
     }
 
+    /**
+     * Ambil nilai field dari form_data (template dinamis) berdasarkan keyword label,
+     * fallback ke kolom lama bila tidak ada.
+     */
+    private function formValue(BeritaAcara $ba, array $keywords, string $fallbackColumn): string
+    {
+        $formData = $ba->form_data ?? [];
+
+        if (is_array($formData) && count($formData)) {
+            foreach ($this->templateFields($ba->form_template_id) as $field) {
+                if (!$this->labelMatches($field->label, $keywords)) {
+                    continue;
+                }
+
+                $value = $formData["field_{$field->id}"] ?? null;
+                if ($value !== null && $value !== '' && !(is_array($value) && count($value) === 0)) {
+                    return $this->stringifyFormValue($value);
+                }
+            }
+
+            foreach ($formData as $key => $value) {
+                if ($this->labelMatches($this->formatFieldKey((string) $key), $keywords)
+                    && $value !== null && $value !== '') {
+                    return $this->stringifyFormValue($value);
+                }
+            }
+        }
+
+        return (string) ($ba->{$fallbackColumn} ?? '');
+    }
+
+    private function labelMatches(string $label, array $keywords): bool
+    {
+        $label = mb_strtolower($label);
+
+        foreach ($keywords as $keyword) {
+            if (str_contains($label, mb_strtolower($keyword))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function formatFieldKey(string $key): string
+    {
+        return str_replace('_', ' ', (string) preg_replace('/^field_/', '', $key));
+    }
+
+    private function stringifyFormValue($value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_map(fn ($item) => (string) ($item['label'] ?? $item), $value));
+        }
+
+        return (string) $value;
+    }
+
+    private array $templateFieldsCache = [];
+
+    /**
+     * Pertanyaan "nyala" (is_required) dari template berita_acara aktif,
+     * sebagai kolom dinamis export. Diurutkan sesuai sort_order template.
+     */
+    private function dynamicColumns(): array
+    {
+        $templates = FormTemplate::where('type', 'berita_acara')
+            ->where('is_active', true)
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $seen = [];
+        $fields = [];
+
+        foreach ($templates as $template) {
+            foreach ($this->templateFields($template->id) as $field) {
+                if (!$field->is_required) {
+                    continue;
+                }
+
+                if (in_array($field->type, ['heading', 'paragraph', 'divider', 'file'], true)) {
+                    continue;
+                }
+
+                $key = $this->normalizeLabel($field->label);
+                if ($key === '' || isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $fields[] = $field;
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Nilai pertanyaan dinamis untuk sebuah berita acara.
+     */
+    private function dynamicValue(BeritaAcara $ba, FormField $field): string
+    {
+        $formData = $ba->form_data ?? [];
+        $normalized = $this->normalizeLabel($field->label);
+
+        if (is_array($formData) && count($formData)) {
+            foreach ($this->templateFields($ba->form_template_id) as $templateField) {
+                if ($this->normalizeLabel($templateField->label) !== $normalized) {
+                    continue;
+                }
+
+                $value = $formData["field_{$templateField->id}"] ?? null;
+                if ($value !== null && $value !== '' && !(is_array($value) && count($value) === 0)) {
+                    return $this->stringifyFormValue($value);
+                }
+            }
+
+            foreach ($formData as $key => $value) {
+                if ($value === null || $value === '') {
+                    continue;
+                }
+
+                if ($this->normalizeLabel($this->formatFieldKey((string) $key)) === $normalized) {
+                    return $this->stringifyFormValue($value);
+                }
+            }
+        }
+
+        $legacy = $this->legacyColumnFor($field->label);
+        if ($legacy !== null && !empty($ba->{$legacy})) {
+            return (string) $ba->{$legacy};
+        }
+
+        if ($this->labelMatches($normalized, ['nama pemohon'])) {
+            return $ba->user?->name ?? '';
+        }
+
+        if ($this->labelMatches($normalized, ['email'])) {
+            return $ba->user?->email ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Petakan label pertanyaan ke kolom lama berita_acaras bila ada.
+     */
+    private function legacyColumnFor(string $label): ?string
+    {
+        $map = [
+            [['nama pemohon'], 'nama_pemohon'],
+            [['nim'], 'nim'],
+            [['prodi', 'fakultas', 'instansi'], 'prodi_fakultas_instansi'],
+            [['dosen'], 'dosen_pembimbing'],
+            [['telp', 'no. hp'], 'telp_hp'],
+            [['email'], 'email'],
+            [['alamat'], 'alamat'],
+            [['judul'], 'judul_penelitian'],
+            [['akses lab'], 'akses_lab'],
+            [['bahan'], 'bahan_contoh_uji'],
+            [['kemasan', 'packing'], 'kemasan_packing'],
+            [['permintaan', 'metode', 'instrumen'], 'permintaan_analisa'],
+            [['jumlah sampel', 'jumlah contoh uji'], 'jumlah_sampel'],
+            [['kode'], 'kode_nama_sampel'],
+            [['keterangan sampel'], 'keterangan_sampel'],
+            [['keterangan tambahan'], 'keterangan_tambahan'],
+            [['pengukuran', 'pengulangan'], 'pengukuran_per_sampel'],
+            [['sisa'], 'sisa_sampel'],
+            [['masa berlaku'], 'masa_berlaku_akses'],
+        ];
+
+        foreach ($map as [$keywords, $column]) {
+            if ($this->labelMatches($label, $keywords)) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeLabel(string $label): string
+    {
+        $normalized = trim((string) preg_replace('/[^a-z0-9]+/u', ' ', mb_strtolower(trim($label))));
+
+        return trim((string) preg_replace('/\s+/', ' ', $normalized));
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, FormField>
+     */
+    private function templateFields(?int $templateId)
+    {
+        if ($templateId === null) {
+            return collect();
+        }
+
+        if (!isset($this->templateFieldsCache[$templateId])) {
+            $this->templateFieldsCache[$templateId] = FormField::where('form_template_id', $templateId)
+                ->orderBy('sort_order')
+                ->get();
+        }
+
+        return $this->templateFieldsCache[$templateId];
+    }
+
     private function fmt($value): string
     {
         if (!$value) {
@@ -404,35 +643,114 @@ XML;
         }
     }
 
-    private function worksheet(string $name, array $rows): string
+    private function contentTypes(int $sheetCount): string
     {
-        $xml = '<Worksheet ss:Name="' . $this->xmlEscape($name) . '"><Table>';
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            . '<Default Extension="xml" ContentType="application/xml"/>'
+            . '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            . '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
 
-        foreach ($rows as $rowIndex => $row) {
-            $xml .= '<Row>';
-            foreach ($row as $cell) {
-                $style = $rowIndex === 0 ? ' ss:StyleID="hdr"' : '';
-                $xml .= '<Cell' . $style . '>' . $this->xmlCell($cell) . '</Cell>';
-            }
-            $xml .= '</Row>';
+        for ($i = 1; $i <= $sheetCount; $i++) {
+            $xml .= '<Override PartName="/xl/worksheets/sheet' . $i . '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
         }
 
-        return $xml . '</Table></Worksheet>';
+        return $xml . '</Types>';
     }
 
-    private function xmlCell($value): string
+    private function rootRels(): string
     {
-        if ($value === null || $value === '') {
-            $value = '';
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            . '</Relationships>';
+    }
+
+    private function workbook(array $sheets): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            . '<sheets>';
+
+        foreach ($sheets as $index => $sheet) {
+            $xml .= '<sheet name="' . $this->xmlEscape($sheet['name']) . '" sheetId="' . ($index + 1) . '" r:id="rId' . ($index + 1) . '"/>';
         }
 
-        $numeric = is_numeric((string) $value) && !is_string($value);
+        return $xml . '</sheets></workbook>';
+    }
 
-        if ($numeric) {
-            return '<Data ss:Type="Number">' . $value . '</Data>';
+    private function workbookRels(int $sheetCount): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+
+        for ($i = 1; $i <= $sheetCount; $i++) {
+            $xml .= '<Relationship Id="rId' . $i . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' . $i . '.xml"/>';
         }
 
-        return '<Data ss:Type="String">' . $this->xmlEscape((string) $value) . '</Data>';
+        $xml .= '<Relationship Id="rId' . ($sheetCount + 1) . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+
+        return $xml . '</Relationships>';
+    }
+
+    private function styles(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
+            . '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills>'
+            . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+            . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+            . '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs>'
+            . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
+            . '</styleSheet>';
+    }
+
+    private function worksheet(array $rows): string
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+
+        foreach ($rows as $rowIndex => $row) {
+            $xml .= '<row r="' . ($rowIndex + 1) . '">';
+
+            foreach (array_values($row) as $colIndex => $cell) {
+                if ($cell === null || $cell === '') {
+                    continue;
+                }
+
+                $ref = $this->columnLetter($colIndex + 1) . ($rowIndex + 1);
+                $style = $rowIndex === 0 ? ' s="1"' : '';
+
+                if (is_bool($cell)) {
+                    $cell = $cell ? 1 : 0;
+                }
+
+                if (!is_string($cell) && is_numeric($cell)) {
+                    $xml .= '<c r="' . $ref . '"' . $style . '><v>' . $cell . '</v></c>';
+                } else {
+                    $xml .= '<c r="' . $ref . '"' . $style . ' t="inlineStr"><is><t xml:space="preserve">' . $this->xmlEscape((string) $cell) . '</t></is></c>';
+                }
+            }
+
+            $xml .= '</row>';
+        }
+
+        return $xml . '</sheetData></worksheet>';
+    }
+
+    private function columnLetter(int $number): string
+    {
+        $letters = '';
+
+        while ($number > 0) {
+            $number--;
+            $letters = chr(65 + ($number % 26)) . $letters;
+            $number = intdiv($number, 26);
+        }
+
+        return $letters;
     }
 
     private function xmlEscape(string $value): string

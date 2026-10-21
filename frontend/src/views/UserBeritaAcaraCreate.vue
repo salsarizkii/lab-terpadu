@@ -184,7 +184,9 @@ async function doSubmit(data: { form_data: Record<string, any>; form_template_id
   margin: 0 0 24px;
 }
 .reminder {
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin: 0 auto 24px;
   background: var(--color-warning-bg);
   border: 1px solid var(--color-warning-border);
   color: var(--color-warning);
@@ -192,7 +194,6 @@ async function doSubmit(data: { form_data: Record<string, any>; form_template_id
   font-weight: 600;
   padding: 10px 16px;
   border-radius: 8px;
-  margin-bottom: 24px;
 }
 .modal-question {
   font-size: 15px;

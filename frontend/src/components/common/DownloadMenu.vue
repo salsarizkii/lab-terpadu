@@ -18,7 +18,6 @@ const props = withDefaults(defineProps<{
 const auth = useAuthStore()
 
 const open = ref(false)
-const downloading = ref<string | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 
 const isStaff = computed(() =>
@@ -101,30 +100,15 @@ function docType(item: DownloadItem): string {
   return 'sertifikat'
 }
 
-async function handleDownload(item: DownloadItem) {
+function handleDownload(item: DownloadItem) {
   const id = targetId(item)
   if (id == null) return
-  downloading.value = item.key
-  try {
-    const isPdf = item.format === 'pdf'
-    const type = docType(item)
-    const blob = isPdf
-      ? await pdfTemplateApi.downloadFilledPdf(type, id)
-      : await pdfTemplateApi.downloadFilledDocx(type, id)
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${type}-${id}.${isPdf ? 'pdf' : 'docx'}`
-    a.click()
-    window.URL.revokeObjectURL(url)
-    toast.success(`${item.label} (${isPdf ? 'PDF' : 'Word'}) berhasil diunduh`)
-  } catch (e: any) {
-    toast.error(
-      e.response?.data?.message || `Gagal mengunduh ${item.label}. Coba lagi.`,
-    )
-  } finally {
-    downloading.value = null
-  }
+  const type = docType(item)
+  const url = item.format === 'pdf'
+    ? pdfTemplateApi.getDownloadUrl(type, id)
+    : pdfTemplateApi.getDocxDownloadUrl(type, id)
+  window.location.href = url
+  toast.success(`${item.label} (${item.format === 'pdf' ? 'PDF' : 'Word'}) sedang diunduh`)
 }
 
 function toggle() {
@@ -160,15 +144,13 @@ document.addEventListener('click', onDocumentClick)
             v-for="item in group.items"
             :key="item.key"
             class="dl-menu__item"
-            :disabled="downloading !== null"
             @click="handleDownload(item)"
           >
             <span class="dl-menu__badge" :class="`dl-menu__badge--${item.format}`">
               {{ item.format === 'pdf' ? 'PDF' : 'DOC' }}
             </span>
             <span class="dl-menu__item-label">{{ item.label }}</span>
-            <span v-if="downloading === item.key" class="dl-menu__spinner" />
-            <svg v-else class="dl-menu__item-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <svg class="dl-menu__item-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
         </div>
       </div>

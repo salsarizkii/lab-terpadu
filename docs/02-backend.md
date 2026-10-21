@@ -136,7 +136,7 @@ backend/
 | DELETE | `api/admin/certificates/{beritaAcaraId}` | CertificateController@remove | Hapus sertifikat |
 | GET | `api/admin/users` | AdminUserController@index | All users |
 | PUT | `api/admin/users/{id}/verify` | AdminUserController@verify | Verify/revoke |
-| GET | `api/admin/export/database` | ExportController@database | Export seluruh data (Excel .xls multi-sheet: Pesanan, Pengguna, Pembayaran, Sampel, Aktivitas) — permission `berita_acara_riwayat_semua` + `user_view` |
+| GET | `api/admin/export/database` | ExportController@database | Export seluruh data (Excel .xlsx multi-sheet: Pesanan, Pengguna, Pembayaran, Sampel, Aktivitas) — permission `berita_acara_riwayat_semua` + `user_view` |
 | GET | `api/admin/export/pesanan` | ExportController@pesanan | Export daftar pesanan (CSV, delimiter `;`, BOM UTF-8) — permission `berita_acara_riwayat_semua` |
 
 ### Penyelia Routes (permission: `berita_acara_verify`)

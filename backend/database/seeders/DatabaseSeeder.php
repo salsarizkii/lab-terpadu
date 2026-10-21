@@ -128,6 +128,7 @@ class DatabaseSeeder extends Seeder
             'berita_acara_riwayat_personal',
             'berita_acara_riwayat_semua',
             'dashboard',
+            'hasil_pengujian_rekap',
             'hasil_pengujian_riwayat_personal',
             'hasil_pengujian_riwayat_semua',
             'payment_confirm',
