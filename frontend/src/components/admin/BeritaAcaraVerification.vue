@@ -13,12 +13,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [data: { status: string }]
+  submit: [data: { status: string; note?: string }]
 }>()
 
 const auth = useAuthStore()
 const loading = ref(false)
 const templateFields = ref<FormField[]>([])
+const analystNote = ref('')
 
 const verifierName = computed(() => auth.user?.name || '-')
 const verifierEmail = computed(() => auth.user?.email || '-')
@@ -31,12 +32,12 @@ const verifierRole = computed(() => {
     manager_teknis: 'Manager Teknis',
     user: 'User',
   }
-  return auth.user?.role ? (map[auth.user.role] ?? auth.user.role) : '-'
+  return auth.effectiveRole ? (map[auth.effectiveRole] ?? auth.effectiveRole) : '-'
 })
 
 function handleSubmit() {
   loading.value = true
-  emit('submit', { status: props.targetStatus || 'admin_verified' })
+  emit('submit', { status: props.targetStatus || 'admin_verified', note: analystNote.value.trim() || undefined })
   loading.value = false
 }
 
@@ -45,6 +46,7 @@ const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info
   pending: { type: 'warning', label: 'Menunggu Admin' },
   revision: { type: 'danger', label: 'Revisi' },
   admin_verified: { type: 'info', label: 'Diverifikasi Admin' },
+  admin_revisi: { type: 'warning', label: 'Admin Revisi' },
   penyelia_verified: { type: 'info', label: 'Diverifikasi Penyelia' },
   rekap_ready: { type: 'warning', label: 'Menunggu Manager Teknis' },
   completed: { type: 'success', label: 'Selesai' },
@@ -107,7 +109,7 @@ const pemohonEmail = computed(() => {
 })
 
 const instrumen = computed(() => {
-  const fromForm = resolveByLabel('Metode/Instrumen') ?? resolveByLabel('Permintaan Analisa')
+  const fromForm = resolveByLabel('Pemilihan Instrumen') ?? resolveByLabel('Metode/Instrumen') ?? resolveByLabel('Permintaan Analisa')
   if (formatValue(fromForm) !== '-') return formatValue(fromForm)
   return props.beritaAcara.permintaan_analisa || '-'
 })
@@ -152,6 +154,19 @@ watch(() => props.beritaAcara, () => {
       <div class="verification__row">
         <span class="verification__label">Status Saat Ini</span>
         <Badge :type="statusMap[beritaAcara.status]?.type || 'default'" :text="statusMap[beritaAcara.status]?.label || beritaAcara.status" />
+      </div>
+      <div v-if="targetStatus === 'penyelia_verified'" class="verification__note">
+        <label class="verification__note-label" for="penyelia-note">
+          Catatan untuk analis
+          <span class="verification__note-optional">(opsional)</span>
+        </label>
+        <textarea
+          id="penyelia-note"
+          v-model="analystNote"
+          class="verification__note-textarea"
+          rows="3"
+          placeholder="Contoh: instruksi khusus pengerjaan, prioritas sampel, tenggat waktu..."
+        />
       </div>
       <div class="verification__divider" />
       <div class="verification__row">
@@ -207,6 +222,38 @@ watch(() => props.beritaAcara, () => {
   margin: 10px 0;
   border-top: 1px dashed #e2e8f0;
 }
+.verification__note {
+  margin-top: 10px;
+}
+.verification__note-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+.verification__note-optional {
+  font-weight: 400;
+  color: #94a3b8;
+}
+.verification__note-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1e293b;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.verification__note-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+.verification__note-textarea::placeholder { color: #94a3b8; }
 .verification__verifier-name {
   font-weight: 700;
   color: #1d4ed8;

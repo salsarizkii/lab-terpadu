@@ -18,7 +18,7 @@ type BadgeType = 'default' | 'danger' | 'success' | 'warning' | 'info'
 
 const steps = computed(() => {
   const s = ba.value?.status
-  const isVerifikasiActive = ['admin_verified', 'penyelia_verified'].includes(s || '')
+  const isVerifikasiActive = ['admin_verified', 'admin_revisi', 'penyelia_verified'].includes(s || '')
   const isVerifikasiDone = ['rekap_ready', 'completed'].includes(s || '')
   const isRekapActive = s === 'rekap_ready'
   const isRekapDone = s === 'completed'
@@ -41,7 +41,7 @@ const steps = computed(() => {
       desc: 'Diverifikasi admin, lalu penyelia',
       icon: 'check',
       status: !ba.value ? 'inactive' : (isVerifikasiDone ? 'done' : isVerifikasiActive ? 'active' : 'inactive'),
-      badge: ba.value ? (s === 'admin_verified' ? 'Diverifikasi Admin' : s === 'penyelia_verified' ? 'Diverifikasi Penyelia' : '') : '',
+      badge: ba.value ? (s === 'admin_verified' ? 'Diverifikasi Admin' : s === 'admin_revisi' ? 'Menunggu Admin' : s === 'penyelia_verified' ? 'Diverifikasi Penyelia' : '') : '',
       badgeType: (ba.value ? (isVerifikasiActive ? 'info' : 'default') : 'default') as BadgeType,
       action: null,
       route: null,

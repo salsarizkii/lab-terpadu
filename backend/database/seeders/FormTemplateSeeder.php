@@ -25,26 +25,27 @@ class FormTemplateSeeder extends Seeder
         );
 
         $baFields = [
-            ['label' => 'Nama Pemohon', 'type' => 'text', 'is_required' => true, 'sort_order' => 0],
+            ['label' => 'Nama Pemohon', 'type' => 'text', 'is_required' => true, 'locked' => true, 'sort_order' => 0],
             ['label' => 'Nim', 'type' => 'text', 'is_required' => false, 'sort_order' => 1],
             ['label' => 'Prodi / Fakultas / Instansi', 'type' => 'text', 'is_required' => false, 'sort_order' => 2],
             ['label' => 'Dosen Pembimbing', 'type' => 'text', 'is_required' => false, 'sort_order' => 3],
             ['label' => 'Telp. /No. HP', 'type' => 'phone', 'is_required' => false, 'sort_order' => 4],
             ['label' => 'Email', 'type' => 'email', 'is_required' => false, 'sort_order' => 5],
             ['label' => 'Alamat', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 6],
-            ['label' => 'Judul (tema) Penelitian', 'type' => 'textarea', 'is_required' => true, 'sort_order' => 7],
+            ['label' => 'Judul (tema) Penelitian', 'type' => 'textarea', 'is_required' => true, 'locked' => true, 'sort_order' => 7],
             ['label' => 'Akses Lab di UPT Lab Terpadu', 'type' => 'select', 'options' => [['label' => 'Ya', 'is_other' => false], ['label' => 'Tidak', 'is_other' => false]], 'is_required' => false, 'sort_order' => 8],
             ['label' => 'Bahan contoh uji / material', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 9],
             ['label' => 'Kemasan (packing)', 'type' => 'text', 'is_required' => false, 'sort_order' => 10],
             ['label' => 'Permintaan Analisa instrumentasi/Metode', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 11],
-            ['label' => 'Jumlah sampel / contoh uji', 'type' => 'number', 'is_required' => false, 'sort_order' => 12],
-            ['label' => 'Kode/Nama Sampel', 'type' => 'text', 'is_required' => false, 'sort_order' => 13],
+            ['label' => 'Jumlah sampel / contoh uji', 'type' => 'number', 'is_required' => false, 'locked' => true, 'sort_order' => 12],
+            ['label' => 'Kode/Nama Sampel', 'type' => 'text', 'is_required' => false, 'locked' => true, 'sort_order' => 13],
             ['label' => 'Keterangan sampel', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 14],
             ['label' => 'Keterangan Tambahan:', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 15],
             ['label' => 'Pengukuran/pengulangan per sampel', 'type' => 'text', 'is_required' => false, 'sort_order' => 16],
             ['label' => 'Sisa sampel setelah pengujian', 'type' => 'text', 'is_required' => false, 'sort_order' => 17],
             ['label' => 'Upload Akses', 'type' => 'file', 'is_required' => false, 'sort_order' => 18],
             ['label' => 'Masa Berlaku Akses', 'type' => 'text', 'is_required' => false, 'sort_order' => 19],
+            ['label' => 'Status pelanggan', 'type' => 'select', 'options' => [['label' => 'Umum', 'is_other' => false], ['label' => 'UNS', 'is_other' => false], ['label' => 'Non-UNS', 'is_other' => false]], 'is_required' => false, 'sort_order' => 20],
         ];
 
         $ba->fields()->delete();
@@ -64,8 +65,10 @@ class FormTemplateSeeder extends Seeder
         );
 
         $raFields = [
-            ['label' => 'Nama File pengujian (contoh format nama file : FTIR_NamaCustomer_NoAgenda)', 'type' => 'text', 'is_required' => true, 'sort_order' => 0],
-            ['label' => 'Keterangan Pengujian (Detail pengujian Replikasi, Jumlah Cawan, Jumlah Pengukuran)', 'type' => 'textarea', 'is_required' => true, 'sort_order' => 1],
+            ['label' => 'Agenda', 'type' => 'text', 'is_required' => true, 'sort_order' => 0],
+            ['label' => 'Jumlah Pengujian (total Replikasi, jumlah cawan, jumlah pengukuran)', 'type' => 'textarea', 'is_required' => false, 'sort_order' => 1],
+            ['label' => 'Nama File pengujian (contoh format nama file : FTIR_NamaCustomer_NoAgenda)', 'type' => 'text', 'is_required' => true, 'sort_order' => 2],
+            ['label' => 'Keterangan Pengujian (Detail pengujian Replikasi, Jumlah Cawan, Jumlah Pengukuran)', 'type' => 'textarea', 'is_required' => true, 'sort_order' => 3],
         ];
 
         $ra->fields()->delete();

@@ -70,6 +70,8 @@ Route::middleware('api.token')->group(function () {
         Route::get('/berita-acara/check-nomor-agenda', [AdminController::class, 'checkNomorAgenda'])
             ->middleware('permission:berita_acara_verify');
         Route::get('/berita-acara/{id}', [AdminController::class, 'beritaAcaraShow']);
+        Route::put('/berita-acara/{id}', [AdminController::class, 'updateBeritaAcara'])
+            ->middleware('permission:berita_acara_verify');
         Route::put('/berita-acara/{id}/status', [AdminController::class, 'updateStatus'])
             ->middleware('permission:berita_acara_verify');
         Route::put('/berita-acara/{id}/nomor-agenda', [AdminController::class, 'updateNomorAgenda'])
@@ -91,6 +93,8 @@ Route::middleware('api.token')->group(function () {
         Route::post('/certificates/{beritaAcara}/upload', [CertificateController::class, 'upload'])
             ->middleware('permission:certificate_upload');
         Route::delete('/certificates/{beritaAcara}', [CertificateController::class, 'remove'])
+            ->middleware('permission:certificate_upload');
+        Route::get('/certificates/template-download', [CertificateController::class, 'downloadTemplate'])
             ->middleware('permission:certificate_upload');
         Route::get('/samples', [AdminController::class, 'sampleIndex']);
         Route::put('/samples/{id}/mark-taken', [AdminController::class, 'markSampleTaken'])

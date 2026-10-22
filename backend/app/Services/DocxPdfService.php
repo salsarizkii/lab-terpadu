@@ -329,7 +329,7 @@ class DocxPdfService
                     . ' --headless=new --disable-gpu --no-sandbox --no-first-run'
                     . ' --no-default-browser-check --disable-extensions'
                     . ' --disable-background-networking --no-pdf-header-footer'
-                    . ' --virtual-time-budget=60000'
+                    . ' --virtual-time-budget=20000'
                     . ' --user-data-dir=' . escapeshellarg($workDir . '/prof')
                     . ' --print-to-pdf=' . escapeshellarg($pdfPath)
                     . ' ' . escapeshellarg($url) . ' 2>&1';

@@ -164,7 +164,7 @@ async function handleSubmit() {
           </div>
           <div class="revision-notice__content">
             <div class="revision-notice__title">Catatan dari Admin</div>
-            <div class="revision-notice__note">{{ item.revisions[item.revisions.length - 1].note }}</div>
+            <div class="revision-notice__note">{{ item.revisions[0].note }}</div>
           </div>
         </div>
 

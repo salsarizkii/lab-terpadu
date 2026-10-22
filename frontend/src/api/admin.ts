@@ -24,6 +24,14 @@ export const adminApi = {
     return data.data || data
   },
 
+  async updateBeritaAcara(id: number, formData: FormData): Promise<BeritaAcara> {
+    formData.append('_method', 'PUT')
+    const { data } = await api.post(`/admin/berita-acara/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data.data || data
+  },
+
   async checkNomorAgenda(nomor: string, ignoreId?: number): Promise<{ available: boolean }> {
     const { data } = await api.get<{ available: boolean }>('/admin/berita-acara/check-nomor-agenda', {
       params: { nomor, ignore_id: ignoreId },

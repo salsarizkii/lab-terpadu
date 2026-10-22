@@ -10,26 +10,21 @@ const props = withDefaults(defineProps<{
   targetStatus: string
   approveLabel?: string
   showRevision?: boolean
-  showReject?: boolean
 }>(), {
   showRevision: true,
-  showReject: true,
 })
 
 const emit = defineEmits<{
-  verify: [data: { status: string; sample_answer?: 'sudah' | 'belum' | null }]
+  verify: [data: { status: string; sample_answer?: 'sudah' | 'belum' | null; note?: string }]
   revision: [note: string]
-  reject: [note: string]
 }>()
 
 const showVerify = ref(false)
 const showRevisionModal = ref(false)
-const showRejectModal = ref(false)
 const revisionNote = ref('')
-const rejectNote = ref('')
 const saving = ref(false)
 const showConfirmVerify = ref(false)
-const pendingVerify = ref<{ status: string } | null>(null)
+const pendingVerify = ref<{ status: string; note?: string } | null>(null)
 const sampleAnswer = ref<'sudah' | 'belum' | null>(null)
 
 const isForwardToAnalis = computed(() => props.targetStatus === 'penyelia_verified')
@@ -43,13 +38,13 @@ const canAct = computed(() => {
     : s === 'rekap_ready'
 })
 
-const rejectDescription = computed(() =>
+const revisionDescription = computed(() =>
   props.targetStatus === 'penyelia_verified'
-    ? 'Berita acara akan dikembalikan ke admin untuk diperbaiki. Tuliskan alasan penolakan.'
-    : 'Berita acara akan ditolak permanen. Tuliskan alasan penolakan.'
+    ? 'Berita acara akan dikembalikan ke admin untuk diperbaiki. Tuliskan bagian mana yang perlu diperbaiki.'
+    : 'Tuliskan bagian mana yang perlu diperbaiki oleh pemohon.'
 )
 
-function onVerify(data: { status: string }) {
+function onVerify(data: { status: string; note?: string }) {
   saving.value = false
   showVerify.value = false
   if (isForwardToAnalis.value) {
@@ -97,17 +92,6 @@ function submitRevision() {
     showRevisionModal.value = false
   }
 }
-
-function submitReject() {
-  if (!rejectNote.value.trim()) return
-  saving.value = true
-  try {
-    emit('reject', rejectNote.value.trim())
-  } finally {
-    saving.value = false
-    showRejectModal.value = false
-  }
-}
 </script>
 
 <template>
@@ -127,17 +111,6 @@ function submitReject() {
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       Perlu Perbaikan
     </Button>
-
-    <Button
-      v-if="showReject !== false"
-      block
-      variant="danger"
-      :disabled="!canAct || saving"
-      @click="showRejectModal = true"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      Tolak
-    </Button>
   </div>
 
   <!-- Verifikasi Modal -->
@@ -153,7 +126,7 @@ function submitReject() {
   <!-- Konfirmasi Kirim ke Analis Modal -->
   <Modal v-if="isForwardToAnalis" :show="showConfirmVerify" title="Konfirmasi Setujui & Kirim ke Analis" size="sm" :closable="false">
     <p class="confirm-question">Apakah Anda yakin ingin menyetujui dan meneruskan berita acara ini ke analis?</p>
-    <div class="sample-question">
+    <div v-if="!beritaAcara.sample_submitted" class="sample-question">
       <p class="sample-question__label">
         Apakah sampel sudah diterima lab?
         <span class="sample-question__optional">(opsional)</span>
@@ -178,7 +151,7 @@ function submitReject() {
   <!-- Revision Modal -->
   <Modal :show="showRevisionModal" title="Perlu Perbaikan" size="sm" @close="showRevisionModal = false">
     <div class="revision-form">
-      <p class="revision-desc">Tuliskan bagian mana yang perlu diperbaiki oleh pemohon.</p>
+      <p class="revision-desc">{{ revisionDescription }}</p>
       <textarea
         v-model="revisionNote"
         class="revision-textarea"
@@ -191,23 +164,6 @@ function submitReject() {
       <Button variant="danger" :loading="saving" :disabled="!revisionNote.trim()" @click="submitRevision">
         Ajukan Perbaikan
       </Button>
-    </template>
-  </Modal>
-
-  <!-- Reject Modal -->
-  <Modal :show="showRejectModal" title="Tolak Berita Acara" size="sm" @close="showRejectModal = false">
-    <div class="revision-form">
-      <p class="revision-desc">{{ rejectDescription }}</p>
-      <textarea
-        v-model="rejectNote"
-        class="revision-textarea"
-        rows="4"
-        placeholder="Alasan menolak berita acara ini..."
-      />
-    </div>
-    <template #footer>
-      <Button variant="secondary" @click="showRejectModal = false">Batal</Button>
-      <Button variant="danger" :loading="saving" :disabled="!rejectNote.trim()" @click="submitReject">Ya, Tolak</Button>
     </template>
   </Modal>
 </template>

@@ -7,6 +7,7 @@ export const baStatusMap: Record<string, string> = {
   pending: 'Menunggu Admin',
   revision: 'Revisi',
   admin_verified: 'Diverifikasi Admin',
+  admin_revisi: 'Admin Revisi',
   penyelia_verified: 'Diverifikasi Penyelia',
   rekap_ready: 'Menunggu Manager Teknis',
   completed: 'Selesai',
@@ -18,6 +19,7 @@ export const baStatusTypeMap: Record<string, BadgeType> = {
   pending: 'warning',
   revision: 'warning',
   admin_verified: 'info',
+  admin_revisi: 'warning',
   penyelia_verified: 'info',
   rekap_ready: 'warning',
   completed: 'success',
@@ -26,7 +28,7 @@ export const baStatusTypeMap: Record<string, BadgeType> = {
 
 /** Status BA yang sedang berjalan (bukan draft/rejected/selesai) */
 export function isBaActive(status: BeritaAcaraStatus): boolean {
-  return ['pending', 'revision', 'admin_verified', 'penyelia_verified', 'rekap_ready'].includes(status)
+  return ['pending', 'revision', 'admin_verified', 'admin_revisi', 'penyelia_verified', 'rekap_ready'].includes(status)
 }
 
 /** Status BA yang bisa dihapus user (hanya draft) */

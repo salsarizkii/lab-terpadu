@@ -132,6 +132,20 @@ async function handleDownload(certificateId: number) {
   }
 }
 
+async function handleDownloadTemplate() {
+  try {
+    const blob = await certificateApi.downloadTemplate()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'template_sertifikat.docx'
+    a.click()
+    window.URL.revokeObjectURL(url)
+  } catch {
+    toast.error('Gagal mengunduh template sertifikat')
+  }
+}
+
 async function confirmUpload() {
   if (!selectedItem.value || !selectedFile.value) return
   busy.value = true
@@ -296,6 +310,10 @@ function switchToUpload() {
                 />
               </label>
               <span class="dropzone__hint">PDF, JPG, PNG — maks 10MB</span>
+              <button class="dropzone__template" @click.prevent="handleDownloadTemplate">
+                <Download :size="13" />
+                Download Template SHP
+              </button>
             </template>
 
             <div v-else class="dropzone-filled">
@@ -543,6 +561,26 @@ function switchToUpload() {
   margin-top: 6px;
   font-size: 11px;
   color: #94a3b8;
+}
+
+.dropzone__template {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.dropzone__template:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .preview-box {

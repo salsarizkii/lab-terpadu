@@ -21,36 +21,54 @@ class CostCalculationService
     {
         $values = [];
 
-        // Get selected instruments from "Metode/Instrumen" checkbox field
-        // Search in both form_data and rekap_analis_data
-        $selectedInstruments = [];
         $formData = $beritaAcara->form_data ?? [];
         $rekapData = $beritaAcara->rekap_analis_data ?? [];
 
-        // Find the checkbox field that contains instrument selections
-        // It stores an array like ["Analisis Sukrosa (Luff Shrool)", "XRF"]
+        // Pre-fetch semua harga instrumen dalam 1 query (dulu 1 query per nama/id).
+        $prices = InstrumentPrice::query()
+            ->get(['id', 'name', 'price_regular', 'sort_order']);
+        $pricesByName = $prices->keyBy('name');
+        $pricesById = $prices->keyBy('id');
+
+        // Pre-fetch semua FormField yang direferensikan oleh data form dalam 1 query
+        // (dulu FormField::find() per key → N+1).
+        $fieldIds = [];
         foreach ([$formData, $rekapData] as $data) {
-            foreach ($data as $fieldKey => $fieldValue) {
-                if (is_array($fieldValue) && !empty($fieldValue)) {
-                    // Check if any value matches an instrument name
-                    foreach ($fieldValue as $v) {
-                        if (is_string($v) && InstrumentPrice::where('name', $v)->exists()) {
-                            $selectedInstruments = array_merge($selectedInstruments, $fieldValue);
-                            break 2;
-                        }
+            foreach (array_keys($data) as $fieldKey) {
+                if (is_string($fieldKey) && str_starts_with($fieldKey, 'field_')) {
+                    $fieldIds[] = (int) substr($fieldKey, 6);
+                }
+            }
+        }
+        $fieldsById = FormField::whereIn('id', array_values(array_unique($fieldIds)))
+            ->get()
+            ->keyBy('id');
+
+        // Get selected instruments from "Metode/Instrumen" checkbox field
+        // Search in both form_data and rekap_analis_data
+        $selectedInstruments = [];
+        foreach ([$formData, $rekapData] as $data) {
+            foreach ($data as $fieldValue) {
+                if (!is_array($fieldValue) || empty($fieldValue)) {
+                    continue;
+                }
+                // Check if any value matches an instrument name
+                foreach ($fieldValue as $v) {
+                    if (is_string($v) && $pricesByName->has($v)) {
+                        $selectedInstruments = array_merge($selectedInstruments, $fieldValue);
+                        break 2;
                     }
                 }
             }
         }
-        $selectedInstruments = array_unique($selectedInstruments);
+        $selectedInstruments = array_values(array_unique($selectedInstruments));
 
         // Index instruments by their order (0-based)
         $instrumentPrices = [];
         foreach ($selectedInstruments as $idx => $instrumentName) {
-            $price = InstrumentPrice::where('name', $instrumentName)->value('price_regular');
             $instrumentPrices[$idx] = [
                 'name' => $instrumentName,
-                'price' => (float) ($price ?? 0),
+                'price' => (float) ($pricesByName->get($instrumentName)?->price_regular ?? 0),
             ];
         }
 
@@ -66,8 +84,7 @@ class CostCalculationService
 
                 if ($instrumentId) {
                     // Specific instrument ID assigned
-                    $price = InstrumentPrice::where('id', $instrumentId)->value('price_regular');
-                    $values[$key] = (float) ($price ?? 0);
+                    $values[$key] = (float) ($pricesById->get($instrumentId)?->price_regular ?? 0);
                 } else {
                     // Match by order: "Instrumen 1" → index 0, "Instrumen 2" → index 1, etc.
                     $orderMatch = preg_match('/(\d+)$/', $label, $matches);
@@ -76,17 +93,12 @@ class CostCalculationService
                         $values[$key] = $instrumentPrices[$idx]['price'] ?? 0;
                     } else {
                         // Try matching by name directly
-                        $price = InstrumentPrice::where('name', $label)->value('price_regular');
-                        $values[$key] = (float) ($price ?? 0);
+                        $values[$key] = (float) ($pricesByName->get($label)?->price_regular ?? 0);
                     }
                 }
             } else {
                 // Form field variables: resolve from form_data or rekap_analis_data
-                if ($source === 'rekap_analis') {
-                    $rawValue = $this->resolveFormValue($beritaAcara, $beritaAcara->rekap_analis_data ?? [], $formFieldId, $var['label'] ?? null);
-                } else {
-                    $rawValue = $this->resolveFormValue($beritaAcara, $beritaAcara->form_data ?? [], $formFieldId, $var['label'] ?? null);
-                }
+                $rawValue = $this->resolveFormValue($beritaAcara, $source === 'rekap_analis' ? $rekapData : $formData, $formFieldId, $var['label'] ?? null, $fieldsById);
                 // Try numeric conversion, fallback to 0
                 $values[$key] = is_numeric($rawValue) ? (float) $rawValue : (float) ($beritaAcara->{$key} ?? 0);
             }
@@ -103,7 +115,7 @@ class CostCalculationService
      * berita acara tidak lagi punya key field_{id_lama}. Fallback mencocokkan
      * label field (persis dulu, lalu sebagian) terhadap key field_* yang ada.
      */
-    private function resolveFormValue(BeritaAcara $beritaAcara, array $data, ?int $formFieldId, ?string $label): mixed
+    private function resolveFormValue(BeritaAcara $beritaAcara, array $data, ?int $formFieldId, ?string $label, \Illuminate\Support\Collection $fieldsById): mixed
     {
         if ($formFieldId !== null && array_key_exists('field_' . $formFieldId, $data)) {
             return $data['field_' . $formFieldId];
@@ -115,14 +127,14 @@ class CostCalculationService
             // Pass 1: label persis
             foreach ($data as $key => $value) {
                 if (!is_string($key) || !str_starts_with($key, 'field_')) continue;
-                $field = FormField::find((int) substr($key, 6));
+                $field = $fieldsById->get((int) substr($key, 6));
                 if ($field && mb_strtolower(trim($field->label)) === $needle) return $value;
             }
 
             // Pass 2: label mengandung sebagian
             foreach ($data as $key => $value) {
                 if (!is_string($key) || !str_starts_with($key, 'field_')) continue;
-                $field = FormField::find((int) substr($key, 6));
+                $field = $fieldsById->get((int) substr($key, 6));
                 if (!$field) continue;
                 $fieldLabel = mb_strtolower(trim($field->label));
                 if (str_contains($needle, $fieldLabel) || str_contains($fieldLabel, $needle)) return $value;

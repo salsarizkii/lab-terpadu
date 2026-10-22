@@ -75,7 +75,14 @@ class BeritaAcaraController extends Controller
 
     public function show($id)
     {
-        $query = BeritaAcara::with(['revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']);
+        $query = BeritaAcara::with([
+            'revisions',
+            'payment',
+            'samples',
+            'certificate',
+            'activityLogs' => fn ($q) => $q->where('action', '!=', 'admin_revision'),
+            'activityLogs.user',
+        ]);
 
         if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
             $query->where('user_id', auth()->id());

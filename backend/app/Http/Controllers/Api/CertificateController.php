@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\Certificate;
+use App\Models\PdfTemplate;
 use App\Services\ActivityLogService;
+use App\Services\PdfGeneratorService;
+use Database\Seeders\PdfTemplateSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,6 +41,41 @@ class CertificateController extends Controller
         }
 
         return response()->download($path);
+    }
+
+    /**
+     * Download template SHP (sertifikat) dalam format Word (.docx).
+     * GET /admin/certificates/template-download
+     */
+    public function downloadTemplate()
+    {
+        $template = PdfTemplate::where('type', 'sertifikat')->first();
+        if (!$template) {
+            (new PdfTemplateSeeder())->run();
+            $template = PdfTemplate::where('type', 'sertifikat')->first();
+        }
+
+        $filename = 'template_sertifikat.docx';
+
+        if ($template && $template->docx_path) {
+            $path = storage_path('app/public/' . $template->docx_path);
+            if (file_exists($path)) {
+                return response()->download($path, $filename);
+            }
+        }
+
+        $default = base_path('file/SHP.docx');
+        if (file_exists($default)) {
+            return response()->download($default, $filename);
+        }
+
+        $content = PdfGeneratorService::generateDocxFromHtml($template->html_content ?? '');
+
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
     }
 
     /**

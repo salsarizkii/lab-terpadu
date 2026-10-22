@@ -139,6 +139,35 @@ Superadmin:
 - Tidak bisa dihapus atau diubah rolenya
 - Punya akses penuh implisit (tidak bergantung pada permission role)
 
+### Override Verifikasi (Penyelia & Manager Teknis)
+
+`ApiTokenMiddleware`/`PermissionMiddleware` sudah bypass superadmin, tapi controller
+`VerificationController::ensureRole()` dulu masih hard-check role. Sekarang `ensureRole()`
+selalu mengizinkan superadmin, sehingga superadmin dapat:
+
+- Membuka & memproses antrian `/penyelia/berita-acara` dan `/manager-teknis/berita-acara`
+- Melakukan verifikasi dari halaman detail BA admin (panel "Override Super Admin") saat
+  status `admin_verified` (tahap penyelia) atau `rekap_ready` (tahap manager teknis)
+
+Aksi override ditandai `(override superadmin)` di ActivityLog. Nama petugas pada
+PDF/DOCX (`{{ nama_penyelia }}`, `{{ nama_manager_teknis }}`) tetap memakai petugas
+asli yang ditugaskan; verifikator superadmin hanya dipakai sebagai fallback bila
+tidak ada penugasan.
+
+### Switch Role ("Aktif sebagai") — Frontend
+
+Dropdown user di Navbar memiliki bagian "Aktif sebagai" (hanya untuk akun superadmin).
+Konsep seperti memilih channel pada satu akun: akun tetap superadmin (login + backend
+bypass tidak berubah), tapi tampilan mengikuti role yang dipilih.
+
+- `authStore`: `activeRole` (persisted di localStorage), `rolePermissions` (snapshot dari
+  `GET /admin/roles`, di-refresh setiap dropdown dibuka), dan `effectiveRole`
+- `hasPermission()` memakai permission role aktif saat superadmin di-switch; saat aktif
+  sebagai `superadmin` tetap bypass penuh
+- Menu sidebar, redirect `/dashboard`, guard route (`superadminOnly`), label role, dan
+  panel aksi mengikuti role aktif
+- Logout / login non-superadmin mereset switch (localStorage dibersihkan)
+
 ## Permission Dependencies (AdminRoles.vue)
 
 Permission dependen nonaktif (disabled) sampai prerequisite-nya dicentang:

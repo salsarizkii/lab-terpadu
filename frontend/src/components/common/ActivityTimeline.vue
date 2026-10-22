@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Eye } from '@lucide/vue'
 import type { ActivityLog } from '../../types'
 import Badge from '../common/Badge.vue'
+import Modal from '../common/Modal.vue'
 import { formatDateTime } from '../../utils/date'
 
 const props = defineProps<{
@@ -13,6 +15,14 @@ const props = defineProps<{
 
 const showAll = ref(false)
 const displayedLogs = computed(() => (showAll.value ? props.logs : props.logs.slice(0, 2)))
+
+const selectedLog = ref<ActivityLog | null>(null)
+const detailOpen = ref(false)
+
+function openDetail(log: ActivityLog) {
+  selectedLog.value = log
+  detailOpen.value = true
+}
 
 const emit = defineEmits<{
   detail: [log: ActivityLog]
@@ -61,11 +71,14 @@ const ACTION_META: Record<string, { label: string; type: 'success' | 'warning' |
   verified: { label: 'Diverifikasi', type: 'success' },
   admin_verified: { label: 'Diverifikasi Admin', type: 'success' },
   penyelia_verified: { label: 'Diverifikasi Penyelia', type: 'success' },
+  penyelia_note: { label: 'Catatan Penyelia untuk Analis', type: 'info' },
   rekap_verified: { label: 'Diverifikasi Manager Teknis', type: 'success' },
   completed: { label: 'Berita Acara Selesai', type: 'success' },
   revision_requested: { label: 'Revisi Diminta', type: 'warning' },
+  admin_revision: { label: 'Dikembalikan ke Admin', type: 'warning' },
   rejected: { label: 'Ditolak', type: 'danger' },
   nomor_agenda: { label: 'Nomor Agenda', type: 'info' },
+  edited: { label: 'Data Berita Acara Diedit', type: 'info' },
   analyst_assigned: { label: 'Analis Ditugaskan', type: 'info' },
   penyelia_assigned: { label: 'Penyelia Ditugaskan', type: 'info' },
   manager_teknis_assigned: { label: 'Manager Teknis Ditugaskan', type: 'info' },
@@ -75,6 +88,7 @@ const ACTION_META: Record<string, { label: string; type: 'success' | 'warning' |
   berkas_ulang_updated: { label: 'Upload Berkas Ulang Diperbarui', type: 'info' },
   berkas_ulang_removed: { label: 'Upload Berkas Ulang Dihapus', type: 'warning' },
   sample_taken: { label: 'Sampel Diambil', type: 'success' },
+  sample_submitted: { label: 'Sampel Diserahkan', type: 'success' },
   sample_ready: { label: 'Hasil Siap Diambil', type: 'success' },
   sample_updated: { label: 'Hasil Pengujian Diperbarui', type: 'info' },
   pengujian_saved: { label: 'Laporan Pengujian Disimpan', type: 'info' },
@@ -142,9 +156,19 @@ function roleLabel(role?: string) {
           <div class="activity-timeline__row">
             <Badge :type="meta(log).type" :text="meta(log).label" size="sm" />
             <div class="activity-timeline__right">
-              <span class="activity-timeline__time">
-                {{ formatDateTime(log.created_at) }}
-              </span>
+              <div class="activity-timeline__meta">
+                <span class="activity-timeline__time">
+                  {{ formatDateTime(log.created_at) }}
+                </span>
+                <button
+                  class="activity-timeline__eye"
+                  type="button"
+                  title="Lihat detail aktivitas"
+                  @click="openDetail(log)"
+                >
+                  <Eye :size="14" stroke-width="1.75" />
+                </button>
+              </div>
               <div v-if="showActions(log)" class="activity-timeline__actions">
                 <button
                   v-if="showDetailButton(log)"
@@ -183,6 +207,39 @@ function roleLabel(role?: string) {
     >
       {{ showAll ? 'Sembunyikan' : `Lihat semua riwayat aktivitas (${logs.length})` }}
     </button>
+
+    <Modal
+      :show="detailOpen"
+      title="Detail Aktivitas"
+      size="sm"
+      @close="detailOpen = false"
+    >
+      <div v-if="selectedLog" class="activity-detail">
+        <div class="activity-detail__row">
+          <span class="activity-detail__label">Aktivitas</span>
+          <Badge :type="meta(selectedLog).type" :text="meta(selectedLog).label" size="sm" />
+        </div>
+        <div class="activity-detail__row">
+          <span class="activity-detail__label">Waktu</span>
+          <span class="activity-detail__value">{{ formatDateTime(selectedLog.created_at) }}</span>
+        </div>
+        <div v-if="selectedLog.description" class="activity-detail__row activity-detail__row--col">
+          <span class="activity-detail__label">Deskripsi</span>
+          <span class="activity-detail__value">{{ selectedLog.description }}</span>
+        </div>
+        <div class="activity-detail__row activity-detail__row--col">
+          <span class="activity-detail__label">Pelaku</span>
+          <div v-if="selectedLog.user" class="activity-detail__actor">
+            <div class="activity-detail__value">
+              <span class="activity-detail__name">{{ selectedLog.user.name }}</span>
+              <span class="activity-detail__email">{{ selectedLog.user.email }}</span>
+            </div>
+            <span class="activity-detail__role">role: {{ roleLabel(selectedLog.user?.role) }}</span>
+          </div>
+          <span v-else class="activity-detail__value">Sistem</span>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -256,6 +313,32 @@ function roleLabel(role?: string) {
 .activity-timeline__time {
   font-size: 12px;
   color: var(--color-text-muted, #94a3b8);
+}
+
+.activity-timeline__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activity-timeline__eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: #fff;
+  color: var(--color-text-muted, #94a3b8);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.activity-timeline__eye:hover {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 
 .activity-timeline__actions {
@@ -344,5 +427,70 @@ function roleLabel(role?: string) {
 .activity-timeline__toggle:hover {
   background: #eff6ff;
   border-color: #bfdbfe;
+}
+
+.activity-detail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.activity-detail__row:last-child {
+  border-bottom: none;
+}
+
+.activity-detail__row--col {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.activity-detail__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.activity-detail__value {
+  font-size: 13px;
+  color: var(--color-text, #0f172a);
+  text-align: right;
+}
+
+.activity-detail__row--col .activity-detail__value {
+  text-align: left;
+}
+
+.activity-detail__actor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.activity-detail__name {
+  font-weight: 600;
+}
+
+.activity-detail__email {
+  display: block;
+  color: var(--color-text-secondary, #475569);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.activity-detail__role {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: var(--color-info-bg, #e0e7ff);
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 500;
 }
 </style>

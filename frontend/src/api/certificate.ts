@@ -9,6 +9,13 @@ export const certificateApi = {
     return data
   },
 
+  async downloadTemplate(): Promise<Blob> {
+    const { data } = await api.get<Blob>('/admin/certificates/template-download', {
+      responseType: 'blob',
+    })
+    return data
+  },
+
   async upload(beritaAcaraId: number, file: File): Promise<Certificate> {
     const formData = new FormData()
     formData.append('certificate', file)

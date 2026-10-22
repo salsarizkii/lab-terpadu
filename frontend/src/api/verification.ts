@@ -13,7 +13,7 @@ export const verificationApi = {
     return data
   },
 
-  async penyeliaVerify(id: number, payload: { status: 'penyelia_verified' | 'revision' | 'rejected'; note?: string }): Promise<BeritaAcara> {
+  async penyeliaVerify(id: number, payload: { status: 'penyelia_verified' | 'revision' | 'rejected'; note?: string; sample_answer?: 'sudah' | 'belum' | null }): Promise<BeritaAcara> {
     const { data } = await api.put(`/penyelia/berita-acara/${id}/status`, payload)
     return data.data || data
   },

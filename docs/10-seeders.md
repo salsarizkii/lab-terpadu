@@ -245,26 +245,29 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 
 | # | Label | Type | Required | Locked |
 |---|---|---|---|---|
-| 0 | Informasi Pemohon | heading | No | No |
-| 1 | Nama Pemohon | text | **Yes** | No |
-| 2 | NIM | text | No | No |
-| 3 | Prodi / Fakultas / Instansi | text | No | No |
-| 4 | Dosen Pembimbing | text | No | No |
-| 5 | No. Telp / HP | phone | No | No |
-| 6 | Email | email | No | No |
-| 7 | Alamat | textarea | No | No |
-| 8 | Informasi Penelitian | heading | No | No |
-| 9 | Judul Penelitian | textarea | **Yes** | **Yes** |
-| 10 | Akses Lab | textarea | No | No |
-| 11 | Bahan / Contoh Uji | textarea | No | No |
-| 12 | Kemasan / Packing | textarea | No | No |
-| 13 | Metode / Instrumen | text | No | No |
-| 14 | Jumlah Hasil Pengujian | number | No | No |
-| 15 | Kode / Nama Hasil Pengujian | text | No | No |
-| 16 | Keterangan Hasil Pengujian | textarea | No | No |
-| 17 | Keterangan Tambahan | textarea | No | No |
+| 0 | Nama Pemohon | text | **Yes** | **Yes** (kolom "Pemohon" di tabel) |
+| 1 | NIM | text | No | No |
+| 2 | Prodi / Fakultas / Instansi | text | No | No |
+| 3 | Dosen Pembimbing | text | No | No |
+| 4 | Telp. /No. HP | phone | No | No |
+| 5 | Email | email | No | No |
+| 6 | Alamat | textarea | No | No |
+| 7 | Judul (tema) Penelitian | textarea | **Yes** | **Yes** (kolom "Judul Penelitian" di tabel) |
+| 8 | Akses Lab di UPT Lab Terpadu | select (Ya/Tidak) | No | No |
+| 9 | Bahan contoh uji / material | textarea | No | No |
+| 10 | Kemasan (packing) | text | No | No |
+| 11 | Permintaan Analisa instrumentasi/Metode | textarea | No | No |
+| 12 | Jumlah sampel / contoh uji | number | No | **Yes** (kolom "Jumlah" di tabel) |
+| 13 | Kode/Nama Sampel | text | No | **Yes** (kolom "Nama Hasil Pengujian" di tabel) |
+| 14 | Keterangan sampel | textarea | No | No |
+| 15 | Keterangan Tambahan: | textarea | No | No |
+| 16 | Pengukuran/pengulangan per sampel | text | No | No |
+| 17 | Sisa sampel setelah pengujian | text | No | No |
+| 18 | Upload Akses | file | No | No |
+| 19 | Masa Berlaku Akses | text | No | No |
+| 20 | Status pelanggan | select (Umum/UNS/Non-UNS) | No | No |
 
-> **`locked: true`** pada "Judul Penelitian" — field ini tidak bisa dihapus/diubah oleh admin di Form Builder.
+> Field yang `locked: true` adalah yang tampil sebagai kolom di tabel-tabel daftar (Berita Acara, Pembayaran, Hasil Pengujian): Nama Pemohon, Judul Penelitian, Jumlah Sampel, Kode/Nama Sampel. Sisanya customisable di Form Builder.
 
 ### 5.2 Template Rekap Analis (`type: rekap_analis`)
 
@@ -272,21 +275,14 @@ Fields hanya dibuat jika `$template->fields()->count() === 0` — idempotent.
 |---|---|
 | Description | Formulir standar untuk rekap data hasil analis |
 
-| # | Label | Type | Required |
-|---|---|---|---|
-| 0 | Informasi Analis | heading | No |
-| 1 | Nama Analis | text | **Yes** |
-| 2 | Lab / Unit | text | No |
-| 3 | Tanggal Pengujian | date | **Yes** |
-| 4 | Data Hasil Pengujian | heading | No |
-| 5 | Kode Hasil Pengujian | text | **Yes** |
-| 6 | Jenis Hasil Pengujian | text | No |
-| 7 | Jumlah Hasil Pengujian | number | No |
-| 8 | Hasil Pengujian | heading | No |
-| 9 | Parameter Uji | text | **Yes** |
-| 10 | Metode Pengujian | text | No |
-| 11 | Hasil | textarea | **Yes** |
-| 12 | Keterangan | textarea | No |
+| # | Label | Type | Required | Locked |
+|---|---|---|---|---|
+| 0 | Agenda | text | **Yes** (auto-fill dari nomor agenda berita acara) | No |
+| 1 | Jumlah Pengujian (total Replikasi, jumlah cawan, jumlah pengukuran) | textarea | No | No |
+| 2 | Nama File pengujian (contoh format nama file : FTIR_NamaCustomer_NoAgenda) | text | **Yes** | No |
+| 3 | Keterangan Pengujian (Detail pengujian Replikasi, Jumlah Cawan, Jumlah Pengukuran) | textarea | **Yes** | No |
+
+> Catatan: field "Nama" dan "Nama Pengujian" tidak diduplikasi di rekap analis karena sudah tersedia di berita acara ("Nama Pemohon" dan instrumen pada form berita acara). Form rekap analis menggabungkan data berita acara + field tambahan di atas.
 
 ### 5.3 Template Perhitungan Biaya (`type: perhitungan_biaya`)
 

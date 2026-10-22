@@ -9,13 +9,18 @@ import Button from '../components/common/Button.vue'
 import Modal from '../components/common/Modal.vue'
 import BeritaAcaraDetailView from '../components/admin/BeritaAcaraDetailView.vue'
 import BeritaAcaraVerification from '../components/admin/BeritaAcaraVerification.vue'
+import VerificationPanel from '../components/admin/VerificationPanel.vue'
 import AnalystAssignment from '../components/admin/AnalystAssignment.vue'
 import UserAssignList from '../components/admin/UserAssignList.vue'
 import FormTextarea from '../components/common/FormTextarea.vue'
+import FormInput from '../components/common/FormInput.vue'
+import DynamicForm from '../components/common/DynamicForm.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import DownloadMenu from '../components/common/DownloadMenu.vue'
 import { adminApi } from '../api/admin'
+import { verificationApi } from '../api/verification'
 import { formTemplateApi } from '../api/formTemplate'
+import { uploadApi } from '../api/upload'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara, User, FormField } from '../types'
 import { toast } from 'vue-sonner'
@@ -23,6 +28,42 @@ import { toast } from 'vue-sonner'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+type LegacyEditKey =
+  | 'nama_pemohon' | 'nim' | 'prodi_fakultas_instansi' | 'dosen_pembimbing'
+  | 'telp_hp' | 'email' | 'alamat' | 'judul_penelitian' | 'akses_lab'
+  | 'bahan_contoh_uji' | 'kemasan_packing' | 'permintaan_analisa'
+  | 'jumlah_sampel' | 'kode_nama_sampel' | 'keterangan_sampel'
+  | 'keterangan_tambahan' | 'pengukuran_per_sampel' | 'sisa_sampel'
+
+const legacyEditFields: { key: LegacyEditKey; label: string; type: 'text' | 'textarea' }[] = [
+  { key: 'nama_pemohon', label: 'Nama Pemohon', type: 'text' },
+  { key: 'nim', label: 'NIM', type: 'text' },
+  { key: 'prodi_fakultas_instansi', label: 'Prodi/Fakultas/Instansi', type: 'text' },
+  { key: 'dosen_pembimbing', label: 'Dosen Pembimbing', type: 'text' },
+  { key: 'telp_hp', label: 'Telp/No. HP', type: 'text' },
+  { key: 'email', label: 'Email', type: 'text' },
+  { key: 'alamat', label: 'Alamat', type: 'textarea' },
+  { key: 'judul_penelitian', label: 'Judul Penelitian', type: 'text' },
+  { key: 'akses_lab', label: 'Akses Lab', type: 'text' },
+  { key: 'bahan_contoh_uji', label: 'Bahan Contoh Uji', type: 'text' },
+  { key: 'kemasan_packing', label: 'Kemasan/Packing', type: 'text' },
+  { key: 'permintaan_analisa', label: 'Metode / Instrumen', type: 'textarea' },
+  { key: 'jumlah_sampel', label: 'Jumlah Hasil Pengujian', type: 'text' },
+  { key: 'kode_nama_sampel', label: 'Kode/Nama Hasil Pengujian', type: 'text' },
+  { key: 'keterangan_sampel', label: 'Keterangan Hasil Pengujian', type: 'textarea' },
+  { key: 'keterangan_tambahan', label: 'Keterangan Tambahan', type: 'textarea' },
+  { key: 'pengukuran_per_sampel', label: 'Pengukuran per Hasil Pengujian', type: 'text' },
+  { key: 'sisa_sampel', label: 'Sisa Hasil Pengujian Setelah Pengujian', type: 'text' },
+]
+
+const legacyEditDefaults: Record<LegacyEditKey, string> = {
+  nama_pemohon: '', nim: '', prodi_fakultas_instansi: '', dosen_pembimbing: '',
+  telp_hp: '', email: '', alamat: '', judul_penelitian: '', akses_lab: '',
+  bahan_contoh_uji: '', kemasan_packing: '', permintaan_analisa: '',
+  jumlah_sampel: '', kode_nama_sampel: '', keterangan_sampel: '',
+  keterangan_tambahan: '', pengukuran_per_sampel: '', sisa_sampel: '',
+}
 
 const item = ref<BeritaAcara | null>(null)
 const analysts = ref<User[]>([])
@@ -36,14 +77,18 @@ const savingManagerTeknis = ref(false)
 const showVerification = ref(false)
 const showRevisionModal = ref(false)
 const revisionNote = ref('')
-const showRejectModal = ref(false)
-const rejectNote = ref('')
 const showRevisionDetail = ref(false)
 const selectedRevision = ref<any>(null)
 const templateFields = ref<FormField[]>([])
 const showAssignForm = ref(false)
 const showPenyeliaForm = ref(false)
 const showManagerTeknisForm = ref(false)
+const showEditModal = ref(false)
+const savingEdit = ref(false)
+const editDynamicRef = ref<InstanceType<typeof DynamicForm> | null>(null)
+const editValues = ref<Record<string, any>>({})
+const legacyEdit = ref<Record<LegacyEditKey, string>>({ ...legacyEditDefaults })
+const agendaInputRef = ref<HTMLInputElement | null>(null)
 const showAssignConfirm = ref(false)
 const pendingAnalystIds = ref<number[]>([])
 const assignNote = ref('')
@@ -55,7 +100,8 @@ let agendaCheckTimer: ReturnType<typeof setTimeout> | null = null
 
 const canVerify = computed(() =>
   item.value &&
-  item.value.status === 'pending' &&
+  ['pending', 'admin_revisi', 'revision'].includes(item.value.status) &&
+  Boolean(item.value.sample_submitted) &&
   Boolean(nomorAgenda.value.trim()) &&
   !checkingAgenda.value &&
   agendaAvailable.value
@@ -131,10 +177,12 @@ function initials(name: string): string {
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Menunggu Admin', revision: 'Perlu Perbaikan', admin_verified: 'Diverifikasi Admin',
+  admin_revisi: 'Admin Revisi',
   penyelia_verified: 'Diverifikasi Penyelia', rekap_ready: 'Menunggu Manager Teknis', completed: 'Selesai', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   draft: 'default', pending: 'warning', revision: 'warning', admin_verified: 'info',
+  admin_revisi: 'warning',
   penyelia_verified: 'info', rekap_ready: 'warning', completed: 'success', rejected: 'danger',
 }
 
@@ -191,6 +239,76 @@ async function handleVerify(data: any) {
     item.value = updated
     showVerification.value = false
     toast.success('Status Berita Acara diperbarui')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handlePenyeliaOverrideVerify(data: { status: string; sample_answer?: 'sudah' | 'belum' | null; note?: string }) {
+  if (!item.value) return
+  const id = item.value.id
+  saving.value = true
+  try {
+    await verificationApi.penyeliaVerify(id, {
+      status: data.status as 'penyelia_verified',
+      note: data.note,
+      sample_answer: data.sample_answer || undefined,
+    })
+    item.value = await adminApi.getBeritaAcaraDetail(id)
+    toast.success('Berita acara disetujui (override penyelia), siap dikerjakan analis')
+    if (data.sample_answer === 'belum') {
+      toast.warning('Jangan lupa update penyerahan sampel di sistem jika sampel sudah diterima.')
+    }
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handlePenyeliaOverrideRevision(note: string) {
+  if (!item.value) return
+  const id = item.value.id
+  saving.value = true
+  try {
+    await verificationApi.penyeliaVerify(id, { status: 'revision', note })
+    item.value = await adminApi.getBeritaAcaraDetail(id)
+    toast.success('Berita acara dikembalikan ke admin untuk diperbaiki (Admin Revisi)')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleManagerOverrideVerify(data: { status: string; note?: string }) {
+  if (!item.value) return
+  const id = item.value.id
+  saving.value = true
+  try {
+    await verificationApi.managerVerify(id, {
+      status: data.status as 'completed',
+      note: data.note,
+    })
+    item.value = await adminApi.getBeritaAcaraDetail(id)
+    toast.success('Rekap disetujui (override manager teknis), berita acara selesai')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleManagerOverrideRevision(note: string) {
+  if (!item.value) return
+  const id = item.value.id
+  saving.value = true
+  try {
+    await verificationApi.managerVerify(id, { status: 'revision', note })
+    item.value = await adminApi.getBeritaAcaraDetail(id)
+    toast.success('Perubahan telah dikirim ke pemohon')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   } finally {
@@ -279,26 +397,71 @@ function openRevisionModal() {
   showRevisionModal.value = true
 }
 
-function openRejectModal() {
-  rejectNote.value = ''
-  showRejectModal.value = true
+const editMode = computed<'template' | 'legacy'>(() =>
+  item.value?.form_template_id && templateFields.value.length > 0 ? 'template' : 'legacy'
+)
+
+function openEdit() {
+  if (!item.value) return
+  editValues.value = {}
+  legacyEdit.value = { ...legacyEditDefaults }
+  for (const f of legacyEditFields) {
+    legacyEdit.value[f.key] = (item.value as any)[f.key] ?? ''
+  }
+  showEditModal.value = true
 }
 
-async function submitReject() {
-  if (!item.value || !rejectNote.value.trim()) return
-  saving.value = true
+function focusAgenda() {
+  agendaInputRef.value?.focus()
+}
+
+async function submitEdit() {
+  if (!item.value) return
+  if (editMode.value === 'template' && editDynamicRef.value) {
+    const result = editDynamicRef.value.validate()
+    if (!result.valid) {
+      const names = result.missingFields.slice(0, 3).join(', ')
+      const extra = result.missingFields.length > 3 ? ` dan ${result.missingFields.length - 3} lainnya` : ''
+      toast.error(`Wajib diisi: ${names}${extra}`)
+      return
+    }
+  }
+  savingEdit.value = true
   try {
-    const updated = await adminApi.updateStatus(item.value.id, {
-      status: 'rejected',
-      rejection_reason: rejectNote.value.trim(),
-    })
+    const fd = new FormData()
+    if (editMode.value === 'template') {
+      const cleaned = { ...editValues.value }
+      let uploadAksesPath: string | null = null
+      for (const [key, value] of Object.entries(cleaned)) {
+        if (value instanceof File) {
+          const uploaded = await uploadApi.uploadFile(value, 'berita-acara')
+          cleaned[key] = uploaded.path
+          const field = templateFields.value.find(f => `field_${f.id}` === key)
+          if (field && (field.label || '').toLowerCase().includes('upload akses')) {
+            uploadAksesPath = uploaded.path
+          }
+        }
+      }
+      fd.append('form_data', JSON.stringify(cleaned))
+      if (item.value.form_template_id) {
+        fd.append('form_template_id', String(item.value.form_template_id))
+      }
+      if (uploadAksesPath) {
+        fd.append('upload_akses', uploadAksesPath)
+      }
+    } else {
+      for (const f of legacyEditFields) {
+        fd.append(f.key, legacyEdit.value[f.key] ?? '')
+      }
+    }
+    const updated = await adminApi.updateBeritaAcara(item.value.id, fd)
     item.value = updated
-    showRejectModal.value = false
-    toast.success('Berita acara ditolak')
+    showEditModal.value = false
+    toast.success('Data berita acara diperbarui')
   } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
+    toast.error(e.response?.data?.message || 'Gagal menyimpan')
   } finally {
-    saving.value = false
+    savingEdit.value = false
   }
 }
 
@@ -388,12 +551,12 @@ function getRevisionDiff(rev: any) {
           <Badge :type="statusTypeMap[item.status]" :text="statusMap[item.status]" />
         </div>
 
-        <div v-if="item.rejection_reason && item.status === 'pending'" class="rejection-banner">
+        <div v-if="item.rejection_reason && ['pending', 'admin_revisi'].includes(item.status)" class="rejection-banner">
           <div class="rejection-banner__icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
           </div>
           <div class="rejection-banner__content">
-            <div class="rejection-banner__title">Dikembalikan oleh Penyelia</div>
+            <div class="rejection-banner__title">Dikembalikan oleh Penyelia — Admin Revisi</div>
             <div class="rejection-banner__note">{{ item.rejection_reason }}</div>
           </div>
         </div>
@@ -401,6 +564,11 @@ function getRevisionDiff(rev: any) {
         <div class="detail-grid">
           <div class="detail-main">
             <Card title="Data Berita Acara">
+              <template #header-action>
+                <button class="card-edit-btn" title="Edit Data Berita Acara" @click="openEdit">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+              </template>
               <BeritaAcaraDetailView :berita-acara="item" />
             </Card>
 
@@ -428,11 +596,22 @@ function getRevisionDiff(rev: any) {
             <Card title="Aksi">
               <div class="action-stack">
                 <template v-if="auth.hasPermission('berita_acara_verify')">
+                  <div v-if="!item.sample_submitted && ['pending', 'admin_revisi', 'revision'].includes(item.status)" class="sample-blocked">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    Sampel belum diserahkan pemohon — verifikasi admin ditunda sampai sampel masuk.
+                  </div>
+
                   <div v-if="!verifiedStatuses.includes(item.status)" class="agenda-field">
-                    <label class="agenda-label" for="nomor-agenda">Nomor Agenda</label>
+                    <div class="agenda-field__header">
+                      <label class="agenda-label" for="nomor-agenda">Nomor Agenda</label>
+                      <button class="agenda-edit-btn" title="Edit Nomor Agenda" @click="focusAgenda">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      </button>
+                    </div>
                     <div class="agenda-input-wrap">
                       <input
                         id="nomor-agenda"
+                        ref="agendaInputRef"
                         v-model="nomorAgenda"
                         class="agenda-input"
                         :class="{ 'agenda-input--checking': checkingAgenda, 'agenda-input--error': !checkingAgenda && !agendaAvailable }"
@@ -464,21 +643,43 @@ function getRevisionDiff(rev: any) {
                     block
                     variant="danger"
                     @click="openRevisionModal"
-                    :disabled="item.status === 'draft' || item.status === 'revision' || verifiedStatuses.includes(item.status)"
+                    :disabled="item.status === 'draft' || verifiedStatuses.includes(item.status)"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                     Perlu Perbaikan
                   </Button>
+                </template>
 
-                  <Button
-                    block
-                    variant="danger"
-                    @click="openRejectModal"
-                    :disabled="item.status === 'draft' || item.status === 'revision' || verifiedStatuses.includes(item.status)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    Tolak
-                  </Button>
+                <template v-if="auth.isSuperAdmin && item.status === 'admin_verified'">
+                  <div class="section-divider">
+                    <div class="override-note">
+                      <strong>Override Super Admin</strong>
+                      <span>Berita acara sudah diverifikasi admin. Anda dapat menyelesaikan verifikasi tahap penyelia dari sini.</span>
+                    </div>
+                    <VerificationPanel
+                      :berita-acara="item"
+                      target-status="penyelia_verified"
+                      approve-label="Setujui (Override Penyelia)"
+                      @verify="handlePenyeliaOverrideVerify"
+                      @revision="handlePenyeliaOverrideRevision"
+                    />
+                  </div>
+                </template>
+
+                <template v-if="auth.isSuperAdmin && item.status === 'rekap_ready'">
+                  <div class="section-divider">
+                    <div class="override-note">
+                      <strong>Override Super Admin</strong>
+                      <span>Rekap analis sudah siap. Anda dapat menyelesaikan verifikasi tahap manager teknis dari sini.</span>
+                    </div>
+                    <VerificationPanel
+                      :berita-acara="item"
+                      target-status="completed"
+                      approve-label="Setujui &amp; Kirim ke Pemohon (Override Manager Teknis)"
+                      @verify="handleManagerOverrideVerify"
+                      @revision="handleManagerOverrideRevision"
+                    />
+                  </div>
                 </template>
 
                 <template v-if="auth.hasPermission('berita_acara_assign')">
@@ -633,22 +834,34 @@ function getRevisionDiff(rev: any) {
         </template>
       </Modal>
 
-      <!-- Tolak Modal -->
-      <Modal :show="showRejectModal" title="Tolak Berita Acara" size="sm" @close="showRejectModal = false">
-        <div class="revision-form">
-          <p class="revision-desc">Berita acara akan ditolak permanen. Tuliskan alasan penolakan.</p>
-          <textarea
-            v-model="rejectNote"
-            class="revision-textarea"
-            rows="4"
-            placeholder="Alasan menolak berita acara ini..."
+      <!-- Edit Data Berita Acara Modal -->
+      <Modal :show="showEditModal" title="Edit Data Berita Acara" size="lg" @close="showEditModal = false">
+        <div v-if="editMode === 'template'" class="edit-form-wrap">
+          <DynamicForm
+            ref="editDynamicRef"
+            :fields="templateFields"
+            :initial-data="item?.form_data || undefined"
+            @update:values="editValues = $event"
           />
         </div>
+        <div v-else class="legacy-edit-grid">
+          <template v-for="f in legacyEditFields" :key="f.key">
+            <FormInput
+              v-if="f.type === 'text'"
+              v-model="legacyEdit[f.key]"
+              :label="f.label"
+            />
+            <FormTextarea
+              v-else
+              v-model="legacyEdit[f.key]"
+              :label="f.label"
+              :rows="2"
+            />
+          </template>
+        </div>
         <template #footer>
-          <Button variant="secondary" @click="showRejectModal = false">Batal</Button>
-          <Button variant="danger" :loading="saving" :disabled="!rejectNote.trim()" @click="submitReject">
-            Ya, Tolak
-          </Button>
+          <Button variant="outline" @click="showEditModal = false">Batal</Button>
+          <Button :loading="savingEdit" @click="submitEdit">Simpan</Button>
         </template>
       </Modal>
 
@@ -793,6 +1006,20 @@ function getRevisionDiff(rev: any) {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #e2e8f0;
+}
+
+.override-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #1d4ed8;
+  line-height: 1.45;
 }
 
 .assign-form {
@@ -957,6 +1184,80 @@ function getRevisionDiff(rev: any) {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   margin-bottom: 10px;
+}
+.agenda-field__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sample-blocked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #92400e;
+  line-height: 1.4;
+}
+.sample-blocked svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+.agenda-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.agenda-edit-btn:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.card-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.card-edit-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.edit-form-wrap { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+.legacy-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+@media (max-width: 640px) {
+  .legacy-edit-grid { grid-template-columns: 1fr; }
 }
 .agenda-label {
   font-size: 12px;

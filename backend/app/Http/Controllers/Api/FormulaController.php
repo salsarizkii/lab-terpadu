@@ -14,7 +14,6 @@ class FormulaController extends Controller
     public function index()
     {
         $formulas = Formula::with('creator:id,name')
-            ->where('created_by', auth()->id())
             ->orderByDesc('created_at')
             ->get();
 

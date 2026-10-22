@@ -72,22 +72,6 @@ async function handleRevision(note: string) {
   }
 }
 
-async function handleReject(note: string) {
-  if (!item.value) return
-  saving.value = true
-  try {
-    const updated = await verificationApi.managerVerify(item.value.id, {
-      status: 'rejected',
-      note,
-    })
-    item.value = updated
-    toast.success('Berita acara ditolak')
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
-  } finally {
-    saving.value = false
-  }
-}
 </script>
 
 <template>
@@ -131,7 +115,6 @@ async function handleReject(note: string) {
                 approve-label="Setujui & Kirim ke Pemohon"
                 @verify="handleVerify"
                 @revision="handleRevision"
-                @reject="handleReject"
               />
             </Card>
           </div>

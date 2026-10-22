@@ -88,7 +88,7 @@ class BeritaAcara extends Model
 
     public function revisions()
     {
-        return $this->hasMany(BeritaAcaraRevision::class);
+        return $this->hasMany(BeritaAcaraRevision::class)->orderByDesc('created_at');
     }
 
     public function payment()
@@ -98,7 +98,7 @@ class BeritaAcara extends Model
 
     public function samples()
     {
-        return $this->hasMany(Sample::class);
+        return $this->hasMany(Sample::class)->orderByDesc('created_at');
     }
 
     public function certificate()
@@ -108,7 +108,7 @@ class BeritaAcara extends Model
 
     public function pengujians()
     {
-        return $this->hasMany(Pengujian::class);
+        return $this->hasMany(Pengujian::class)->orderByDesc('created_at');
     }
 
     public function formula()

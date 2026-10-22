@@ -53,6 +53,9 @@ class PdfGeneratorService
                     ['key' => '{{ tanggal_diskon }}', 'label' => 'Tanggal Diskon Diberikan', 'example' => '30 Juli 2026'],
                     ['key' => '{{ tanggal_sampel_diambil }}', 'label' => 'Tanggal Sampel Diambil', 'example' => '31 Juli 2026'],
                     ['key' => '{{ tanggal_sertifikat }}', 'label' => 'Tanggal Sertifikat Terbit', 'example' => '1 Agustus 2026'],
+                    ['key' => '{{ tanggal_penerimaan_sampel }}', 'label' => 'Tanggal Penerimaan Sampel', 'example' => '25 Juli 2026'],
+                    ['key' => '{{ tanggal_verifikasi_penyelia }}', 'label' => 'Tanggal Verifikasi Penyelia', 'example' => '26 Juli 2026'],
+                    ['key' => '{{ tanggal_verifikasi_manager }}', 'label' => 'Tanggal Verifikasi Manager Teknis', 'example' => '27 Juli 2026'],
                 ],
             ],
             [
@@ -108,13 +111,19 @@ class PdfGeneratorService
      */
     private static function loadFormFields(string $formType): array
     {
+        static $cache = [];
+
+        if (isset($cache[$formType])) {
+            return $cache[$formType];
+        }
+
         $template = FormTemplate::with('fields')
             ->where('type', $formType)
             ->where('is_active', true)
             ->first();
 
         if (!$template) {
-            return [];
+            return $cache[$formType] = [];
         }
 
         $layoutTypes = ['heading', 'paragraph', 'divider'];
@@ -130,7 +139,7 @@ class PdfGeneratorService
             ];
         }
 
-        return $fields;
+        return $cache[$formType] = $fields;
     }
 
     /**
@@ -208,15 +217,29 @@ class PdfGeneratorService
 
     /**
      * Nilai semua variabel tanggal dari data berita acara & relasinya.
+     * $verifyLogs = activityLogs (penyelia_verified & rekap_verified) yang sudah
+     * dimuat sekali oleh pemanggil agar tidak query ulang per variabel.
      */
-    public static function dateVariables(BeritaAcara $ba, ?Payment $payment = null, ?Certificate $certificate = null): array
+    public static function dateVariables(BeritaAcara $ba, ?Payment $payment = null, ?Certificate $certificate = null, ?\Illuminate\Support\Collection $verifyLogs = null): array
     {
         $fmt = fn($date) => $date ? date('d F Y', strtotime((string) $date)) : null;
 
-        $pengujian = $ba->pengujians()->latest('tanggal_pengujian')->first();
-        $lastRevision = $ba->revisions()->latest()->first();
+        // Eager-load sekaligus: 1 query per relasi, bukan per variabel.
+        $ba->loadMissing(['revisions', 'pengujians', 'samples']);
+
+        $pengujian = $ba->pengujians->sortByDesc('tanggal_pengujian')->first();
+        $lastRevision = $ba->revisions->first();
         $lastDiscount = $payment ? DiscountHistory::where('payment_id', $payment->id)->latest()->first() : null;
-        $lastTakenSample = $ba->samples()->where('status', 'taken')->latest('updated_at')->value('updated_at');
+        $lastTakenSample = $ba->samples->where('status', 'taken')->max('updated_at');
+
+        if ($verifyLogs === null) {
+            $verifyLogs = $ba->activityLogs()
+                ->whereIn('action', ['penyelia_verified', 'rekap_verified'])
+                ->latest()
+                ->get();
+        }
+        $penyeliaLog = $verifyLogs->firstWhere('action', 'penyelia_verified');
+        $managerLog = $verifyLogs->firstWhere('action', 'rekap_verified');
 
         $values = [
             '{{ tanggal_berita_acara }}' => $ba->created_at,
@@ -229,6 +252,10 @@ class PdfGeneratorService
             '{{ tanggal_diskon }}' => $lastDiscount?->created_at ?? $payment?->updated_at,
             '{{ tanggal_sampel_diambil }}' => $lastTakenSample,
             '{{ tanggal_sertifikat }}' => $certificate?->created_at ?? $certificate?->downloaded_at,
+            // Tahapan workflow (dari log aktivitas / kolom penyerahan sampel)
+            '{{ tanggal_penerimaan_sampel }}' => $ba->sample_submitted_at,
+            '{{ tanggal_verifikasi_penyelia }}' => $penyeliaLog?->created_at,
+            '{{ tanggal_verifikasi_manager }}' => $managerLog?->created_at,
         ];
 
         $out = [];
@@ -254,6 +281,9 @@ class PdfGeneratorService
             '{{ tanggal_diskon }}',
             '{{ tanggal_sampel_diambil }}',
             '{{ tanggal_sertifikat }}',
+            '{{ tanggal_penerimaan_sampel }}',
+            '{{ tanggal_verifikasi_penyelia }}',
+            '{{ tanggal_verifikasi_manager }}',
         ];
 
         $today = date('d F Y');

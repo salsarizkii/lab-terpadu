@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { toast } from 'vue-sonner'
-import { pdfTemplateApi } from '../../api/pdfTemplate'
+import api from '../../api/axios'
 import { useAuthStore } from '../../stores/authStore'
 import type { BeritaAcara } from '../../types'
 import Button from './Button.vue'
@@ -21,7 +21,7 @@ const open = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 
 const isStaff = computed(() =>
-  ['superadmin', 'admin', 'manager_teknis'].includes(auth.user?.role ?? ''),
+  ['superadmin', 'admin', 'manager_teknis'].includes(auth.effectiveRole ?? ''),
 )
 
 function hasRekapData(ba: BeritaAcara): boolean {
@@ -48,6 +48,12 @@ const items = computed<DownloadItem[]>(() => {
     list.push(
       { key: 'rekap-pdf', label: 'Rekap Analis', format: 'pdf' },
       { key: 'rekap-docx', label: 'Rekap Analis', format: 'docx' },
+    )
+  }
+  if (isStaff.value) {
+    list.push(
+      { key: 'lks-pdf', label: 'Lembar Kendali Sampel', format: 'pdf' },
+      { key: 'lks-docx', label: 'Lembar Kendali Sampel', format: 'docx' },
     )
   }
   if (ba.payment) {
@@ -78,6 +84,7 @@ const grouped = computed(() => {
   }
   push('Berita Acara', items.value.filter(i => i.key.startsWith('ba-')))
   push('Rekap Analis', items.value.filter(i => i.key.startsWith('rekap-')))
+  push('Lembar Kendali Sampel', items.value.filter(i => i.key.startsWith('lks-')))
   push('Tagihan', items.value.filter(i => i.key.startsWith('tagihan-')))
   push('Sertifikat', items.value.filter(i => i.key.startsWith('sertifikat-')))
   push('Pengambilan Sisa Sampel', items.value.filter(i => i.key.startsWith('pss-')))
@@ -86,7 +93,7 @@ const grouped = computed(() => {
 
 function targetId(item: DownloadItem): number | null {
   const ba = props.beritaAcara
-  if (item.key.startsWith('ba-') || item.key.startsWith('rekap-') || item.key.startsWith('pss-')) return ba.id
+  if (item.key.startsWith('ba-') || item.key.startsWith('rekap-') || item.key.startsWith('pss-') || item.key.startsWith('lks-')) return ba.id
   if (item.key.startsWith('tagihan-')) return ba.payment?.id ?? null
   if (item.key.startsWith('sertifikat-')) return ba.certificate?.id ?? null
   return null
@@ -97,18 +104,46 @@ function docType(item: DownloadItem): string {
   if (item.key.startsWith('rekap-')) return 'rekap_analis'
   if (item.key.startsWith('tagihan-')) return 'tagihan'
   if (item.key.startsWith('pss-')) return 'pengambilan_sisa_sampel'
+  if (item.key.startsWith('lks-')) return 'lembar_kendali_sampel'
   return 'sertifikat'
 }
 
-function handleDownload(item: DownloadItem) {
+const busyKey = ref<string | null>(null)
+
+async function handleDownload(item: DownloadItem) {
   const id = targetId(item)
   if (id == null) return
   const type = docType(item)
-  const url = item.format === 'pdf'
-    ? pdfTemplateApi.getDownloadUrl(type, id)
-    : pdfTemplateApi.getDocxDownloadUrl(type, id)
-  window.location.href = url
-  toast.success(`${item.label} (${item.format === 'pdf' ? 'PDF' : 'Word'}) sedang diunduh`)
+  const format = item.format
+  const url = format === 'pdf'
+    ? `/pdf-generate/${type}/${id}`
+    : `/docx-generate/${type}/${id}`
+
+  busyKey.value = item.key
+  open.value = false
+  const loadingToast = toast.loading(`Menyiapkan dokumen ${item.label} (${format === 'pdf' ? 'PDF' : 'Word'})...`)
+  try {
+    const { data } = await api.get<Blob>(url, {
+      responseType: 'blob',
+      timeout: 180000,
+    })
+    if (!(data instanceof Blob) || data.size === 0) {
+      throw new Error('Dokumen kosong')
+    }
+    const blobUrl = window.URL.createObjectURL(data)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `${type}_${id}.${format}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000)
+    toast.success(`${item.label} (${format === 'pdf' ? 'PDF' : 'Word'}) berhasil diunduh`, { id: loadingToast })
+  } catch {
+    toast.error('Gagal mengunduh dokumen, silakan coba lagi', { id: loadingToast })
+  } finally {
+    busyKey.value = null
+  }
 }
 
 function toggle() {
@@ -144,13 +179,15 @@ document.addEventListener('click', onDocumentClick)
             v-for="item in group.items"
             :key="item.key"
             class="dl-menu__item"
+            :disabled="busyKey !== null"
             @click="handleDownload(item)"
           >
             <span class="dl-menu__badge" :class="`dl-menu__badge--${item.format}`">
               {{ item.format === 'pdf' ? 'PDF' : 'DOC' }}
             </span>
             <span class="dl-menu__item-label">{{ item.label }}</span>
-            <svg class="dl-menu__item-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span v-if="busyKey === item.key" class="dl-menu__spinner" />
+            <svg v-else class="dl-menu__item-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
         </div>
       </div>

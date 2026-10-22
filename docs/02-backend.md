@@ -119,7 +119,8 @@ backend/
 |---|---|---|---|
 | GET | `api/admin/berita-acara` | AdminController@beritaAcaraIndex | All BA |
 | GET | `api/admin/berita-acara/{id}` | AdminController@beritaAcaraShow | BA detail |
-| PUT | `api/admin/berita-acara/{id}/status` | AdminController@updateStatus | Admin verifikasi: pending → admin_verified/revision/rejected (approve wajib `nomor_agenda`) |
+| PUT | `api/admin/berita-acara/{id}` | AdminController@updateBeritaAcara | Admin edit data BA (field legacy/form_data, multipart `_method=PUT`) |
+| PUT | `api/admin/berita-acara/{id}/status` | AdminController@updateStatus | Admin verifikasi: pending/admin_revisi/revision → admin_verified/revision/rejected (approve wajib `nomor_agenda`) |
 | PUT | `api/admin/berita-acara/{id}/nomor-agenda` | AdminController@updateNomorAgenda | Simpan nomor agenda tanpa ubah status |
 | GET | `api/admin/berita-acara/check-nomor-agenda` | AdminController@checkNomorAgenda | Cek ketersediaan nomor agenda (`nomor`, opsional `ignore_id`) |
 | PUT | `api/admin/berita-acara/{id}/assign-analyst` | AdminBeritaAcaraController@assignAnalyst | Assign analyst |
@@ -143,9 +144,9 @@ backend/
 
 | Method | URI | Controller | Purpose |
 |---|---|---|---|
-| GET | `api/penyelia/berita-acara` | VerificationController@penyeliaIndex | BA status `admin_verified` yang di-assign |
+| GET | `api/penyelia/berita-acara` | VerificationController@penyeliaIndex | BA status `admin_verified`/`admin_revisi`/`penyelia_verified` yang di-assign |
 | GET | `api/penyelia/berita-acara/{id}` | VerificationController@penyeliaShow | Detail BA |
-| PUT | `api/penyelia/berita-acara/{id}/status` | VerificationController@penyeliaVerify | admin_verified → penyelia_verified/revision/rejected |
+| PUT | `api/penyelia/berita-acara/{id}/status` | VerificationController@penyeliaVerify | admin_verified → penyelia_verified/admin_revisi (tolak & perlu perbaikan sama-sama kembali ke admin) |
 
 ### Manager Teknis Routes (permission: `hasil_pengujian_rekap`)
 
@@ -219,6 +220,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`, `pengambilan_sisa
 - Konfigurasi env: `PDF_DOCX_ENABLED=true` (aktifkan/disable), `PDF_USE_WORD_COM=false` (pakai Word COM atau tidak), `CHROME_PATH` (path chrome/edge; kosongkan = menebak lokasi umum Windows/Linux).
 - Keterbatasan: toggle `show_kop` / `show_ttd` / `show_rincian` dan `settings` (kop/identitas) **tidak berlaku** pada template Word — tata letak sudah ter-bake di file Word.
 - Dalam `preview` dan `generate`, jika pipeline Word gagal/tidak tersedia → otomatis fallback ke pipeline HTML/DomPDF di atas.
+- **Cache hasil generate**: `PdfTemplateController::cachePath()` menyimpan hasil PDF/DOCX di `storage/app/pdf-cache` dengan key hash dari tipe, id, versi template, dan `updated_at` entitas terkait — download berikutnya langsung terkirim tanpa render ulang (data berubah → cache otomatis batal).
 
 ### Analyst Routes (role: analyst)
 
@@ -254,7 +256,7 @@ Tipe: `berita_acara`, `rekap_analis`, `tagihan`, `sertifikat`, `pengambilan_sisa
 - `hasMany(Pengujian)`
 - `hasMany(ActivityLog)` — ordered `latest('created_at')`
 - `$fillable`: all 20+ form fields + status, analyst_id, user_id, diskon_diizinkan, nomor_agenda, rekap_analis_data, rekap_analis_template_id, formula_id, custom_items, keterangan, berkas_ulang
-- `status` enum: `draft | pending | revision | admin_verified | penyelia_verified | rekap_ready | completed | rejected`
+- `status` enum: `draft | pending | revision | admin_verified | admin_revisi | penyelia_verified | rekap_ready | completed | rejected`
 
 ### BeritaAcaraRevision
 - `belongsTo(BeritaAcara)`

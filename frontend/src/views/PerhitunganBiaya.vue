@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { toast } from 'vue-sonner'
-import { useRouter } from 'vue-router'
 import Card from '../components/common/Card.vue'
 import Button from '../components/common/Button.vue'
-import { formTemplateApi, type FormField } from '@/api/formTemplate'
-import { formulaApi, type FormulaVariable } from '@/api/formula'
+import { formTemplateApi } from '@/api/formTemplate'
+import type { FormField } from '@/types'
+import { formulaApi, type Formula, type FormulaVariable } from '@/api/formula'
 
-const router = useRouter()
+const formulas = ref<Formula[]>([])
+const formulaSelectorOpen = ref(false)
+const formulaSelectorRef = ref<HTMLElement | null>(null)
+const sumberRef = ref<HTMLElement | null>(null)
+const pertanyaanRef = ref<HTMLElement | null>(null)
+const saving = ref(false)
+const deleting = ref(false)
 
 const formulaName = ref('')
 const formulaDescription = ref('')
@@ -33,6 +39,36 @@ const formulaExpression = computed(() => {
   }).join('')
 })
 
+const displayOpMap: Record<string, string> = {
+  '**': '^',
+  '*': '×',
+  '/': '÷',
+  '-': '−',
+  '+': '+',
+  '%': '%',
+}
+
+function toDisplayExpression(expression: string, vars: FormulaVariable[]): string {
+  let out = expression
+  const sorted = [...vars].sort((a, b) => b.key.length - a.key.length)
+  for (const v of sorted) {
+    out = out.split(v.key).join(`(${v.label})`)
+  }
+  for (const [from, to] of Object.entries(displayOpMap)) {
+    out = out.split(from).join(to)
+  }
+  return out
+}
+
+const formulaDisplay = computed(() => {
+  return formulaTokens.value.map(t => {
+    if (t.type === 'var') return `(${t.label || t.value})`
+    if (t.type === 'op') return displayOpMap[t.value] ?? t.value
+    if (t.type === 'func') return t.value
+    return t.display || t.value
+  }).join('')
+})
+
 const variables = ref<FormulaVariable[]>([])
 const testValues = ref<Record<string, number>>({})
 
@@ -40,7 +76,6 @@ const activeVarTab = ref<'pertanyaan' | 'instrumen'>('pertanyaan')
 const varSource = ref<'berita_acara' | 'rekap_analis'>('berita_acara')
 const varFormFieldId = ref<number | null>(null)
 const pertanyaanDropdownOpen = ref(false)
-const pertanyaanDropdownRef = ref<HTMLElement | null>(null)
 const sumberDropdownOpen = ref(false)
 
 function addInstrumentVariable() {
@@ -66,8 +101,9 @@ function selectFormField(field: FormField) {
 
 function handleClickOutsidePertanyaan(e: MouseEvent) {
   const target = e.target as Node
-  const wrapper = document.querySelector('.pf-dropdown-wrapper')
-  if (wrapper && !wrapper.contains(target)) {
+  const wrappers = [formulaSelectorRef.value, sumberRef.value, pertanyaanRef.value].filter(Boolean) as HTMLElement[]
+  if (!wrappers.some(w => w.contains(target))) {
+    formulaSelectorOpen.value = false
     pertanyaanDropdownOpen.value = false
     sumberDropdownOpen.value = false
   }
@@ -173,15 +209,15 @@ function rebuildTokensFromExpression(expression: string, vars: FormulaVariable[]
     }
 
     if (remaining.startsWith('(') || remaining.startsWith(')')) {
-      formulaTokens.value.push({ id: nextTokenId(), type: 'paren', value: remaining[0], display: remaining[0] })
+      formulaTokens.value.push({ id: nextTokenId(), type: 'paren', value: remaining[0]!, display: remaining[0]! })
       remaining = remaining.slice(1)
       continue
     }
 
     let numMatch = remaining.match(/^(\d+\.?\d*)/)
     if (numMatch) {
-      formulaTokens.value.push({ id: nextTokenId(), type: 'num', value: numMatch[1] })
-      remaining = remaining.slice(numMatch[1].length)
+      formulaTokens.value.push({ id: nextTokenId(), type: 'num', value: numMatch[1]! })
+      remaining = remaining.slice(numMatch[1]!.length)
       continue
     }
 
@@ -201,25 +237,71 @@ function rebuildTokensFromExpression(expression: string, vars: FormulaVariable[]
       continue
     }
 
-    formulaTokens.value.push({ id: nextTokenId(), type: 'num', value: remaining[0] })
+    formulaTokens.value.push({ id: nextTokenId(), type: 'num', value: remaining[0]! })
     remaining = remaining.slice(1)
   }
 }
 
-async function loadLatestFormula() {
+function applyFormula(f: Formula) {
+  currentFormulaId.value = f.id
+  formulaName.value = f.name
+  formulaDescription.value = f.description || ''
+  formulaUnit.value = f.unit || 'Rupiah'
+  rebuildTokensFromExpression(f.expression, f.variables || [])
+  formulaSelectorOpen.value = false
+}
+
+function newFormula() {
+  currentFormulaId.value = null
+  formulaName.value = ''
+  formulaDescription.value = ''
+  formulaUnit.value = 'Rupiah'
+  formulaTokens.value = []
+  variables.value = []
+  testValues.value = {}
+  formulaSelectorOpen.value = false
+}
+
+function selectFormulaFromList(f: Formula) {
+  applyFormula(f)
+}
+
+async function loadFormulas() {
   try {
     const res = await formulaApi.getAll()
-    const formulas = res.data
-    if (Array.isArray(formulas) && formulas.length > 0) {
-      const latest = formulas[0]
-      currentFormulaId.value = latest.id
-      formulaName.value = latest.name
-      formulaDescription.value = latest.description || ''
-      formulaUnit.value = latest.unit || 'Rupiah'
-      rebuildTokensFromExpression(latest.expression, latest.variables || [])
+    formulas.value = Array.isArray(res.data) ? res.data : []
+    if (formulas.value.length === 0) {
+      newFormula()
+      return
     }
+    const target = currentFormulaId.value
+      ? formulas.value.find(f => f.id === currentFormulaId.value)
+      : null
+    applyFormula(target ?? formulas.value[0]!)
   } catch (e: any) {
     console.error('Gagal memuat rumus:', e)
+    toast.error('Gagal memuat daftar rumus')
+  }
+}
+
+async function confirmDelete() {
+  if (!currentFormulaId.value) return
+  if (!window.confirm(`Hapus rumus "${formulaName.value || 'tanpa nama'}"?`)) return
+
+  deleting.value = true
+  try {
+    await formulaApi.delete(currentFormulaId.value)
+    toast.success('Rumus berhasil dihapus')
+    formulas.value = formulas.value.filter(f => f.id !== currentFormulaId.value)
+    if (formulas.value.length > 0) {
+      applyFormula(formulas.value[0]!)
+    } else {
+      newFormula()
+    }
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Gagal menghapus rumus')
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -240,7 +322,7 @@ function addFromPertanyaan() {
 
   variables.value.push({
     key, label: field.label, source: varSource.value,
-    form_field_id: field.id, instrument_id: null, default_value: 0,
+    form_field_id: field.id ?? null, instrument_id: null, default_value: 0,
   })
   testValues.value[key] = 0
   varFormFieldId.value = null
@@ -249,7 +331,9 @@ function addFromPertanyaan() {
 }
 
 function removeVariable(idx: number) {
-  const key = variables.value[idx].key
+  const v = variables.value[idx]
+  if (!v) return
+  const key = v.key
   delete testValues.value[key]
   variables.value.splice(idx, 1)
   formulaTokens.value = formulaTokens.value.filter(t => t.value !== key)
@@ -300,7 +384,7 @@ function removeToken(id: string) {
   if (token?.type === 'var') {
     const idx = variables.value.findIndex(v => v.key === token.value)
     if (idx !== -1) {
-      delete testValues.value[variables.value[idx].key]
+      delete testValues.value[variables.value[idx]!.key]
       variables.value.splice(idx, 1)
     }
   }
@@ -353,7 +437,8 @@ async function saveFormula() {
     toast.error('Rumus wajib diisi')
     return
   }
-  const name = formulaName.value || formulaExpression.value.slice(0, 50)
+  const name = formulaName.value.trim() || formulaExpression.value.slice(0, 50)
+  saving.value = true
   try {
     const payload = {
       name,
@@ -365,18 +450,21 @@ async function saveFormula() {
     if (currentFormulaId.value) {
       await formulaApi.update(currentFormulaId.value, payload)
     } else {
-      await formulaApi.create(payload)
+      const res = await formulaApi.create(payload)
+      currentFormulaId.value = res.data?.data?.id ?? null
     }
     toast.success('Rumus berhasil disimpan')
-    router.push('/admin/forms')
+    await loadFormulas()
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal menyimpan rumus')
+  } finally {
+    saving.value = false
   }
 }
 
 onMounted(() => {
   loadData()
-  loadLatestFormula()
+  loadFormulas()
   document.addEventListener('click', handleClickOutsidePertanyaan)
 })
 
@@ -387,13 +475,90 @@ onBeforeUnmount(() => {
 
 <template>
     <div>
-      <div class="page-header">
-        <h1>Perhitungan Biaya</h1>
-        <Button @click="saveFormula">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-          Simpan Rumus
-        </Button>
+      <!-- Toolbar: pilih / buat rumus -->
+      <div class="pb-toolbar">
+        <div class="pb-toolbar-left">
+          <div class="pb-select">
+            <label class="pb-select-label">Pilih Rumus</label>
+            <div class="pb-select-row">
+              <div ref="formulaSelectorRef" class="pf-dropdown-wrapper">
+                <button
+                  type="button"
+                  class="pf-dropdown-trigger pf-dropdown-trigger--select"
+                  :class="{ open: formulaSelectorOpen }"
+                  @click.stop="formulaSelectorOpen = !formulaSelectorOpen"
+                >
+                  <span v-if="currentFormulaId" class="pf-dropdown-value">{{ formulaName || 'Rumus tanpa nama' }}</span>
+                  <span v-else class="pf-dropdown-placeholder">Rumus Baru (belum disimpan)</span>
+                  <svg class="pf-dropdown-chevron" :class="{ open: formulaSelectorOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <Transition name="pf-dropdown">
+                  <div v-if="formulaSelectorOpen" class="pf-dropdown-menu pf-dropdown-menu--select">
+                    <div v-if="formulas.length === 0" class="pf-dropdown-empty">
+                      Belum ada rumus. Klik "Rumus Baru" untuk membuat.
+                    </div>
+                    <div
+                      v-for="f in formulas"
+                      :key="f.id"
+                      class="pf-dropdown-item"
+                      :class="{ active: currentFormulaId === f.id }"
+                      @click="selectFormulaFromList(f)"
+                    >
+                      <div class="pf-dropdown-item-main">
+                        <span class="pf-dropdown-item-label">{{ f.name }}</span>
+                        <span class="pf-dropdown-item-expr">{{ toDisplayExpression(f.expression, f.variables || []) }}</span>
+                      </div>
+                      <span class="pf-dropdown-item-type">{{ f.unit || 'Rupiah' }}</span>
+                      <svg v-if="currentFormulaId === f.id" class="pf-dropdown-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+              <Button variant="outline" size="sm" @click="newFormula" class="pb-new-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Rumus Baru
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div class="pb-toolbar-right">
+          <Button
+            v-if="currentFormulaId"
+            variant="outline"
+            size="sm"
+            :loading="deleting"
+            @click="confirmDelete"
+            class="pb-delete-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Hapus
+          </Button>
+          <Button variant="primary" size="sm" :loading="saving" @click="saveFormula">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+            Simpan Rumus
+          </Button>
+        </div>
       </div>
+
+      <!-- Detail rumus -->
+      <Card padding="sm" class="pb-detail-card">
+        <div class="pb-form-grid">
+          <div class="form-group">
+            <label>Nama Rumus</label>
+            <input v-model="formulaName" class="form-input" placeholder="cth: Biaya Jumlah Sampel" />
+          </div>
+          <div class="form-group">
+            <label>Satuan</label>
+            <input v-model="formulaUnit" class="form-input" placeholder="cth: Rupiah" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Deskripsi (opsional)</label>
+          <input v-model="formulaDescription" class="form-input" placeholder="Keterangan singkat tentang rumus ini" />
+        </div>
+      </Card>
 
       <!-- Calculator Display -->
       <Card>
@@ -428,7 +593,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="display-preview" v-if="formulaExpression">
             <span class="preview-label">Preview:</span>
-            <code class="preview-formula">{{ formulaExpression }}</code>
+            <code class="preview-formula">{{ formulaDisplay }}</code>
           </div>
         </div>
       </Card>
@@ -466,7 +631,7 @@ onBeforeUnmount(() => {
             <div v-if="activeVarTab === 'pertanyaan'" class="tab-content">
               <div class="form-group">
                 <label>Sumber</label>
-                <div ref="pertanyaanDropdownRef" class="pf-dropdown-wrapper">
+                <div ref="sumberRef" class="pf-dropdown-wrapper">
                   <button
                     type="button"
                     class="pf-dropdown-trigger"
@@ -504,7 +669,7 @@ onBeforeUnmount(() => {
               </div>
               <div class="form-group">
                 <label>Pertanyaan dari Form</label>
-                <div ref="pertanyaanDropdownRef" class="pf-dropdown-wrapper">
+                <div ref="pertanyaanRef" class="pf-dropdown-wrapper">
                   <button
                     type="button"
                     class="pf-dropdown-trigger"
@@ -655,7 +820,7 @@ onBeforeUnmount(() => {
           <div class="test-result" v-if="formulaExpression">
             <div class="result-left">
               <div class="result-label">Rumus:</div>
-              <code class="result-formula">{{ formulaExpression }}</code>
+              <code class="result-formula">{{ formulaDisplay }}</code>
             </div>
             <div class="result-right">
               <div class="result-label">Hasil:</div>
@@ -675,17 +840,54 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.page-header {
+/* Toolbar */
+.pb-toolbar {
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
-.page-header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+.pb-toolbar-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pb-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pb-select-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.pb-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pb-new-btn { white-space: nowrap; }
+.pb-delete-btn {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.pb-delete-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+.pb-detail-card { margin-bottom: 16px; }
+.pb-form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
 }
 
 /* Calculator Display */
@@ -976,6 +1178,10 @@ onBeforeUnmount(() => {
   outline: none;
   text-align: left;
 }
+.pf-dropdown-trigger--select {
+  min-width: 280px;
+  max-width: 340px;
+}
 .pf-dropdown-trigger:hover {
   border-color: #cbd5e1;
 }
@@ -1016,6 +1222,24 @@ onBeforeUnmount(() => {
   overflow: hidden;
   max-height: 260px;
   overflow-y: auto;
+}
+.pf-dropdown-menu--select {
+  min-width: 320px;
+}
+.pf-dropdown-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pf-dropdown-item-expr {
+  font-size: 11px;
+  font-family: 'Fira Code', monospace;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pf-dropdown-empty {
   padding: 20px 14px;
@@ -1336,9 +1560,8 @@ onBeforeUnmount(() => {
   background: rgba(255,255,255,0.6);
   padding: 4px 8px;
   border-radius: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-all;
 }
 .result-right {
   text-align: right;
@@ -1370,5 +1593,9 @@ onBeforeUnmount(() => {
     padding-top: 24px;
   }
   .info-grid { grid-template-columns: 1fr; }
+  .pb-form-grid { grid-template-columns: 1fr; }
+  .pb-toolbar { flex-direction: column; align-items: stretch; }
+  .pb-toolbar-right { justify-content: flex-end; }
+  .pf-dropdown-trigger--select { max-width: none; }
 }
 </style>

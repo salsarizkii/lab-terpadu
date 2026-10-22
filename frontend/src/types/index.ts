@@ -36,6 +36,7 @@ export type BeritaAcaraStatus =
   | 'pending'
   | 'revision'
   | 'admin_verified'
+  | 'admin_revisi'
   | 'penyelia_verified'
   | 'rekap_ready'
   | 'completed'

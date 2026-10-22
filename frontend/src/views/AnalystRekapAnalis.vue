@@ -32,6 +32,11 @@ const templateIdVal = ref<number | null>(null)
 const loadingTemplate = ref(true)
 const formValues = ref<Record<string, any>>({})
 const dynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
+
+const rekapFields = ref<FormField[]>([])
+const rekapTemplateIdVal = ref<number | null>(null)
+const rekapFormValues = ref<Record<string, any>>({})
+const rekapDynamicFormRef = ref<InstanceType<typeof DynamicForm> | null>(null)
 const biaya = ref<string>('')
 const keterangan = ref('')
 
@@ -160,7 +165,7 @@ async function handleCalculateRowSilent(row: FormulaRow) {
   try {
     const result = await analystApi.calculateCost(item.value.id, {
       formula_id: row.formulaId,
-      rekap_analis_data: JSON.stringify(formValues.value),
+      rekap_analis_data: JSON.stringify({ ...formValues.value, ...rekapFormValues.value }),
     })
     row.biaya = result.biaya
     row.resolvedValues = result.resolved_values
@@ -318,6 +323,7 @@ onMounted(async () => {
     if (item.value?.form_template_id) {
       await loadTemplate(item.value.form_template_id)
     }
+    await loadRekapTemplate()
   } catch {
     toast.error('Gagal memuat data')
   } finally {
@@ -350,6 +356,39 @@ function getInitialData(): Record<string, any> {
   return {}
 }
 
+async function loadRekapTemplate() {
+  try {
+    const tpl = await formTemplateApi.getPublicActiveByType('rekap_analis')
+    if (tpl?.fields) {
+      rekapFields.value = tpl.fields
+      rekapTemplateIdVal.value = tpl.id
+    }
+  } catch {
+    // No rekap template
+  }
+}
+
+function getRekapInitialData(): Record<string, any> {
+  const out: Record<string, any> = {}
+  const rd = item.value?.rekap_analis_data
+  if (rd && typeof rd === 'object' && Object.keys(rd).length > 0) {
+    Object.assign(out, rd)
+  }
+  const agendaField = rekapFields.value.find(f => f.label.toLowerCase() === 'agenda')
+  if (agendaField?.id) {
+    const key = `field_${agendaField.id}`
+    if (!out[key] && item.value?.nomor_agenda) {
+      out[key] = item.value.nomor_agenda
+    }
+  }
+  return out
+}
+
+function handleRekapValuesUpdate(values: Record<string, any>) {
+  rekapFormValues.value = values
+  autoCalculateAll()
+}
+
 function handleValuesUpdate(values: Record<string, any>) {
   formValues.value = values
   autoCalculateAll()
@@ -379,6 +418,19 @@ function handleSubmit() {
     return
   }
 
+  if (rekapDynamicFormRef.value && rekapFields.value.length > 0) {
+    const rekapResult = rekapDynamicFormRef.value.validate()
+    if (!rekapResult.valid) {
+      const names = rekapResult.missingFields.slice(0, 3).join(', ')
+      const extra = rekapResult.missingFields.length > 3 ? ` dan ${rekapResult.missingFields.length - 3} lainnya` : ''
+      toast.error(`Wajib diisi (rekap analis): ${names}${extra}`)
+      if (rekapResult.firstErrorField) {
+        setTimeout(() => scrollToField(rekapResult.firstErrorField!), 100)
+      }
+      return
+    }
+  }
+
   sampleAnswer.value = null
   showConfirmSubmit.value = true
 }
@@ -393,9 +445,10 @@ async function doSubmit() {
   saving.value = true
   try {
     const firstFormula = formulaRows.value.find(r => r.formulaId && r.formulaId !== -1)
+    const combinedData = { ...formValues.value, ...rekapFormValues.value }
     await analystApi.storeRekapAnalis(item.value.id, {
-      rekap_analis_data: JSON.stringify(formValues.value),
-      rekap_analis_template_id: templateIdVal.value,
+      rekap_analis_data: JSON.stringify(combinedData),
+      rekap_analis_template_id: rekapTemplateIdVal.value || templateIdVal.value,
       biaya: totalBiaya.value || null,
       formula_id: firstFormula?.formulaId || null,
       custom_items: formulaRows.value
@@ -451,6 +504,18 @@ async function doSubmit() {
               :initial-data="getInitialData()"
               @update:values="handleValuesUpdate"
             />
+
+            <!-- Form Rekap Analis (field yang belum ada di berita acara) -->
+            <div v-if="rekapFields.length > 0" class="rekap-extra-section">
+              <h4 class="rekap-extra-title">Data Rekap Analis</h4>
+              <p class="rekap-extra-desc">Isian tambahan yang belum ada pada data berita acara.</p>
+              <DynamicForm
+                ref="rekapDynamicFormRef"
+                :fields="rekapFields"
+                :initial-data="getRekapInitialData()"
+                @update:values="handleRekapValuesUpdate"
+              />
+            </div>
 
             <!-- Upload Berkas Ulang Section -->
             <div class="akses-section">
@@ -662,6 +727,9 @@ async function doSubmit() {
 
 .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
 .form-desc { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+.rekap-extra-section { margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+.rekap-extra-title { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: #0f172a; }
+.rekap-extra-desc { margin: 0 0 16px; font-size: 13px; color: #64748b; }
 .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
 .rekap-locked { font-size: 13px; color: #b45309; margin: 0; }
 

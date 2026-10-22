@@ -37,12 +37,14 @@ onMounted(async () => {
   }
 })
 
-async function handleVerify(data: { status: string; sample_answer?: 'sudah' | 'belum' | null }) {
+async function handleVerify(data: { status: string; sample_answer?: 'sudah' | 'belum' | null; note?: string }) {
   if (!item.value) return
   saving.value = true
   try {
     const updated = await verificationApi.penyeliaVerify(item.value.id, {
       status: data.status as 'penyelia_verified',
+      note: data.note,
+      sample_answer: data.sample_answer || undefined,
     })
     item.value = updated
     toast.success('Berita acara telah disetujui, siap dikerjakan analis')
@@ -65,24 +67,7 @@ async function handleRevision(note: string) {
       note,
     })
     item.value = updated
-    toast.success('Perubahan telah dikirim ke pemohon')
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Gagal')
-  } finally {
-    saving.value = false
-  }
-}
-
-async function handleReject(note: string) {
-  if (!item.value) return
-  saving.value = true
-  try {
-    const updated = await verificationApi.penyeliaVerify(item.value.id, {
-      status: 'rejected',
-      note,
-    })
-    item.value = updated
-    toast.success('Berita acara ditolak dan dikembalikan ke admin untuk diperbaiki')
+    toast.success('Berita acara dikembalikan ke admin untuk diperbaiki (Admin Revisi)')
   } catch (e: any) {
     toast.error(e.response?.data?.message || 'Gagal')
   } finally {
@@ -127,7 +112,6 @@ async function handleReject(note: string) {
                 approve-label="Setujui & Kirim ke Analis"
                 @verify="handleVerify"
                 @revision="handleRevision"
-                @reject="handleReject"
               />
             </Card>
           </div>

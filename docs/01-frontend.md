@@ -272,7 +272,7 @@ interface User {
 
 interface BeritaAcara {
   id: number; user_id: number; analyst_id?: number;
-  status: 'draft' | 'pending' | 'revision' | 'admin_verified' | 'penyelia_verified' | 'rekap_ready' | 'completed' | 'rejected';
+  status: 'draft' | 'pending' | 'revision' | 'admin_verified' | 'admin_revisi' | 'penyelia_verified' | 'rekap_ready' | 'completed' | 'rejected';
   nomor_agenda?: string;
   nama_pemohon?: string; nim?: string; prodi_fakultas_instansi?: string;
   dosen_pembimbing?: string; telp_hp?: string; email?: string; alamat?: string;

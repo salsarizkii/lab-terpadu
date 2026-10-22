@@ -9,7 +9,7 @@ import Button from '../components/common/Button.vue'
 import SkeletonDetail from '../components/common/SkeletonDetail.vue'
 import ActivityTimeline from '../components/common/ActivityTimeline.vue'
 import { paymentApi } from '../api/payment'
-import { pdfTemplateApi } from '../api/pdfTemplate'
+import api from '../api/axios'
 import type { Payment } from '../types'
 import { toast } from 'vue-sonner'
 import {
@@ -295,10 +295,27 @@ async function handleUploadProof() {
   }
 }
 
-function handleDownloadTagihan() {
+async function handleDownloadTagihan() {
   if (!payment.value) return
-  window.location.href = pdfTemplateApi.getDownloadUrl('tagihan', payment.value.id)
-  toast.success('Tagihan sedang diunduh')
+  const id = payment.value.id
+  const toastId = toast.loading('Menyiapkan dokumen tagihan...')
+  try {
+    const { data } = await api.get<Blob>(`/pdf-generate/tagihan/${id}`, {
+      responseType: 'blob',
+      timeout: 180000,
+    })
+    const blobUrl = window.URL.createObjectURL(data)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `tagihan_${id}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000)
+    toast.success('Tagihan berhasil diunduh', { id: toastId })
+  } catch {
+    toast.error('Gagal mengunduh tagihan, silakan coba lagi', { id: toastId })
+  }
 }
 </script>
 

@@ -40,6 +40,7 @@ const statusMap: Record<string, { type: 'success' | 'warning' | 'danger' | 'info
   pending: { type: 'warning', label: 'Menunggu Admin' },
   revision: { type: 'danger', label: 'Revisi' },
   admin_verified: { type: 'info', label: 'Diverifikasi Admin' },
+  admin_revisi: { type: 'warning', label: 'Admin Revisi' },
   penyelia_verified: { type: 'info', label: 'Diverifikasi Penyelia' },
   rekap_ready: { type: 'warning', label: 'Menunggu Manager Teknis' },
   completed: { type: 'success', label: 'Selesai' },

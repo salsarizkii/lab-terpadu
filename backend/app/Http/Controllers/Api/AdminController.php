@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BeritaAcara;
 use App\Models\BeritaAcaraRevision;
+use App\Models\FormField;
 use App\Models\Payment;
 use App\Models\Sample;
 use App\Models\SystemActivityLog;
@@ -59,9 +60,15 @@ class AdminController extends Controller
 
         $beritaAcara = BeritaAcara::findOrFail($id);
 
-        if ($beritaAcara->status !== 'pending') {
+        if (!in_array($beritaAcara->status, ['pending', 'admin_revisi', 'revision'], true)) {
             return response()->json([
                 'message' => 'Berita acara sedang tidak menunggu verifikasi admin (status: ' . $beritaAcara->status . ')',
+            ], 422);
+        }
+
+        if ($request->status === 'admin_verified' && !$beritaAcara->sample_submitted) {
+            return response()->json([
+                'message' => 'Sampel belum diserahkan ke lab. Verifikasi admin hanya bisa dilakukan setelah sampel masuk.',
             ], 422);
         }
 
@@ -149,6 +156,85 @@ class AdminController extends Controller
             'message' => 'Nomor agenda diperbarui',
             'data' => $beritaAcara->load('activityLogs.user'),
         ]);
+    }
+
+    /**
+     * Update data berita acara oleh admin (form_data / field legacy).
+     */
+    public function updateBeritaAcara(Request $request, $id)
+    {
+        $query = BeritaAcara::query();
+        if (!auth()->user()->hasPermission('berita_acara_riwayat_semua')) {
+            $query->where('user_id', auth()->id());
+        }
+        $beritaAcara = $query->findOrFail($id);
+
+        $validated = $request->validate([
+            'nama_pemohon' => 'nullable|string',
+            'nim' => 'nullable|string',
+            'prodi_fakultas_instansi' => 'nullable|string',
+            'dosen_pembimbing' => 'nullable|string',
+            'telp_hp' => 'nullable|string',
+            'email' => 'nullable|string',
+            'alamat' => 'nullable|string',
+            'judul_penelitian' => 'nullable|string',
+            'akses_lab' => 'nullable|string',
+            'bahan_contoh_uji' => 'nullable|string',
+            'kemasan_packing' => 'nullable|string',
+            'permintaan_analisa' => 'nullable|string',
+            'jumlah_sampel' => 'nullable|string',
+            'kode_nama_sampel' => 'nullable|string',
+            'keterangan_sampel' => 'nullable|string',
+            'keterangan_tambahan' => 'nullable|string',
+            'pengukuran_per_sampel' => 'nullable|string',
+            'sisa_sampel' => 'nullable|string',
+            'upload_akses' => 'nullable|string',
+            'masa_berlaku_akses' => 'nullable|string',
+            'status_pelanggan' => 'nullable|string',
+            'status_berkas' => 'nullable|string',
+            'form_data' => 'nullable|string',
+            'form_template_id' => 'nullable|integer|exists:form_templates,id',
+        ]);
+
+        if (isset($validated['form_data']) && is_string($validated['form_data'])) {
+            $decoded = json_decode($validated['form_data'], true);
+            if (!is_array($decoded)) {
+                return response()->json(['message' => 'form_data tidak valid'], 422);
+            }
+            $validated['form_data'] = $decoded;
+        }
+
+        if (empty($validated['judul_penelitian']) && !empty($validated['form_data'])) {
+            $templateId = $validated['form_template_id'] ?? $beritaAcara->form_template_id;
+            if (!empty($templateId)) {
+                $validated['judul_penelitian'] = $this->extractJudulPenelitian($validated['form_data'], $templateId);
+            }
+        }
+
+        $beritaAcara->update($validated);
+
+        ActivityLogService::log($beritaAcara->id, 'edited', 'Memperbarui data berita acara');
+
+        return response()->json([
+            'message' => 'Berita acara updated successfully',
+            'data' => $beritaAcara->load(['user', 'analysts', 'penyelias', 'managerTeknis', 'revisions', 'payment', 'samples', 'certificate', 'activityLogs.user']),
+        ]);
+    }
+
+    /**
+     * Extract judul_penelitian dari form_data berdasarkan label "Judul Penelitian".
+     */
+    private function extractJudulPenelitian(array $formData, int $templateId): ?string
+    {
+        $field = FormField::where('form_template_id', $templateId)
+            ->where('label', 'LIKE', '%Judul%Penelitian%')
+            ->first();
+
+        if ($field && isset($formData["field_{$field->id}"]) && is_string($formData["field_{$field->id}"])) {
+            return $formData["field_{$field->id}"];
+        }
+
+        return null;
     }
 
     public function assignAnalyst(Request $request, $id)
@@ -269,7 +355,7 @@ class AdminController extends Controller
 
     public function getAnalysts()
     {
-        $analysts = User::where('role', 'analyst')->get();
+        $analysts = User::where('role', 'analyst')->orderByDesc('created_at')->get();
 
         return response()->json($analysts);
     }
@@ -279,7 +365,7 @@ class AdminController extends Controller
      */
     public function getPenyelias()
     {
-        $penyelias = User::where('role', 'penyelia')->get();
+        $penyelias = User::where('role', 'penyelia')->orderByDesc('created_at')->get();
 
         return response()->json($penyelias);
     }
@@ -323,7 +409,7 @@ class AdminController extends Controller
      */
     public function getManagerTeknis()
     {
-        $managerTeknis = User::where('role', 'manager_teknis')->get();
+        $managerTeknis = User::where('role', 'manager_teknis')->orderByDesc('created_at')->get();
 
         return response()->json($managerTeknis);
     }

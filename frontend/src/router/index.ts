@@ -19,8 +19,8 @@ const routes = [
     path: '/dashboard',
     redirect: () => {
       const auth = useAuthStore(pinia)
-      if (auth.user?.role === 'penyelia') return '/penyelia/dashboard'
-      if (auth.user?.role === 'manager_teknis') return '/manager-teknis/dashboard'
+      if (auth.effectiveRole === 'penyelia') return '/penyelia/dashboard'
+      if (auth.effectiveRole === 'manager_teknis') return '/manager-teknis/dashboard'
       if (!auth.hasPermission('dashboard')) {
         if (auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/admin/berita-acara'
         if (auth.hasPermission('berita_acara_create') || auth.hasPermission('berita_acara_riwayat_personal') || auth.hasPermission('berita_acara_riwayat_semua') || auth.hasPermission('berita_acara_verify') || auth.hasPermission('berita_acara_assign')) return '/user/berita-acara'

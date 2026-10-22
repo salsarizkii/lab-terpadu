@@ -29,28 +29,30 @@ Alur verifikasi bertingkat:
 | `pending` | User | User sudah submit, menunggu verifikasi admin |
 | `revision` | Admin/Penyelia/Manager | Minta user revisi, alur kembali ke awal |
 | `admin_verified` | Admin | Admin approve, menunggu verifikasi penyelia |
+| `admin_revisi` | Penyelia (tolak/perbaikan) | Penyelia tolak/minta perbaikan → dikembalikan ke admin untuk diperbaiki & verifikasi ulang |
 | `penyelia_verified` | Penyelia | Penyelia approve, siap dikerjakan analis |
 | `rekap_ready` | Analyst (otomatis) | Rekap analis disimpan, menunggu verifikasi manager teknis |
 | `completed` | Manager Teknis | Rekap disetujui, kembali ke user (pembayaran) |
 | `rejected` | Admin/Manager | BA ditolak permanen |
-| *(pending)* | Penyelia (reject) | Tolak dari penyelia → kembali ke antrian admin untuk direvisi |
 
 ### Transisi Status
 
 ```
 draft → pending            (User submit)
-pending → admin_verified   (Admin approve, wajib nomor_agenda)
-pending → rejected         (Admin reject)
+pending → admin_verified   (Admin approve, wajib nomor_agenda + sample_submitted=true; sampel belum masuk = tidak bisa lanjut ke penyelia)
 pending → revision         (Admin minta revisi)
-admin_verified → penyelia_verified | revision | rejected   (Penyelia; rejected → dikembalikan ke pending/admin)
+pending → rejected         (Admin reject; hanya via API — tombol Tolak tidak ada di UI)
+admin_verified → penyelia_verified | admin_revisi   (Penyelia; tolak/perlu perbaikan → admin_revisi)
+admin_revisi → admin_verified | revision | rejected        (Admin verifikasi ulang/minta revisi user/tolak permanen)
 penyelia_verified → rekap_ready   (Analis simpan rekap → otomatis)
 rekap_ready → completed | revision | rejected              (Manager Teknis)
 revision → pending         (User re-submit setelah revisi)
+revision → admin_verified | revision | rejected            (Admin juga bisa langsung verifikasi/minta revisi ulang/tolak)
 ```
 
-> Revisi dari penyelia/manager mengembalikan BA ke `pending` — user perbaiki → alur diulang dari admin.
-> **Tolak (rejected) dari penyelia**: BA dikembalikan ke antrian admin (`pending`) dengan alasan penolakan tersimpan di `rejection_reason` — admin memperbaiki lalu verifikasi ulang. `rejection_reason` dibersihkan otomatis saat admin memverifikasi ulang.
-> **Tolak (rejected) dari admin/manager**: BA ditolak permanen.
+> **Tombol "Tolak" telah dihapus dari seluruh tampilan berita acara** — status `rejected` tetap ada untuk data lama dan tetap bisa dipanggil via API.
+> Revisi (perlu perbaikan) dari penyelia TIDAK dikirim ke user — BA menjadi `admin_revisi` dan admin yang menindaklanjuti (perbaiki data, verifikasi ulang, atau teruskan revisi ke user). Revisi ke user hanya berasal dari admin/manager.
+> **Tolak/perlu perbaikan dari penyelia**: BA menjadi `admin_revisi`, catatan tersimpan di `rejection_reason` — `rejection_reason` dibersihkan otomatis saat admin memverifikasi ulang.
 
 ### Validasi Transisi
 
@@ -131,6 +133,14 @@ if (!isset($validTransitions[$currentStatus][$newStatus])) {
 - **Manager Teknis** melihat BA berstatus `rekap_ready` (yang di-assign). Endpoint: `GET/PUT /api/manager-teknis/berita-acara[/{id}/status]` — transisi ke `completed | revision | rejected`.
 - Controller: `VerificationController`, diakses lewat role/permission (`berita_acara_verify` untuk penyelia, `hasil_pengujian_rekap` untuk manager teknis).
 - Semua aksi dicatat ke ActivityLog: `admin_verified`, `penyelia_verified`, `rekap_verified`, `completed`.
+- **Override Super Admin**: `ensureRole()` di `VerificationController` selalu mengizinkan `superadmin`,
+  sehingga superadmin bisa memproses kedua tahap ini. Di halaman detail BA admin muncul panel
+  "Override Super Admin" saat status `admin_verified` / `rekap_ready`. Aksi override ditandai
+  `(override superadmin)` di ActivityLog; nama petugas pada PDF/DOCX tetap memakai petugas asli
+  yang ditugaskan (verifikator superadmin hanya dipakai bila tidak ada penugasan).
+- **Switch role (frontend)**: dropdown user di Navbar punya bagian "Aktif sebagai" (khusus akun
+  superadmin). Akun tetap superadmin di backend; menu/UI mengikuti role yang dipilih
+  (`effectiveRole` + snapshot permission dari `/admin/roles`).
 
 ## Form Builder — Sync Logic
 

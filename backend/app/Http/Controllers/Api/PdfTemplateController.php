@@ -19,10 +19,10 @@ class PdfTemplateController extends Controller
 {
     public function index()
     {
-        $templates = PdfTemplate::all();
+        $templates = PdfTemplate::orderByDesc('created_at')->get();
         if ($templates->isEmpty()) {
             (new PdfTemplateSeeder())->run();
-            $templates = PdfTemplate::all();
+            $templates = PdfTemplate::orderByDesc('created_at')->get();
         }
 
         return response()->json([
@@ -351,6 +351,18 @@ class PdfTemplateController extends Controller
             $template = PdfTemplate::where('type', $type)->first();
         }
 
+        // Cache: dokumen yang sama (template & data tidak berubah) langsung
+        // dikirim tanpa render ulang agar download cepat.
+        $cachePath = $this->cachePath($type, (int) $id, $template, 'pdf');
+        if ($cachePath && is_file($cachePath) && filesize($cachePath) > 0) {
+            $filename = "{$type}_{$id}.pdf";
+            return response()->streamDownload(function () use ($cachePath) {
+                echo (string) file_get_contents($cachePath);
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        }
+
         $data = $this->getRealData($type, $id);
 
         // Prioritas: render dari file Word asli (hasil persis seperti template Word).
@@ -362,6 +374,9 @@ class PdfTemplateController extends Controller
             ], 500);
         }
         if ($docxPdf !== null) {
+            if ($cachePath) {
+                @file_put_contents($cachePath, $docxPdf);
+            }
             $filename = "{$type}_{$id}.pdf";
             return response()->streamDownload(function () use ($docxPdf) {
                 echo $docxPdf;
@@ -372,8 +387,50 @@ class PdfTemplateController extends Controller
 
         $pdf = PdfGeneratorService::generatePdf($template, $data);
 
+        if ($cachePath) {
+            @file_put_contents($cachePath, (string) $pdf->output());
+        }
+
         $filename = "{$type}_{$id}.pdf";
         return $pdf->download($filename);
+    }
+
+    /**
+     * Path file cache untuk dokumen yang sudah pernah digenerate.
+     * Key = hash dari tipe, id, versi template, dan tanggal update entitas terkait,
+     * sehingga perubahan data otomatis membatalkan cache.
+     */
+    private function cachePath(string $type, int $id, ?PdfTemplate $template, string $format): ?string
+    {
+        if (!$template) {
+            return null;
+        }
+
+        $time = $template->updated_at ? (string) $template->updated_at : (string) $template->created_at;
+
+        switch ($type) {
+            case 'tagihan':
+                $p = Payment::find($id);
+                $entityTime = $p?->updated_at ? (string) $p->updated_at : '';
+                break;
+            case 'sertifikat':
+                $c = Certificate::find($id);
+                $entityTime = $c?->updated_at ? (string) $c->updated_at : '';
+                break;
+            default:
+                $ba = BeritaAcara::find($id);
+                $entityTime = $ba?->updated_at ? (string) $ba->updated_at : '';
+                break;
+        }
+
+        $key = md5("{$type}|{$id}|{$template->id}|{$time}|{$entityTime}");
+
+        $dir = storage_path('app/pdf-cache');
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        return $dir . DIRECTORY_SEPARATOR . $key . '.' . $format;
     }
 
     /**
@@ -395,6 +452,17 @@ class PdfTemplateController extends Controller
             $template = PdfTemplate::where('type', $type)->first();
         }
 
+        // Cache Word agar download berikutnya langsung jadi.
+        $cachePath = $this->cachePath($type, (int) $id, $template, 'docx');
+        if ($cachePath && is_file($cachePath) && filesize($cachePath) > 0) {
+            $filename = "{$type}_{$id}.docx";
+            return response()->streamDownload(function () use ($cachePath) {
+                echo (string) file_get_contents($cachePath);
+            }, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ]);
+        }
+
         $docx = DocxPdfService::generateFilledDocx($template, $this->getRealData($type, $id));
         if ($docx === null) {
             // Fallback: template tanpa file Word → generate .docx dari render HTML.
@@ -405,6 +473,10 @@ class PdfTemplateController extends Controller
                     'message' => 'Gagal membuat dokumen Word dari template.',
                 ], 422);
             }
+        }
+
+        if ($cachePath) {
+            @file_put_contents($cachePath, $docx);
         }
 
         $filename = "{$type}_{$id}.docx";
@@ -701,11 +773,14 @@ class PdfTemplateController extends Controller
                     // Alias slug form template → kolom berita_acaras
                     '{{ kode_nama_sampel }}' => $ba->kode_nama_sampel ?? '-',
                     '{{ kemasan_packing }}' => $ba->kemasan_packing ?? '-',
+                    '{{ prodi_fakultas_instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
+                    // Diisi jawaban form "Metode/Instrumen" bila ada; fallback '-'
+                    '{{ metode_instrumen }}' => '-',
                 ];
                 break;
 
             case 'lembar_kendali_sampel':
-                $ba = BeritaAcara::with(['user'])->findOrFail($id);
+                $ba = BeritaAcara::with(['user', 'analysts'])->findOrFail($id);
                 $data = [
                     '{{ agenda }}' => $ba->nomor_agenda ?? '-',
                     '{{ id }}' => 'BA-' . str_pad($ba->id, 4, '0', STR_PAD_LEFT),
@@ -715,6 +790,8 @@ class PdfTemplateController extends Controller
                     '{{ pengukuran_pengulangan_per_sampel }}' => $ba->pengukuran_per_sampel ?? '-',
                     // Diisi jawaban form "Metode/Instrumen" bila ada; fallback '-'
                     '{{ metode_instrumen }}' => '-',
+                    '{{ nama_analyst }}' => $ba->analysts->pluck('name')->filter()->implode(', ')
+                        ?: ($ba->analyst?->name ?? '-'),
                 ];
                 break;
 
@@ -759,6 +836,11 @@ class PdfTemplateController extends Controller
                     '{{ jumlah_sampel_contoh_uji }}' => $ba->jumlah_sampel ?? '-',
                     '{{ permintaan_analisa_instrumentasi_metode }}' => $ba->permintaan_analisa ?? '-',
                     '{{ pengukuran_pengulangan_per_sampel }}' => $ba->pengukuran_per_sampel ?? '-',
+                    '{{ prodi_fakultas_instansi }}' => $ba->prodi_fakultas_instansi ?? '-',
+                    '{{ dosen_pembimbing }}' => $ba->dosen_pembimbing ?? '-',
+                    '{{ email }}' => $ba->email ?? $ba->user?->email ?? '-',
+                    '{{ alamat }}' => $ba->alamat ?? '-',
+                    '{{ status_pelanggan }}' => $ba->status_pelanggan ?? '-',
                 ];
                 break;
 
@@ -772,14 +854,23 @@ class PdfTemplateController extends Controller
 
         // Petugas yang mengurus BA ini: admin/penyelia/manager teknis aktual.
         // Kalau belum diverifikasi/terverifikasi, tampilkan "Belum diverifikasi".
-        $petugasData = isset($ba) ? self::petugasVariables($ba) : [];
-
+        // Relasi & log verifikasi dimuat sekali, dipakai bersama oleh petugas & tanggal.
+        $petugasData = [];
         $dateData = [];
         if (isset($ba)) {
+            $ba->loadMissing(['revisions', 'pengujians', 'samples', 'penyelias', 'managerTeknis']);
+            $verifyLogs = $ba->activityLogs()
+                ->whereIn('action', ['admin_verified', 'penyelia_verified', 'rekap_verified'])
+                ->with('user:id,name,role')
+                ->latest()
+                ->get();
+
+            $petugasData = self::petugasVariables($ba, $verifyLogs);
             $dateData = PdfGeneratorService::dateVariables(
                 $ba,
                 $payment ?? null,
-                $cert ?? null
+                $cert ?? null,
+                $verifyLogs
             );
         }
 
@@ -792,20 +883,37 @@ class PdfTemplateController extends Controller
      * - Penyelia: user yang memverifikasi (log `penyelia_verified`), fallback ke yang di-assign
      * - Manager Teknis: user yang memverifikasi (log `rekap_verified`), fallback ke yang di-assign
      * Bila belum ada → "Belum diverifikasi".
+     * Override superadmin tidak dipakai sebagai nama petugas: pakai petugas asli
+     * yang ditugaskan, dan hanya fallback ke verifikator bila tidak ada penugasan.
+     * $verifyLogs: activityLogs verifikasi yang sudah dimuat sekali oleh pemanggil.
      */
-    private function petugasVariables(BeritaAcara $ba): array
+    private function petugasVariables(BeritaAcara $ba, ?\Illuminate\Support\Collection $verifyLogs = null): array
     {
         $belum = 'Belum diverifikasi';
 
-        $adminLog = $ba->activityLogs()->where('action', 'admin_verified')->latest()->first();
-        $penyeliaLog = $ba->activityLogs()->where('action', 'penyelia_verified')->latest()->first();
-        $managerLog = $ba->activityLogs()->where('action', 'rekap_verified')->latest()->first();
+        if ($verifyLogs === null) {
+            $verifyLogs = $ba->activityLogs()
+                ->whereIn('action', ['admin_verified', 'penyelia_verified', 'rekap_verified'])
+                ->with('user:id,name,role')
+                ->latest()
+                ->get();
+        }
+
+        $adminLog = $verifyLogs->firstWhere('action', 'admin_verified');
+        $penyeliaLog = $verifyLogs->firstWhere('action', 'penyelia_verified');
+        $managerLog = $verifyLogs->firstWhere('action', 'rekap_verified');
 
         $adminName = $adminLog?->user?->name;
-        $penyeliaName = $penyeliaLog?->user?->name
-            ?? $ba->penyelias->pluck('name')->filter()->first();
-        $managerName = $managerLog?->user?->name
-            ?? $ba->managerTeknis->pluck('name')->filter()->first();
+
+        $penyeliaVerifier = $penyeliaLog?->user;
+        $managerVerifier = $managerLog?->user;
+
+        $penyeliaName = ($penyeliaVerifier && $penyeliaVerifier->role !== 'superadmin' ? $penyeliaVerifier->name : null)
+            ?? $ba->penyelias->pluck('name')->filter()->first()
+            ?? $penyeliaVerifier?->name;
+        $managerName = ($managerVerifier && $managerVerifier->role !== 'superadmin' ? $managerVerifier->name : null)
+            ?? $ba->managerTeknis->pluck('name')->filter()->first()
+            ?? $managerVerifier?->name;
 
         return [
             '{{ nama_admin }}' => $adminName ?: $belum,

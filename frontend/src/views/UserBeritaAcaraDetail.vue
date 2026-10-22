@@ -31,6 +31,7 @@ const statusMap: Record<string, string> = {
   pending: 'Menunggu Admin',
   revision: 'Perlu Revisi',
   admin_verified: 'Diverifikasi Admin',
+  admin_revisi: 'Menunggu Admin',
   penyelia_verified: 'Dikerjakan Analis',
   rekap_ready: 'Menunggu Manager Teknis',
   completed: 'Selesai',
@@ -42,6 +43,7 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
   pending: 'warning',
   revision: 'warning',
   admin_verified: 'info',
+  admin_revisi: 'warning',
   penyelia_verified: 'info',
   rekap_ready: 'warning',
   completed: 'success',
@@ -49,6 +51,12 @@ const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger'
 }
 
 const isCompleted = computed(() => item.value?.status === 'completed')
+
+// Revisi yang ditujukan ke pihak selain pemohon (mis. admin_revisi dari penyelia)
+// tidak ditampilkan di riwayat user.
+const visibleLogs = computed(() =>
+  (item.value?.activity_logs || []).filter(l => l.action !== 'admin_revision')
+)
 
 const canEdit = computed(() => item.value && ['draft', 'pending', 'revision'].includes(item.value.status))
 const canPay = computed(() => isCompleted.value && item.value?.payment && item.value.payment.status === 'pending' && !item.value?.payment?.payment_proof)
@@ -254,7 +262,7 @@ function getRevisionDiff(rev: any) {
           </div>
           <div class="revision-notice__content">
             <div class="revision-notice__title">Perlu Perbaikan</div>
-            <div class="revision-notice__note">{{ item.revisions[item.revisions.length - 1].note }}</div>
+            <div class="revision-notice__note">{{ item.revisions[0].note }}</div>
           </div>
         </div>
 
@@ -329,7 +337,7 @@ function getRevisionDiff(rev: any) {
         <div class="section">
           <Card title="Riwayat Aktivitas">
             <ActivityTimeline
-              :logs="item.activity_logs || []"
+              :logs="visibleLogs"
               show-detail
               :revision-active="isRevision"
               :show-proses="isRevision && !hasClickedPerbaiki"

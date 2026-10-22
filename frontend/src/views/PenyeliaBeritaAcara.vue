@@ -10,6 +10,7 @@ import { verificationApi } from '../api/verification'
 import { useAuthStore } from '../stores/authStore'
 import type { BeritaAcara } from '../types'
 import { baStatusMap, baStatusTypeMap } from '../utils/baStatus'
+import type { BadgeType } from '../utils/baStatus'
 import { toast } from 'vue-sonner'
 import { formatDateTime } from '../utils/date'
 
@@ -33,7 +34,14 @@ async function fetchData() {
 }
 
 const pendingCount = computed(() => items.value.filter(i => i.status === 'admin_verified').length)
+const adminRevisiCount = computed(() => items.value.filter(i => i.status === 'admin_revisi').length)
 const approvedCount = computed(() => items.value.filter(i => i.status === 'penyelia_verified').length)
+
+const statusTypeMap: Record<string, BadgeType> = {
+  ...baStatusTypeMap,
+  admin_verified: 'warning',
+  penyelia_verified: 'success',
+}
 
 function getJudul(item: BeritaAcara) {
   if (item.judul_penelitian) return item.judul_penelitian
@@ -57,7 +65,7 @@ function getJudul(item: BeritaAcara) {
 
       <Card>
         <div class="toolbar">
-          <span class="filter-count">{{ pendingCount }} menunggu verifikasi · {{ approvedCount }} diverifikasi</span>
+          <span class="filter-count">{{ pendingCount }} menunggu verifikasi · {{ adminRevisiCount }} admin revisi · {{ approvedCount }} diverifikasi</span>
         </div>
 
         <SkeletonTable v-if="loading" :cols="5" :rows="5" />
@@ -78,7 +86,7 @@ function getJudul(item: BeritaAcara) {
               <tr v-for="item in items" :key="item.id">
                 <td class="td-judul">{{ getJudul(item) }}</td>
                 <td>{{ item.user?.name || '-' }}</td>
-                <td><Badge :type="baStatusTypeMap[item.status]" :text="baStatusMap[item.status]" /></td>
+                <td><Badge :type="statusTypeMap[item.status]" :text="baStatusMap[item.status]" /></td>
                 <td>{{ item.analysts?.length ? item.analysts.map(a => a.name).join(', ') : '-' }}</td>
                 <td class="td-date">{{ formatDateTime(item.created_at) }}</td>
                 <td class="td-aksi">

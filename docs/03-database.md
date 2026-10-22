@@ -102,7 +102,7 @@ Composite primary key: (role_id, permission_id)
 | id | bigint PK | no | auto | Primary key |
 | user_id | bigint FK | no | - | References users.id (applicant) |
 | analyst_id | bigint FK | yes | null | References users.id (assigned analyst) |
-| status | enum | no | 'draft' | draft/pending/revision/admin_verified/penyelia_verified/rekap_ready/completed/rejected |
+| status | enum | no | 'draft' | draft/pending/revision/admin_verified/admin_revisi/penyelia_verified/rekap_ready/completed/rejected |
 | nama_pemohon | varchar(255) | yes | null | Applicant name |
 | nim | varchar(50) | yes | null | Student/staff ID |
 | prodi_fakultas_instansi | varchar(255) | yes | null | Department/faculty/institution |

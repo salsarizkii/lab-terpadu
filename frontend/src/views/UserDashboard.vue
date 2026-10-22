@@ -97,8 +97,8 @@ const certCount = computed(() => items.value.filter(i => i.certificate).length |
                 </div>
                 <div class="history-right">
                   <Badge
-                    :type="item.status === 'completed' ? 'success' : item.status === 'rejected' ? 'danger' : item.status === 'revision' ? 'warning' : item.status === 'admin_verified' || item.status === 'penyelia_verified' ? 'info' : 'default'"
-                    :text="item.status === 'completed' ? 'Selesai' : item.status === 'admin_verified' ? 'Diverifikasi Admin' : item.status === 'penyelia_verified' ? 'Dikerjakan Analis' : item.status === 'rekap_ready' ? 'Menunggu Manager' : item.status"
+                    :type="item.status === 'completed' ? 'success' : item.status === 'rejected' ? 'danger' : item.status === 'revision' || item.status === 'admin_revisi' ? 'warning' : item.status === 'admin_verified' || item.status === 'penyelia_verified' ? 'info' : 'default'"
+                    :text="item.status === 'completed' ? 'Selesai' : item.status === 'admin_verified' ? 'Diverifikasi Admin' : item.status === 'admin_revisi' ? 'Menunggu Admin' : item.status === 'penyelia_verified' ? 'Dikerjakan Analis' : item.status === 'rekap_ready' ? 'Menunggu Manager' : item.status"
                   />
                   <Button size="sm" variant="ghost" @click="openFlow(item)">Lihat Alur</Button>
                 </div>

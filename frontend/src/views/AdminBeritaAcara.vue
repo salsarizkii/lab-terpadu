@@ -22,6 +22,7 @@ const activeTab = ref('all')
 const tabs = [
   { key: 'all', label: 'Semua' },
   { key: 'pending', label: 'Menunggu Admin' },
+  { key: 'admin_revisi', label: 'Admin Revisi' },
   { key: 'admin_verified', label: 'Diverifikasi Admin' },
   { key: 'penyelia_verified', label: 'Diverifikasi Penyelia' },
   { key: 'rekap_ready', label: 'Menunggu Manager' },
@@ -31,10 +32,12 @@ const tabs = [
 
 const statusMap: Record<string, string> = {
   draft: 'Draft', pending: 'Menunggu Admin', revision: 'Revisi', admin_verified: 'Diverifikasi Admin',
+  admin_revisi: 'Admin Revisi',
   penyelia_verified: 'Diverifikasi Penyelia', rekap_ready: 'Menunggu Manager Teknis', completed: 'Selesai', rejected: 'Ditolak',
 }
 const statusTypeMap: Record<string, 'default' | 'warning' | 'success' | 'danger' | 'info'> = {
   draft: 'default', pending: 'warning', revision: 'warning', admin_verified: 'info',
+  admin_revisi: 'warning',
   penyelia_verified: 'info', rekap_ready: 'warning', completed: 'success', rejected: 'danger',
 }
 

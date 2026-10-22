@@ -85,19 +85,26 @@ async function selectType(type: CardType) {
       locked: f.locked,
     }))
 
-    const lockedMetode = fields.find(f => f.label === 'Metode/Instrumen' && f.locked)
-    if (!lockedMetode && type === 'berita_acara') {
+    const instrumentOptions: FormField['options'] = instruments.length > 0
+      ? instruments.map(i => ({ label: i.name, is_other: false }))
+      : [{ label: 'Pilih instrumen...', is_other: false }]
+
+    if (type === 'berita_acara') {
       fields = fields.filter(f => f.label !== 'Metode/Instrumen')
-      const metodeField: FormField = {
-        label: 'Metode/Instrumen',
-        type: 'checkbox',
-        options: instruments.length > 0
-          ? instruments.map(i => ({ label: i.name, is_other: false }))
-          : [{ label: 'Pilih instrumen...', is_other: false }],
-        is_required: false,
-        locked: true,
+      const instrumentField = fields.find(f => f.label === 'Pemilihan Instrumen' && f.locked)
+      if (instrumentField) {
+        const idx = fields.indexOf(instrumentField)
+        fields[idx] = { ...instrumentField, options: instrumentOptions }
+      } else {
+        fields.push({
+          id: undefined,
+          label: 'Pemilihan Instrumen',
+          type: 'checkbox',
+          options: instrumentOptions,
+          is_required: true,
+          locked: true,
+        })
       }
-      fields.push(metodeField)
     }
 
     currentFields.value = fields

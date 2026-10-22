@@ -17,7 +17,7 @@ class FormTemplateController extends Controller
             $query->where('type', $request->type);
         }
 
-        return response()->json($query->get());
+        return response()->json($query->orderByDesc('created_at')->get());
     }
 
     public function show($id)

@@ -23,6 +23,8 @@ onMounted(async () => {
 })
 
 const verifiedCount = computed(() => pending.value.filter(i => i.status === 'admin_verified').length)
+
+const needAction = computed(() => pending.value.filter(i => i.status === 'admin_verified'))
 </script>
 
 <template>
@@ -37,7 +39,7 @@ const verifiedCount = computed(() => pending.value.filter(i => i.status === 'adm
       <template v-else>
         <div class="stats">
           <Card class="stat-card" hover @click="router.push('/penyelia/berita-acara')">
-            <div class="stat-value">{{ pending.length }}</div>
+            <div class="stat-value">{{ needAction.length }}</div>
             <div class="stat-label">Menunggu Verifikasi</div>
           </Card>
           <Card class="stat-card">
@@ -48,10 +50,10 @@ const verifiedCount = computed(() => pending.value.filter(i => i.status === 'adm
 
         <SkeletonCard v-if="loading" />
         <Card v-else title="Berita Acara Menunggu Verifikasi Anda">
-          <div v-if="pending.length === 0" class="empty">Tidak ada berita acara menunggu verifikasi</div>
+          <div v-if="needAction.length === 0" class="empty">Tidak ada berita acara menunggu verifikasi</div>
           <div v-else class="ba-mini-list">
             <div
-              v-for="item in pending.slice(0, 5)"
+              v-for="item in needAction.slice(0, 5)"
               :key="item.id"
               class="ba-mini-item"
               @click="router.push(`/penyelia/berita-acara/${item.id}`)"

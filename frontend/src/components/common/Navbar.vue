@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/authStore'
 import { useRouter } from 'vue-router'
-import { FlaskConical, LogOut, User, Lock, ChevronDown, AlertTriangle } from '@lucide/vue'
+import { FlaskConical, LogOut, User, Lock, ChevronDown, Check, AlertTriangle } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import Modal from './Modal.vue'
 import Button from './Button.vue'
@@ -13,17 +13,52 @@ import DropdownDivider from './DropdownDivider.vue'
 const auth = useAuthStore()
 const router = useRouter()
 
+const ROLE_LABELS: Record<string, string> = {
+  superadmin: 'Super Admin',
+  admin: 'Admin',
+  analyst: 'Analis',
+  penyelia: 'Penyelia',
+  manager_teknis: 'Manager Teknis',
+  user: 'User',
+}
+
+const ROLE_ORDER = ['superadmin', 'admin', 'penyelia', 'manager_teknis', 'analyst', 'user']
+
+function roleLabelFor(name: string): string {
+  return ROLE_LABELS[name] ?? name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 const roleLabel = computed(() => {
-  const map: Record<string, string> = {
-    superadmin: 'Super Admin',
-    admin: 'Admin',
-    analyst: 'Analis',
-    penyelia: 'Penyelia',
-    manager_teknis: 'Manager Teknis',
-    user: 'User',
-  }
-  return auth.user?.role ? (map[auth.user.role] ?? auth.user.role) : '-'
+  return auth.effectiveRole ? roleLabelFor(auth.effectiveRole) : '-'
 })
+
+const roleOptions = computed(() => {
+  const names = Object.keys(auth.rolePermissions)
+  if (!names.length) return [{ name: 'superadmin', label: roleLabelFor('superadmin') }]
+  names.sort((a, b) => {
+    const ia = ROLE_ORDER.indexOf(a)
+    const ib = ROLE_ORDER.indexOf(b)
+    if (ia !== -1 && ib !== -1) return ia - ib
+    if (ia !== -1) return -1
+    if (ib !== -1) return 1
+    return a.localeCompare(b)
+  })
+  return names.map(name => ({ name, label: roleLabelFor(name) }))
+})
+
+function handleMenuOpen() {
+  if (auth.isSuperAdminAccount) {
+    auth.fetchRoles().catch(() => {})
+  }
+}
+
+function handleSwitchRole(roleName: string, close: () => void) {
+  close()
+  if (roleName === auth.effectiveRole) return
+  auth.switchRole(roleName)
+  toast.success(`Sekarang aktif sebagai ${roleLabelFor(roleName)}`)
+  router.push('/dashboard')
+}
 
 const showProfileModal = ref(false)
 const profileName = ref('')
@@ -110,12 +145,12 @@ function confirmLogout() {
         </div>
       </div>
       <div class="navbar__brand-text">
-        <span class="navbar__title">UPT Lab Terpadu</span>
-        <span class="navbar__subtitle">Hasil Pengujian Penelitian</span>
+        <span class="navbar__title">SimaRis</span>
+        <span class="navbar__subtitle">UPT Lab Terpadu</span>
       </div>
     </div>
     <div class="navbar__right">
-      <Dropdown teleport placement="bottom-end">
+      <Dropdown teleport placement="bottom-end" @open="handleMenuOpen">
         <template #trigger="{ toggle, isOpen }">
           <div class="navbar__user" @click="toggle">
             <div class="navbar__avatar">{{ auth.user?.name?.charAt(0)?.toUpperCase() || 'U' }}</div>
@@ -134,6 +169,24 @@ function confirmLogout() {
               <div class="user-dropdown__email">{{ auth.user?.email }}</div>
             </div>
           </div>
+          <template v-if="auth.isSuperAdminAccount">
+            <DropdownDivider />
+            <div class="role-switch">
+              <div class="role-switch__title">Aktif sebagai</div>
+              <button
+                v-for="option in roleOptions"
+                :key="option.name"
+                type="button"
+                class="role-switch__item"
+                :class="{ 'role-switch__item--active': option.name === auth.effectiveRole }"
+                @click="handleSwitchRole(option.name, close)"
+              >
+                <span>{{ option.label }}</span>
+                <Check v-if="option.name === auth.effectiveRole" :size="14" class="role-switch__check" />
+              </button>
+              <div class="role-switch__hint">Akun tetap Super Admin. Menu &amp; tampilan mengikuti role yang dipilih.</div>
+            </div>
+          </template>
           <DropdownDivider />
           <DropdownItem :icon="User" @click="handleEditProfile(); close()">Edit Profile</DropdownItem>
           <DropdownItem :icon="Lock" @click="handleChangePassword(); close()">Ganti Password</DropdownItem>
@@ -342,6 +395,54 @@ function confirmLogout() {
 }
 .user-dropdown__email {
   font-size: 11px;
+  color: #94a3b8;
+}
+.role-switch {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 4px 6px;
+}
+.role-switch__title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 6px 8px 4px;
+}
+.role-switch__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.role-switch__item:hover {
+  background: #f1f5f9;
+}
+.role-switch__item--active {
+  color: #1d4ed8;
+  font-weight: 600;
+  background: #eff6ff;
+}
+.role-switch__check {
+  flex-shrink: 0;
+}
+.role-switch__hint {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  line-height: 1.4;
   color: #94a3b8;
 }
 .profile-form {

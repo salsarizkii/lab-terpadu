@@ -35,7 +35,8 @@ onMounted(async () => {
     if (template && template.fields) {
       const instruments = Array.isArray(instrumentsRes) ? instrumentsRes : []
       templateFields.value = template.fields.map(f => {
-        const isMetode = f.label.toLowerCase().includes('metode') && f.label.toLowerCase().includes('instrumen')
+        const label = f.label.toLowerCase()
+        const isMetode = (label.includes('metode') && label.includes('instrumen')) || label.includes('pemilihan instrumen')
         if (isMetode) {
           return {
             ...f,
